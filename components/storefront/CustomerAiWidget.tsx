@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bot, X, Send, Loader2 } from "lucide-react";
+import { Bot, Send, X, Loader2, Sparkles, MessageSquare } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { useFeatures } from "@/context/FeatureFlagContext";
 
@@ -13,13 +13,14 @@ export default function CustomerAiWidget() {
   >([
     {
       sender: "ai",
-      text: "👋 আসসালামু আলাইকুম! আমি এনমারের অর্গানিক খাদ্য সহকারী। সুন্দরবনের খাঁটি মধু, সরিষার তেল, ডেলিভারি ও পুষ্টি বিষয়ক যে কোনো প্রশ্ন করতে পারেন!",
+      text: "আসসালামু আলাইকুম! আমি ENMAR অর্গানিক খাদ্য বিশেষজ্ঞ এআই সহকারী। সুন্দরবনের খাঁটি মধু, কাঠের ঘানিভাঙা তেল, পাহাড়ি মশলা বা আপনার সুস্থতার জন্য যেকোনো পণ্যের তথ্য জানতে আমাকে প্রশ্ন করুন!",
     },
   ]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const { t, locale } = useLanguage();
   const { isFeatureEnabled } = useFeatures();
+
   if (!isFeatureEnabled("customer_ai_widget")) return null;
 
   const handleSend = async (text?: string) => {
@@ -52,7 +53,14 @@ export default function CustomerAiWidget() {
       } else {
         setMessages((prev) => [
           ...prev,
-          { sender: "ai" as const, text: json.reply || "দুঃখিত, উত্তর পাওয়া যায়নি।" },
+          {
+            sender: "ai" as const,
+            text:
+              json.reply ||
+              (locale === "bn"
+                ? "দুঃখিত, এই মুহূর্তে উত্তর দিতে পারছি না। অনুগ্রহ করে আমাদের সাথে হোয়াটসঅ্যাপে যোগাযোগ করুন।"
+                : "Sorry, I am unable to reply at this moment. Please reach out via WhatsApp."),
+          },
         ]);
       }
     } catch (err: any) {
@@ -60,7 +68,10 @@ export default function CustomerAiWidget() {
         ...prev,
         {
           sender: "ai",
-          text: "দুঃখিত, সংযোগে ত্রুটি হয়েছে। অনুগ্রহ করে সরাসরি আমাদের সাথে হোয়াটসঅ্যাপে (+৮৮০ ১৬১৪ ১১৩০৮২) যোগাযোগ করুন।",
+          text:
+            locale === "bn"
+              ? "দুঃখিত, এআই সার্ভারের সাথে সংযোগে সাময়িক বিলম্ব হচ্ছে। জরুরি সহায়তার জন্য হোয়াটসঅ্যাপে (+৮৮০১৬১৪১১৩০৮২) যোগাযোগ করতে পারেন।"
+              : "Sorry, connection is momentarily delayed. For urgent help, please contact us on WhatsApp (+8801614113082).",
         },
       ]);
     } finally {
@@ -70,49 +81,57 @@ export default function CustomerAiWidget() {
 
   return (
     <>
-      {/* Floating Trigger Button */}
+      {/* Floating Trigger Button (Positioned vertically above WhatsApp) */}
       {!open && (
         <button
+          type="button"
           onClick={() => setOpen(true)}
-          className="fixed bottom-6 right-6 z-40 flex items-center gap-2.5 px-4 py-3 rounded-full bg-forest text-white shadow-floating hover:bg-forest-deep transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer"
+          className="fixed bottom-[84px] right-6 z-40 flex items-center gap-2 px-3.5 py-3 rounded-full bg-[#143520] hover:bg-[#0d2315] text-white shadow-floating border-2 border-amber-400/40 transition-all duration-300 hover:scale-105 active:scale-95 group cursor-pointer"
           aria-label="Open Organic AI Chat"
+          title={locale === "bn" ? "অর্গানিক এআই অ্যাসিস্ট্যান্টের সাথে চ্যাট করুন" : "Chat with ENMAR AI Assistant"}
         >
-          <Bot className="w-5 h-5 text-accent animate-bounce" />
-          <span className="text-xs font-bold font-display tracking-wide">
-            {t("nav.brandSub")}
+          <div className="relative">
+            <Bot className="w-5 h-5 text-amber-300 group-hover:rotate-12 transition-transform" />
+            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+          </div>
+          <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs transition-all duration-500 ease-in-out text-xs font-bold font-display tracking-wide text-amber-300 pr-1">
+            {locale === "bn" ? "এআই সহকারী" : "AI Assistant"}
           </span>
         </button>
       )}
 
-      {/* Chat Window */}
+      {/* Expanded Chat Window */}
       {open && (
-        <div className="fixed bottom-6 right-4 sm:right-6 z-50 w-[92vw] sm:w-96 h-[520px] max-h-[85vh] bg-paper rounded-3xl border border-line shadow-floating flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 duration-300">
-          {/* Top Bar */}
-          <div className="p-4 bg-forest text-white flex items-center justify-between shadow-xs">
+        <div className="fixed bottom-6 right-4 sm:right-6 z-50 w-[92vw] sm:w-[380px] h-[520px] max-h-[82vh] bg-white rounded-3xl border border-stone-200 shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 duration-300">
+          {/* Top Header */}
+          <div className="p-4 bg-[#143520] text-white flex items-center justify-between shadow-xs border-b border-amber-400/20">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-accent text-forest-deep flex items-center justify-center font-bold">
-                <Bot className="w-5 h-5" />
+              <div className="w-9 h-9 rounded-xl bg-amber-400 text-stone-950 flex items-center justify-center font-bold shadow-xs">
+                <Bot className="w-5 h-5 text-stone-950" />
               </div>
               <div>
-                <h4 className="font-bold font-display text-sm leading-tight">
-                  ENMAR AI Assistant
+                <h4 className="font-bold font-display text-sm leading-tight text-white flex items-center gap-1.5">
+                  <span>ENMAR AI Advisor</span>
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                 </h4>
-                <span className="text-[10px] text-white/80 flex items-center gap-1">
+                <span className="text-[10px] text-stone-300 flex items-center gap-1">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  100% Genuine AI Advisor
+                  {locale === "bn" ? "খাঁটি অর্গানিক খাদ্যের তথ্যদাতা" : "Pure Organic Food Expert"}
                 </span>
               </div>
             </div>
             <button
+              type="button"
               onClick={() => setOpen(false)}
-              className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-stone-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+              title="Close chat"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Messages Area */}
-          <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-bg">
+          {/* Messages Feed */}
+          <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-[#FAF8F5]">
             {messages.map((m, i) => (
               <div
                 key={i}
@@ -123,8 +142,8 @@ export default function CustomerAiWidget() {
                 <div
                   className={`max-w-[85%] rounded-2xl p-3 text-xs leading-relaxed ${
                     m.sender === "user"
-                      ? "bg-forest text-white rounded-br-none shadow-xs font-medium"
-                      : "bg-paper border border-line text-ink rounded-bl-none shadow-xs whitespace-pre-line"
+                      ? "bg-[#143520] text-white rounded-br-none shadow-xs font-medium"
+                      : "bg-white border border-stone-200 text-stone-900 rounded-bl-none shadow-xs whitespace-pre-line"
                   }`}
                 >
                   {m.text}
@@ -133,47 +152,48 @@ export default function CustomerAiWidget() {
             ))}
             {sending && (
               <div className="flex justify-start">
-                <div className="bg-paper border border-line rounded-2xl p-3 text-xs text-ink-soft flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin text-forest" />
-                  <span>AI চিন্তা করছে...</span>
+                <div className="bg-white border border-stone-200 rounded-2xl p-3 text-xs text-stone-500 flex items-center gap-2 shadow-xs">
+                  <Loader2 className="w-4 h-4 animate-spin text-[#143520]" />
+                  <span>{locale === "bn" ? "এআই তথ্য যাচাই করছে..." : "AI analyzing catalog..."}</span>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Quick Prompts */}
-          <div className="px-3 py-2 bg-paper border-t border-line flex items-center gap-1.5 overflow-x-auto text-[11px]">
+          {/* Quick Questions Chips */}
+          <div className="px-3 py-2 bg-white border-t border-stone-200 flex items-center gap-1.5 overflow-x-auto text-[11px]">
             <button
               type="button"
-              onClick={() => handleSend("মধুর বিশুদ্ধতা কীভাবে যাচাই করবেন?")}
-              className="px-2.5 py-1 rounded-full bg-bg hover:bg-forest-soft border border-line text-ink-soft hover:text-forest whitespace-nowrap transition-colors cursor-pointer"
+              onClick={() => handleSend(locale === "bn" ? "সুন্দরবনের মধুর উপকারিতা ও দাম কত?" : "What are the health benefits of raw honey?")}
+              className="px-2.5 py-1 rounded-full bg-stone-100 hover:bg-emerald-50 border border-stone-200 text-stone-700 hover:text-emerald-800 whitespace-nowrap transition-colors cursor-pointer"
             >
-              🍯 খাঁটি মধুর পরীক্ষা
+              🍯 {locale === "bn" ? "মধুর উপকারিতা" : "Honey Benefits"}
             </button>
             <button
               type="button"
-              onClick={() => handleSend("ঢাকার ভেতরে ডেলিভারি চার্জ কত?")}
-              className="px-2.5 py-1 rounded-full bg-bg hover:bg-forest-soft border border-line text-ink-soft hover:text-forest whitespace-nowrap transition-colors cursor-pointer"
+              onClick={() => handleSend(locale === "bn" ? "ফ্রি ডেলিভারি পেতে কত টাকার অর্ডার করতে হবে?" : "What is the minimum order for free delivery?")}
+              className="px-2.5 py-1 rounded-full bg-stone-100 hover:bg-emerald-50 border border-stone-200 text-stone-700 hover:text-emerald-800 whitespace-nowrap transition-colors cursor-pointer"
             >
-              🚚 ডেলিভারি চার্জ
+              🚚 {locale === "bn" ? "ডেলিভারি খরচ" : "Delivery Info"}
             </button>
           </div>
 
-          {/* Bottom Input */}
-          <div className="p-3 bg-paper border-t border-line flex items-center gap-2">
+          {/* Input Box */}
+          <div className="p-3 bg-white border-t border-stone-200 flex items-center gap-2">
             <input
               type="text"
-              placeholder="খাদ্য বা অর্ডার সম্পর্কে যে কোনো প্রশ্ন লিখুন..."
+              placeholder={locale === "bn" ? "পণ্যের উপকারিতা বা অর্ডার সংক্রান্ত প্রশ্ন লিখুন..." : "Ask about products, honey, oils..."}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
-              className="flex-1 px-4 py-2 rounded-xl bg-bg border border-line text-xs focus:outline-none focus:border-forest"
+              className="flex-1 px-4 py-2 rounded-xl bg-stone-50 border border-stone-200 text-xs focus:outline-none focus:border-[#143520] focus:ring-1 focus:ring-[#143520]"
             />
             <button
               type="button"
               onClick={() => handleSend()}
               disabled={sending || !input.trim()}
-              className="p-2.5 rounded-xl bg-forest text-white hover:bg-forest-deep disabled:opacity-40 transition-all shadow-xs cursor-pointer"
+              className="p-2.5 rounded-xl bg-[#143520] text-white hover:bg-[#0d2315] disabled:opacity-40 transition-all shadow-xs cursor-pointer active:scale-95"
+              aria-label="Send Message"
             >
               <Send className="w-4 h-4" />
             </button>
