@@ -3,12 +3,14 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
 import {
   User,
   ShoppingBag,
   MapPin,
   Heart,
   LogOut,
+  LayoutDashboard,
 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 
@@ -16,6 +18,24 @@ export default function AccountNav() {
   const pathname = usePathname();
   const router = useRouter();
   const { lang } = useLanguage();
+  const [isStaff, setIsStaff] = useState(false);
+
+  useEffect(() => {
+    try {
+      const savedUser = localStorage.getItem("enmar_customer");
+      if (savedUser) {
+        const parsed = JSON.parse(savedUser);
+        if (
+          parsed.role &&
+          ["SUPER_ADMIN", "ADMIN", "MANAGER", "MODERATOR"].includes(parsed.role)
+        ) {
+          setIsStaff(true);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("enmar_customer");
@@ -24,7 +44,7 @@ export default function AccountNav() {
 
   const navItems = [
     {
-      label: lang === "bn" ? "প্রোফাইল তথ্য" : "My Profile",
+      label: lang === "bn" ? "আমার প্রোফাইল" : "My Profile",
       href: "/account/profile",
       icon: User,
     },
@@ -34,7 +54,7 @@ export default function AccountNav() {
       icon: ShoppingBag,
     },
     {
-      label: lang === "bn" ? "ডেলিভারি ঠিকানা" : "Saved Addresses",
+      label: lang === "bn" ? "সংরক্ষিত ঠিকানা" : "Saved Addresses",
       href: "/account/addresses",
       icon: MapPin,
     },
@@ -51,14 +71,24 @@ export default function AccountNav() {
       <aside className="hidden md:block w-64 bg-paper rounded-3xl border border-line p-5 shadow-card space-y-4 shrink-0">
         <div className="border-b border-line pb-3">
           <span className="text-[10px] font-mono uppercase tracking-wider text-ink-soft">
-            {lang === "bn" ? "কাস্টমার পোর্টাল" : "Customer Portal"}
+            {lang === "bn" ? "গ্রাহক পোর্টাল" : "Customer Portal"}
           </span>
           <h3 className="font-bold font-display text-base text-ink">
-            {lang === "bn" ? "আমার একাউন্ট" : "Account Overview"}
+            {lang === "bn" ? "অ্যাকাউন্ট ওভারভিউ" : "Account Overview"}
           </h3>
         </div>
 
         <nav className="space-y-1">
+          {isStaff && (
+            <Link
+              href="/admin"
+              className="flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs font-bold bg-amber-100/90 text-amber-950 border border-amber-300 hover:bg-amber-200 transition-all mb-2 shadow-xs"
+            >
+              <LayoutDashboard className="w-4 h-4 text-amber-800" />
+              <span>{lang === "bn" ? "অ্যাডমিন প্যানেল" : "Admin Dashboard"}</span>
+            </Link>
+          )}
+
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -82,7 +112,7 @@ export default function AccountNav() {
         <div className="pt-3 border-t border-line">
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3.5 py-2 rounded-2xl text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors"
+            className="w-full flex items-center gap-3 px-3.5 py-2 rounded-2xl text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
             <span>{lang === "bn" ? "লগআউট" : "Sign Out"}</span>
@@ -92,6 +122,16 @@ export default function AccountNav() {
 
       {/* Mobile Top Tabs */}
       <div className="md:hidden w-full overflow-x-auto pb-2 flex items-center gap-2 border-b border-line">
+        {isStaff && (
+          <Link
+            href="/admin"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-amber-100 text-amber-950 border border-amber-300 whitespace-nowrap shrink-0 shadow-xs"
+          >
+            <LayoutDashboard className="w-3.5 h-3.5 text-amber-800" />
+            <span>{lang === "bn" ? "অ্যাডমিন" : "Admin"}</span>
+          </Link>
+        )}
+
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
