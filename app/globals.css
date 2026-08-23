@@ -1,0 +1,54 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --forest: #14421a;
+    --forest-deep: #0d2e11;
+    --forest-soft: #f0fdf4;
+    --earth: #5c3a21;
+    --accent: #f5a623;
+    --paper: #ffffff;
+    --bg: #fdfbf7;
+    --ink: #1f2937;
+    --ink-soft: #6b7280;
+    --ink-muted: #9ca3af;
+    --line: #e5e7eb;
+    
+    --font-display: 'Fraunces', serif;
+    --font-body: 'Work Sans', sans-serif;
+    --font-mono: 'Space Mono', monospace;
+  }
+
+  body {
+    background-color: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    color: var(--ink);
+  }
+}
+
+/* ── Custom Utilities ── */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  .glass-card {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+  }
+
+  .content-auto {
+    content-visibility: auto;
+    contain-intrinsic-size: 0 320px;
+  }
+}

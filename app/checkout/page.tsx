@@ -1,0 +1,580 @@
+// app/checkout/page.tsx
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
+import {
+  ShoppingBag,
+  Truck,
+  ShieldCheck,
+  CreditCard,
+  Phone,
+  MapPin,
+  TicketPercent,
+  CheckCircle2,
+  ArrowLeft,
+  Loader2,
+  Lock,
+  ChevronRight,
+  Home,
+  Building,
+} from "lucide-react";
+import StorefrontHeader from "@/components/storefront/Header";
+import StorefrontFooter from "@/components/storefront/Footer";
+import { useCart } from "@/context/CartContext";
+import { useLanguage } from "@/context/LanguageContext";
+import { useFeatures } from "@/context/FeatureFlagContext";
+import { formatTaka } from "@/lib/utils";
+
+export default function CheckoutPage() {
+  const router = useRouter();
+  const { cart, cartSubtotal, clearCart, hasFreeShipping } = useCart();
+  const { t, locale } = useLanguage();
+  const { isFeatureEnabled } = useFeatures();
+
+  const [customer, setCustomer] = useState<any | null>(null);
+  const [formData, setFormData] = useState({
+    customerName: "",
+    customerPhone: "",
+    customerEmail: "",
+    shippingAddress: "",
+    deliveryZone: "Inside Dhaka",
+    paymentMethod: "COD",
+    customerNotes: "",
+  });
+
+  const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<number | "custom">("custom");
+
+  // Promo Code State
+  const [promoInput, setPromoInput] = useState("");
+  const [appliedPromo, setAppliedPromo] = useState<any | null>(null);
+  const [promoError, setPromoError] = useState("");
+  const [validatingPromo, setValidatingPromo] = useState(false);
+
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("enmar_customer");
+      if (stored) {
+        const user = JSON.parse(stored);
+        setCustomer(user);
+        setFormData((prev) => ({
+          ...prev,
+          customerName: user.name || prev.customerName,
+          customerPhone: user.phone || prev.customerPhone,
+          customerEmail: user.email || prev.customerEmail,
+          shippingAddress: user.address || prev.shippingAddress,
+        }));
+
+        if (user.id) {
+          fetch(`/api/account/addresses?userId=${user.id}`)
+            .then((res) => res.json())
+            .then((data) => {
+              if (data.success && data.addresses?.length > 0) {
+                setSavedAddresses(data.addresses);
+                const defaultAddr =
+                  data.addresses.find((a: any) => a.isDefault) || data.addresses[0];
+                if (defaultAddr) {
+                  setSelectedAddressId(defaultAddr.id);
+                  setFormData((prev) => ({
+                    ...prev,
+                    customerName: defaultAddr.recipientName,
+                    customerPhone: defaultAddr.phone,
+                    shippingAddress: `${defaultAddr.streetAddress}, ${
+                      defaultAddr.area ? defaultAddr.area + ", " : ""
+                    }${defaultAddr.city}`,
+                    deliveryZone:
+                      defaultAddr.city === "Dhaka" ? "Inside Dhaka" : "Outside Dhaka",
+                  }));
+                }
+              }
+            });
+        }
+      }
+    } catch (e) {}
+  }, []);
+
+  const handleSelectAddress = (addr: any) => {
+    setSelectedAddressId(addr.id);
+    setFormData((prev) => ({
+      ...prev,
+      customerName: addr.recipientName,
+      customerPhone: addr.phone,
+      shippingAddress: `${addr.streetAddress}, ${
+        addr.area ? addr.area + ", " : ""
+      }${addr.city}`,
+      deliveryZone: addr.city === "Dhaka" ? "Inside Dhaka" : "Outside Dhaka",
+    }));
+  };
+
+  const deliveryFee = hasFreeShipping
+    ? 0
+    : formData.deliveryZone === "Outside Dhaka"
+    ? 130
+    : 70;
+
+  const discountAmount = appliedPromo ? Number(appliedPromo.discountAmount || 0) : 0;
+  const grandTotal = Math.max(0, cartSubtotal - discountAmount + deliveryFee);
+
+  const handleApplyPromo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!promoInput.trim()) return;
+
+    setValidatingPromo(true);
+    setPromoError("");
+    try {
+      const res = await fetch("/api/storefront/promos/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: promoInput.trim(),
+          subtotal: cartSubtotal,
+        }),
+      });
+      const data = await res.json();
+      if (data.valid) {
+        setAppliedPromo(data);
+      } else {
+        setPromoError(data.error || "Invalid promo code.");
+      }
+    } catch (err: any) {
+      setPromoError("Failed to validate promo code.");
+    } finally {
+      setValidatingPromo(false);
+    }
+  };
+
+  const handleSubmitOrder = async (e: React.FormEvent) => {
+    if (!customer) {
+      alert(t("checkout.loginRequiredTitle"));
+      router.push("/auth/login?callbackUrl=/checkout");
+      return;
+    }
+    e.preventDefault();
+    if (cart.length === 0) return;
+
+    setSubmitting(true);
+    try {
+      const orderPayload = {
+        customerName: formData.customerName,
+        customerPhone: formData.customerPhone,
+        userId: customer ? customer.id : null,
+        customerEmail: formData.customerEmail || (customer ? customer.email : "customer@enmar.bd"),
+        shippingAddress: formData.shippingAddress,
+        deliveryZone: formData.deliveryZone,
+        paymentMethod: formData.paymentMethod,
+        customerNotes: formData.customerNotes,
+        subtotal: cartSubtotal,
+        discountAmount,
+        promoCodeId: appliedPromo?.promoId || null,
+        promoCodeText: appliedPromo?.code || null,
+        shippingFee: deliveryFee,
+        totalAmount: grandTotal,
+        items: cart.map((item) => ({
+          productId: item.id,
+          productName: item.name,
+          unitPrice: item.discountPrice || item.price,
+          quantity: item.quantity,
+          unit: item.unit,
+          itemImage: item.image,
+          totalPrice: (item.discountPrice || item.price) * item.quantity,
+        })),
+      };
+
+      const res = await fetch("/api/storefront/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(orderPayload),
+      });
+
+      const json = await res.json();
+
+      if (json.success && json.order) {
+        clearCart();
+
+        if (formData.paymentMethod !== "COD") {
+          const sslRes = await fetch("/api/payments/sslcommerz/init", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ orderId: json.order.id }),
+          });
+          const sslJson = await sslRes.json();
+          if (sslJson.gatewayUrl) {
+            window.location.href = sslJson.gatewayUrl;
+            return;
+          }
+        }
+
+        router.push(`/track/${json.order.trackingId}`);
+      } else {
+        alert(json.error || "Failed to place order. Please try again.");
+      }
+    } catch (error: any) {
+      alert(error.message || "An unexpected error occurred.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (cart.length === 0) {
+    return (
+      <div className="min-h-screen bg-[#FAF8F5] text-stone-900 flex flex-col justify-between">
+        <StorefrontHeader />
+        <main className="max-w-4xl mx-auto px-4 py-24 text-center space-y-4">
+          <ShoppingBag className="w-16 h-16 text-stone-300 mx-auto" />
+          <h1 className="text-2xl font-bold font-display">{t("cart.emptyTitle")}</h1>
+          <p className="text-xs text-stone-600">
+            {locale === "bn"
+              ? "আপনার কার্টে কোনো পণ্য নেই। আমাদের খাঁটি অর্গানিক খাদ্যের সমাহার দেখুন।"
+              : "Your cart is currently empty. Explore our organic catalog."}
+          </p>
+          <Link
+            href="/products"
+            className="inline-flex px-6 py-2.5 rounded-xl bg-forest text-white text-xs font-semibold"
+          >
+            {t("cart.startShopping")}
+          </Link>
+        </main>
+        <StorefrontFooter />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#FAF8F5] text-stone-900 flex flex-col justify-between">
+      <StorefrontHeader />
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 flex-1 w-full space-y-8">
+        <div className="flex items-center gap-2 text-xs text-stone-500">
+          <Link href="/products" className="hover:text-forest">
+            {t("checkout.title")}
+          </Link>
+          <ChevronRight className="w-3.5 h-3.5" />
+          <span className="text-stone-900 font-semibold">{t("checkout.title")}</span>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Left Form */}
+          <div className="lg:col-span-7 space-y-6">
+            {savedAddresses.length > 0 && (
+              <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-stone-900 flex items-center gap-1.5">
+                    <MapPin className="w-4 h-4 text-forest" />
+                    <span>{t("checkout.title")}</span>
+                  </span>
+                  <Link href="/account/addresses" className="text-[11px] font-semibold text-forest underline">
+                    {t("checkout.title")}
+                  </Link>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {savedAddresses.map((addr) => (
+                    <button
+                      key={addr.id}
+                      type="button"
+                      onClick={() => handleSelectAddress(addr)}
+                      className={`p-3 rounded-xl border text-left text-xs transition-all cursor-pointer ${
+                        selectedAddressId === addr.id
+                          ? "border-forest bg-emerald-50/50 ring-1 ring-forest"
+                          : "border-stone-200 hover:border-stone-400 bg-white"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between font-bold text-stone-900">
+                        <span>{addr.recipientName}</span>
+                        {addr.isDefault && (
+                          <span className="text-[10px] bg-forest text-white px-1.5 py-0.5 rounded">Default</span>
+                        )}
+                      </div>
+                      <div className="text-stone-600 mt-1 line-clamp-1">{addr.streetAddress}</div>
+                      <div className="text-stone-400 text-[10px] mt-0.5">{addr.phone}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Destination & Contact */}
+            <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4">
+              <h3 className="text-base font-bold font-display text-stone-900 border-b border-stone-200 pb-3">
+                {t("checkout.destination")}
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold text-stone-700">
+                    {t("checkout.name")} *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Tanvir Ahmed"
+                    value={formData.customerName}
+                    onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-stone-50 border border-stone-200 text-xs focus:outline-none focus:border-forest"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold text-stone-700">
+                    {t("checkout.phone")} *
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="e.g. 017XXXXXXXX"
+                    value={formData.customerPhone}
+                    onChange={(e) => setFormData({ ...formData, customerPhone: e.target.value })}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-stone-50 border border-stone-200 text-xs font-mono focus:outline-none focus:border-forest"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-stone-700">
+                  {t("checkout.email")} ({t("checkout.title")})
+                </label>
+                <input
+                  type="email"
+                  placeholder="e.g. name@domain.com"
+                  value={formData.customerEmail}
+                  onChange={(e) => setFormData({ ...formData, customerEmail: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-stone-50 border border-stone-200 text-xs focus:outline-none focus:border-forest"
+                />
+              </div>
+
+              {/* Delivery Zone Radio Cards */}
+              <div className="space-y-1.5 pt-2">
+                <label className="block text-xs font-semibold text-stone-700">
+                  {t("checkout.zone")} *
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <label
+                    className={`p-3.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+                      formData.deliveryZone === "Inside Dhaka"
+                        ? "border-forest bg-emerald-50/60 ring-1 ring-forest"
+                        : "border-stone-200 hover:border-stone-300 bg-stone-50/50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <input
+                        type="radio"
+                        name="deliveryZone"
+                        checked={formData.deliveryZone === "Inside Dhaka"}
+                        onChange={() => setFormData({ ...formData, deliveryZone: "Inside Dhaka" })}
+                        className="w-4 h-4 text-forest"
+                      />
+                      <span className="text-xs font-bold text-stone-900">{t("checkout.insideDhaka")}</span>
+                    </div>
+                    <Truck className="w-4 h-4 text-forest" />
+                  </label>
+
+                  <label
+                    className={`p-3.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+                      formData.deliveryZone === "Outside Dhaka"
+                        ? "border-forest bg-emerald-50/60 ring-1 ring-forest"
+                        : "border-stone-200 hover:border-stone-300 bg-stone-50/50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <input
+                        type="radio"
+                        name="deliveryZone"
+                        checked={formData.deliveryZone === "Outside Dhaka"}
+                        onChange={() => setFormData({ ...formData, deliveryZone: "Outside Dhaka" })}
+                        className="w-4 h-4 text-forest"
+                      />
+                      <span className="text-xs font-bold text-stone-900">{t("checkout.outsideDhaka")}</span>
+                    </div>
+                    <Truck className="w-4 h-4 text-forest" />
+                  </label>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-stone-700">
+                  {t("checkout.address")} *
+                </label>
+                <textarea
+                  rows={2}
+                  required
+                  placeholder="House 12, Road 4, Sector 3, Uttara, Dhaka"
+                  value={formData.shippingAddress}
+                  onChange={(e) => setFormData({ ...formData, shippingAddress: e.target.value })}
+                  className="w-full px-3.5 py-2 rounded-xl bg-stone-50 border border-stone-200 text-xs focus:outline-none focus:border-forest"
+                />
+              </div>
+            </div>
+
+            {/* Payment Method */}
+            <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4">
+              <h3 className="text-base font-bold font-display text-stone-900 border-b border-stone-200 pb-3">
+                {t("checkout.paymentMethod")}
+              </h3>
+
+              <div className="space-y-3">
+                <label
+                  className={`p-4 rounded-xl border flex items-start justify-between cursor-pointer transition-all ${
+                    formData.paymentMethod === "COD"
+                      ? "border-forest bg-emerald-50/60 ring-1 ring-forest"
+                      : "border-stone-200 hover:border-stone-300 bg-stone-50/50"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      checked={formData.paymentMethod === "COD"}
+                      onChange={() => setFormData({ ...formData, paymentMethod: "COD" })}
+                      className="w-4 h-4 text-forest mt-0.5"
+                    />
+                    <div>
+                      <span className="text-xs font-bold text-stone-900 block">{t("checkout.cod")}</span>
+                      <span className="text-[11px] text-stone-500 mt-0.5 block">{t("checkout.codDesc")}</span>
+                    </div>
+                  </div>
+                </label>
+
+                <label
+                  className={`p-4 rounded-xl border flex items-start justify-between cursor-pointer transition-all ${
+                    formData.paymentMethod === "BKASH"
+                      ? "border-forest bg-emerald-50/60 ring-1 ring-forest"
+                      : "border-stone-200 hover:border-stone-300 bg-stone-50/50"
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      checked={formData.paymentMethod === "BKASH"}
+                      onChange={() => setFormData({ ...formData, paymentMethod: "BKASH" })}
+                      className="w-4 h-4 text-forest mt-0.5"
+                    />
+                    <div>
+                      <span className="text-xs font-bold text-stone-900 block">{t("checkout.bkash")}</span>
+                      <span className="text-[11px] text-stone-500 mt-0.5 block">{t("checkout.bkashDesc")}</span>
+                    </div>
+                  </div>
+                  <CreditCard className="w-5 h-5 text-forest shrink-0" />
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Summary (5 Cols) */}
+          <div className="lg:col-span-5 space-y-6 sticky top-24">
+            <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-xs space-y-6">
+              <h3 className="text-base font-bold font-display text-stone-900 border-b border-stone-200 pb-3">
+                {t("checkout.orderSummary")} ({cart.length})
+              </h3>
+
+              {/* Items List */}
+              <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+                {cart.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between gap-3 text-xs">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-stone-50 border border-stone-200 shrink-0">
+                        <Image src={item.image} alt={item.name} fill className="object-cover" />
+                      </div>
+                      <div className="min-w-0">
+                        <h4 className="font-semibold text-stone-900 truncate">{item.name}</h4>
+                        <span className="text-stone-500 font-mono text-[11px]">
+                          {formatTaka(item.price)} × {item.quantity}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="font-mono font-bold text-stone-900">
+                      {formatTaka(item.price * item.quantity)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Promo Input */}
+              <form onSubmit={handleApplyPromo} className="pt-4 border-t border-stone-200">
+                <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                  {t("checkout.havePromo")}
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="e.g. ENMAR10"
+                    value={promoInput}
+                    onChange={(e) => setPromoInput(e.target.value)}
+                    className="flex-1 px-3 py-2 rounded-xl bg-stone-50 border border-stone-200 text-xs font-mono uppercase focus:outline-none focus:border-forest"
+                  />
+                  <button
+                    type="submit"
+                    disabled={validatingPromo || !promoInput.trim()}
+                    className="px-4 py-2 rounded-xl bg-forest text-white text-xs font-bold shadow-xs hover:bg-forest-deep disabled:opacity-50 cursor-pointer"
+                  >
+                    {validatingPromo ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : t("checkout.apply")}
+                  </button>
+                </div>
+                {appliedPromo && (
+                  <div className="text-[11px] text-emerald-700 font-semibold mt-1.5 flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>কুপন কোড '{appliedPromo.code}' সফলভাবে প্রয়োগ হয়েছে!</span>
+                  </div>
+                )}
+                {promoError && (
+                  <div className="text-[11px] text-rose-600 font-semibold mt-1.5">
+                    {promoError}
+                  </div>
+                )}
+              </form>
+
+              {/* Calculations */}
+              <div className="space-y-2 text-xs pt-4 border-t border-stone-200">
+                <div className="flex items-center justify-between text-stone-600">
+                  <span>{t("cart.subtotal")}</span>
+                  <span className="font-mono font-semibold text-stone-900">{formatTaka(cartSubtotal)}</span>
+                </div>
+                {discountAmount > 0 && (
+                  <div className="flex items-center justify-between text-emerald-700 font-semibold">
+                    <span>ছাড় (Discount)</span>
+                    <span className="font-mono">- {formatTaka(discountAmount)}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between text-stone-600">
+                  <span>ডেলিভারি চার্জ ({formData.deliveryZone})</span>
+                  <span className="font-mono">{deliveryFee === 0 ? "ফ্রি" : formatTaka(deliveryFee)}</span>
+                </div>
+                <div className="flex items-center justify-between text-base font-bold text-stone-900 pt-3 border-t border-stone-200">
+                  <span>{t("cart.total")}</span>
+                  <span className="font-mono text-forest text-xl">{formatTaka(grandTotal)}</span>
+                </div>
+              </div>
+
+              {/* Confirm Order Button */}
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={handleSubmitOrder}
+                className="w-full py-4 rounded-xl bg-forest hover:bg-forest-deep text-white font-bold text-sm flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>{t("checkout.placingOrder")}</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-4 h-4 text-amber-300" />
+                    <span>{t("checkout.confirm")}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <StorefrontFooter />
+    </div>
+  );
+}

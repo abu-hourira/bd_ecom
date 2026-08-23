@@ -1,33 +1,52 @@
 {
-  "name": "bangladesh-ecommerce",
+  "name": "enmar-storefront",
   "version": "1.0.0",
-  "description": "Production-ready Bangladeshi E-commerce Website",
-  "main": "server.js",
+  "private": true,
+  "description": "ENMAR — Full-Stack Organic E-Commerce Storefront & Admin Platform",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js",
-    "start:prod": "NODE_ENV=production node server.js",
-    "lint": "eslint .",
-    "test": "jest"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "db:push": "prisma db push",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:studio": "prisma studio"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "keywords": [
+    "ecommerce",
+    "nextjs",
+    "organic-food",
+    "bangladesh",
+    "enmar"
+  ],
+  "author": "ENMAR",
+  "license": "UNLICENSED",
+  "engines": {
+    "node": ">=20.0.0"
   },
   "dependencies": {
-    "bcryptjs": "^2.4.3",
-    "compression": "^1.7.5",
-    "cookie-parser": "^1.4.6",
-    "cors": "^2.8.6",
-    "dotenv": "^16.4.5",
-    "dotenv-safe": "^9.1.0",
-    "express": "^4.19.2",
-    "express-rate-limit": "^7.3.1",
-    "express-validator": "^7.3.2",
-    "helmet": "^7.1.0",
-    "jsonwebtoken": "^9.0.2",
-    "multer": "^1.4.5-lts.1",
-    "mysql2": "^3.9.7",
-    "redis": "^6.2.1",
-    "winston": "^3.19.0"
+    "@prisma/client": "^6.4.1",
+    "bcryptjs": "^3.0.3",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.33.0",
+    "mysql2": "^3.23.3",
+    "next": "^15.5.23",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "tailwind-merge": "^3.6.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
-    "nodemon": "^3.1.0"
+    "@types/node": "^26.2.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "autoprefixer": "^10.5.4",
+    "postcss": "^8.5.26",
+    "prisma": "^6.4.1",
+    "tailwindcss": "^3.4.19",
+    "tsx": "^4.23.12",
+    "typescript": "^5.9.3"
   }
 }
