@@ -1,5 +1,5 @@
-CREATE DATABASE IF NOT EXISTS bd_ecommerce;
-USE bd_ecommerce;
+-- CREATE DATABASE IF NOT EXISTS bd_ecommerce;
+-- USE bd_ecommerce;
 
 -- Users Table
 CREATE TABLE IF NOT EXISTS users (
