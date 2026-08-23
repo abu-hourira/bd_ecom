@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - Amar Bazar</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <a href="/" class="logo">Amar<span>Bazar</span></a>
+            <ul class="nav-links" id="nav-links"></ul>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div class="form-container" style="max-width: 600px;">
+            <h2 style="margin-bottom: 20px;">My Profile</h2>
+            <form id="profile-form" onsubmit="updateProfile(event)">
+                <div class="form-group">
+                    <label for="name">Full Name</label>
+                    <input type="text" id="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email (Cannot be changed)</label>
+                    <input type="email" id="email" disabled>
+                </div>
+                <div class="form-group">
+                    <label for="phone">Phone Number</label>
+                    <input type="text" id="phone" required>
+                </div>
+                <div class="form-group">
+                    <label for="address">Default Shipping Address</label>
+                    <textarea id="address" rows="3"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Update Profile</button>
+            </form>
+        </div>
+    </main>
+
+    <script src="/js/main.js"></script>
+    <script>
+        async function loadProfile() {
+            const res = await fetch('/api/auth/profile');
+            if (!res.ok) return;
+            const user = await res.json();
+
+            document.getElementById('name').value = user.name;
+            document.getElementById('email').value = user.email;
+            document.getElementById('phone').value = user.phone;
+            document.getElementById('address').value = user.address || '';
+        }
+
+        async function updateProfile(event) {
+            event.preventDefault();
+            const name = document.getElementById('name').value;
+            const phone = document.getElementById('phone').value;
+            const address = document.getElementById('address').value;
+
+            const res = await fetch('/api/auth/profile', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, phone, address })
+            });
+            const data = await res.json();
+            showToast(data.message);
+        }
+
+        document.addEventListener('DOMContentLoaded', loadProfile);
+    </script>
+</body>
+</html>

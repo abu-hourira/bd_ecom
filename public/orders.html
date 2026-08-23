@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Orders - Amar Bazar</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <a href="/" class="logo">Amar<span>Bazar</span></a>
+            <ul class="nav-links" id="nav-links"></ul>
+        </nav>
+    </header>
+
+    <main class="container">
+        <h2 class="section-title">My Orders</h2>
+        <div id="orders-container">
+            <!-- Orders will load here -->
+        </div>
+    </main>
+
+    <script src="/js/main.js"></script>
+    <script>
+        async function loadOrders() {
+            const res = await fetch('/api/orders');
+            if (!res.ok) return;
+            const orders = await res.json();
+
+            const container = document.getElementById('orders-container');
+            if (orders.length === 0) {
+                container.innerHTML = '<p>You have not placed any orders yet.</p>';
+                return;
+            }
+
+            container.innerHTML = orders.map(order => `
+                <div style="background: white; padding: 20px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                        <h3>Order #${order.id}</h3>
+                        <span style="font-weight: bold; color: var(--primary-color);">${order.status}</span>
+                    </div>
+                    <p>Date: ${new Date(order.created_at).toLocaleDateString()}</p>
+                    <p>Total Amount: <strong>৳${order.total_amount}</strong></p>
+                    <p>Payment Method: ${order.payment_method} (${order.payment_status})</p>
+                </div>
+            `).join('');
+        }
+        document.addEventListener('DOMContentLoaded', loadOrders);
+    </script>
+</body>
+</html>

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Orders - Amar Bazar</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+    <aside class="sidebar">
+        <h2>Amar Bazar</h2>
+        <ul class="sidebar-menu">
+            <li><a href="/admin/dashboard.html">Dashboard</a></li>
+            <li><a href="/admin/products.html">Products</a></li>
+            <li><a href="/admin/orders.html" class="active">Orders</a></li>
+            <li><a href="/admin/users.html">Users</a></li>
+            <li><a href="/admin/categories.html">Categories</a></li>
+            <li><a href="/">View Store</a></li>
+        </ul>
+    </aside>
+
+    <main class="main-content">
+        <div class="admin-header">
+            <h1>Manage Orders</h1>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Total Amount</th>
+                        <th>Status</th>
+                        <th>Payment Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="orders-table-body">
+                    <!-- Loaded dynamically -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <script src="/js/main.js"></script>
+    <script>
+        async function loadOrders() {
+            const res = await fetch('/api/admin/stats');
+            const stats = await res.json();
+            document.getElementById('orders-table-body').innerHTML = stats.recentOrders.map(o => `
+                <tr>
+                    <td>#${o.id}</td>
+                    <td>৳${o.total_amount}</td>
+                    <td>
+                        <select onchange="updateOrderStatus(${o.id}, this.value, '${o.payment_status}')">
+                            <option value="Pending" ${o.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                            <option value="Processing" ${o.status === 'Processing' ? 'selected' : ''}>Processing</option>
+                            <option value="Shipped" ${o.status === 'Shipped' ? 'selected' : ''}>Shipped</option>
+                            <option value="Delivered" ${o.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
+                            <option value="Cancelled" ${o.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
+                        </select>
+                    </td>
+                    <td>
+                        <select onchange="updateOrderStatus(${o.id}, '${o.status}', this.value)">
+                            <option value="Pending" ${o.payment_status === 'Pending' ? 'selected' : ''}>Pending</option>
+                            <option value="Paid" ${o.payment_status === 'Paid' ? 'selected' : ''}>Paid</option>
+                            <option value="Failed" ${o.payment_status === 'Failed' ? 'selected' : ''}>Failed</option>
+                        </select>
+                    </td>
+                    <td>
+                        <button onclick="alert('Shipping Address: ' + '${o.shipping_address}')" class="btn btn-primary" style="padding: 2px 8px;">Details</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function updateOrderStatus(id, status, payment_status) {
+            const res = await fetch(`/api/admin/orders/${id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status, payment_status })
+            });
+            if (res.ok) {
+                showToast('Order updated successfully.');
+                loadOrders();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadOrders);
+    </script>
+</body>
+</html>

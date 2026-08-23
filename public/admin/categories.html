@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Categories - Amar Bazar</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="/css/admin.css">
+</head>
+<body>
+    <aside class="sidebar">
+        <h2>Amar Bazar</h2>
+        <ul class="sidebar-menu">
+            <li><a href="/admin/dashboard.html">Dashboard</a></li>
+            <li><a href="/admin/products.html">Products</a></li>
+            <li><a href="/admin/orders.html">Orders</a></li>
+            <li><a href="/admin/users.html">Users</a></li>
+            <li><a href="/admin/categories.html" class="active">Categories</a></li>
+            <li><a href="/">View Store</a></li>
+        </ul>
+    </aside>
+
+    <main class="main-content">
+        <div class="admin-header">
+            <h1>Manage Categories</h1>
+            <button onclick="openAddModal()" class="btn btn-primary">Add New Category</button>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Slug</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody id="categories-table-body">
+                    <!-- Loaded dynamically -->
+                </tbody>
+            </table>
+        </div>
+    </main>
+
+    <!-- Add Category Modal -->
+    <div id="category-modal" class="modal">
+        <div class="modal-content">
+            <h2>Add Category</h2>
+            <form id="category-form" onsubmit="saveCategory(event)">
+                <div class="form-group">
+                    <label for="cat-name">Category Name</label>
+                    <input type="text" id="cat-name" required>
+                </div>
+                <div class="form-group">
+                    <label for="cat-desc">Description</label>
+                    <textarea id="cat-desc" rows="3"></textarea>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="button" onclick="closeModal()" class="btn" style="background: var(--gray);">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/js/main.js"></script>
+    <script>
+        async function loadCategories() {
+            const res = await fetch('/api/categories');
+            const categories = await res.json();
+            document.getElementById('categories-table-body').innerHTML = categories.map(c => `
+                <tr>
+                    <td>${c.id}</td>
+                    <td>${c.name}</td>
+                    <td>${c.slug}</td>
+                    <td>${c.description || ''}</td>
+                </tr>
+            `).join('');
+        }
+
+        function openAddModal() {
+            document.getElementById('category-form').reset();
+            document.getElementById('category-modal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('category-modal').style.display = 'none';
+        }
+
+        async function saveCategory(event) {
+            event.preventDefault();
+            const name = document.getElementById('cat-name').value;
+            const description = document.getElementById('cat-desc').value;
+
+            const res = await fetch('/api/admin/categories', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, description })
+            });
+
+            if (res.ok) {
+                showToast('Category saved successfully.');
+                closeModal();
+                loadCategories();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadCategories);
+    </script>
+</body>
+</html>

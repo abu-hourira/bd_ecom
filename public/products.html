@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shop - Amar Bazar</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <a href="/" class="logo">Amar<span>Bazar</span></a>
+            <ul class="nav-links" id="nav-links"></ul>
+        </nav>
+    </header>
+
+    <main class="container">
+        <h2 class="section-title">All Products</h2>
+        <div class="products-grid" id="products-container">
+            <!-- Products will load here -->
+        </div>
+    </main>
+
+    <script src="/js/main.js"></script>
+    <script>
+        async function loadProducts() {
+            const params = new URLSearchParams(window.location.search);
+            const category = params.get('category') || '';
+            const search = params.get('search') || '';
+
+            const res = await fetch(`/api/products?category=${category}&search=${search}`);
+            const products = await res.json();
+
+            const container = document.getElementById('products-container');
+            if (products.length === 0) {
+                container.innerHTML = '<p>No products found matching your criteria.</p>';
+                return;
+            }
+
+            container.innerHTML = products.map(prod => `
+                <div class="product-card">
+                    <img src="${prod.images || '/uploads/placeholder.jpg'}" class="product-image" alt="${prod.name}">
+                    <div class="product-info">
+                        <h3 class="product-title">${prod.name}</h3>
+                        <p class="product-price">৳${prod.discount_price > 0 ? prod.discount_price : prod.price}</p>
+                        <a href="/product-details.html?slug=${prod.slug}" class="btn btn-primary" style="text-align:center; margin-top:auto;">View Details</a>
+                    </div>
+                </div>
+            `).join('');
+        }
+        document.addEventListener('DOMContentLoaded', loadProducts);
+    </script>
+</body>
+</html>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout - Amar Bazar</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <a href="/" class="logo">Amar<span>Bazar</span></a>
+            <ul class="nav-links" id="nav-links"></ul>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div class="form-container" style="max-width: 600px;">
+            <h2 style="margin-bottom: 20px;">Checkout Details</h2>
+            <form id="checkout-form" onsubmit="placeOrder(event)">
+                <div class="form-group">
+                    <label for="phone">Phone Number</label>
+                    <input type="text" id="phone" required placeholder="e.g. 017XXXXXXXX">
+                </div>
+                <div class="form-group">
+                    <label for="address">Shipping Address</label>
+                    <textarea id="address" rows="4" required placeholder="Full delivery address"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="payment_method">Payment Method</label>
+                    <select id="payment_method" required>
+                        <option value="COD">Cash on Delivery (COD)</option>
+                        <option value="bKash">bKash (Mobile Banking)</option>
+                        <option value="Nagad">Nagad (Mobile Banking)</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Place Order</button>
+            </form>
+        </div>
+    </main>
+
+    <script src="/js/main.js"></script>
+    <script>
+        async function placeOrder(event) {
+            event.preventDefault();
+            const phone = document.getElementById('phone').value;
+            const shipping_address = document.getElementById('address').value;
+            const payment_method = document.getElementById('payment_method').value;
+
+            const res = await fetch('/api/orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone, shipping_address, payment_method })
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                showToast(data.message);
+                if (data.paymentUrl) {
+                    // Simulate redirecting to bKash/Nagad sandbox
+                    alert(`Redirecting to ${payment_method} payment gateway for ৳${data.totalAmount}...`);
+                }
+                setTimeout(() => window.location.href = '/orders.html', 2000);
+            } else {
+                showToast(data.message || 'Failed to place order.');
+            }
+        }
+    </script>
+</body>
+</html>
