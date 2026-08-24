@@ -1,68 +1,166 @@
 "use client";
-import AlertModal from "@/components/ui/AlertModal";
-// app/admin/promos/page.tsx
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import {
   TicketPercent,
   Plus,
   Trash2,
-  Calendar,
   CheckCircle2,
-  AlertCircle,
-  Loader2,
+  XCircle,
+  Clock,
+  Sparkles,
   Save,
   X,
-  Percent,
+  Loader2,
+  Power,
 } from "lucide-react";
 import { formatTaka } from "@/lib/utils";
+import AlertModal from "@/components/admin/AlertModal";
+
+interface PromoCode {
+  id: number;
+  code: string;
+  discountType: "PERCENTAGE" | "FIXED" | "FREE_SHIPPING";
+  discountValue: number;
+  minOrderAmount: number;
+  maxDiscountAmount: number | null;
+  totalUsageCap: number | null;
+  usageCount: number;
+  perCustomerLimit: number;
+  startDate: string | null;
+  endDate: string | null;
+  isActive: boolean;
+  createdAt: string;
+}
 
 export default function AdminPromosPage() {
-  const [alertState, setAlertState] = useState<{ isOpen: boolean; title: string; message: string; type: "success" | "error" | "warning" | "info" }>({
+  const [promos, setPromos] = useState<PromoCode[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [togglingId, setTogglingId] = useState<number | null>(null);
+
+  const [alertState, setAlertState] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: "success" | "error" | "info" | "warning";
+  }>({
     isOpen: false,
     title: "",
     message: "",
     type: "info",
   });
-  const [promos, setPromos] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
 
   const [formData, setFormData] = useState({
     code: "",
     discountType: "PERCENTAGE",
-    discountValue: "",
+    discountValue: "10",
     minOrderAmount: "500",
     maxDiscountAmount: "",
     totalUsageCap: "100",
     perCustomerLimit: "1",
     startDate: "",
     endDate: "",
+    isActive: true,
   });
-
-  const fetchPromos = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/admin/promos");
-      const json = await res.json();
-      if (json.success) setPromos(json.promos);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
     fetchPromos();
   }, []);
 
+  const fetchPromos = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/admin/promos");
+      const data = await res.json();
+      if (data.success) {
+        setPromos(data.promos);
+      }
+    } catch (error) {
+      console.error("Failed to load promo codes", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleActive = async (promo: PromoCode) => {
+    try {
+      setTogglingId(promo.id);
+      const newStatus = !promo.isActive;
+
+      // Optimistic UI update
+      setPromos((prev) =>
+        prev.map((p) => (p.id === promo.id ? { ...p, isActive: newStatus } : p))
+      );
+
+      const res = await fetch(`/api/admin/promos/${promo.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: newStatus }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        // Revert on error
+        setPromos((prev) =>
+          prev.map((p) => (p.id === promo.id ? { ...p, isActive: promo.isActive } : p))
+        );
+        setAlertState({
+          isOpen: true,
+          title: "Update Failed",
+          message: data.error || "Failed to update promo status.",
+          type: "error",
+        });
+      } else {
+        setAlertState({
+          isOpen: true,
+          title: newStatus ? "Promo Activated" : "Promo Deactivated",
+          message: `Promo code "${promo.code}" is now ${newStatus ? "ACTIVE" : "DEACTIVATED"}.`,
+          type: newStatus ? "success" : "info",
+        });
+      }
+    } catch (error: any) {
+      setAlertState({
+        isOpen: true,
+        title: "Error",
+        message: error.message || "Something went wrong.",
+        type: "error",
+      });
+    } finally {
+      setTogglingId(null);
+    }
+  };
+
+  const handleDelete = async (id: number, code: string) => {
+    if (!confirm(`Are you sure you want to delete promo code "${code}"?`)) return;
+
+    try {
+      const res = await fetch(`/api/admin/promos/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.success) {
+        setPromos((prev) => prev.filter((p) => p.id !== id));
+        setAlertState({
+          isOpen: true,
+          title: "Promo Deleted",
+          message: `Promo code "${code}" has been deleted.`,
+          type: "success",
+        });
+      }
+    } catch (error: any) {
+      setAlertState({
+        isOpen: true,
+        title: "Delete Error",
+        message: error.message || "Failed to delete promo code.",
+        type: "error",
+      });
+    }
+  };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.code || !formData.discountValue) return;
-
     setSaving(true);
+
     try {
       const res = await fetch("/api/admin/promos", {
         method: "POST",
@@ -70,27 +168,41 @@ export default function AdminPromosPage() {
         body: JSON.stringify(formData),
       });
 
-      const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json.error || "Create failed");
-
-      setModalOpen(false);
-      setFormData({
-        code: "",
-        discountType: "PERCENTAGE",
-        discountValue: "",
-        minOrderAmount: "500",
-        maxDiscountAmount: "",
-        totalUsageCap: "100",
-        perCustomerLimit: "1",
-        startDate: "",
-        endDate: "",
-      });
-      fetchPromos();
-    } catch (err: any) {
+      const data = await res.json();
+      if (data.success) {
+        setPromos([data.promo, ...promos]);
+        setModalOpen(false);
+        setFormData({
+          code: "",
+          discountType: "PERCENTAGE",
+          discountValue: "10",
+          minOrderAmount: "500",
+          maxDiscountAmount: "",
+          totalUsageCap: "100",
+          perCustomerLimit: "1",
+          startDate: "",
+          endDate: "",
+          isActive: true,
+        });
+        setAlertState({
+          isOpen: true,
+          title: "Promo Created",
+          message: `Promo code "${data.promo.code}" published successfully!`,
+          type: "success",
+        });
+      } else {
+        setAlertState({
+          isOpen: true,
+          title: "Creation Error",
+          message: data.error || "Failed to create promo code.",
+          type: "error",
+        });
+      }
+    } catch (error: any) {
       setAlertState({
         isOpen: true,
-        title: "Promo Code Error",
-        message: err.message || "Failed to create promo code.",
+        title: "Network Error",
+        message: error.message || "Something went wrong.",
         type: "error",
       });
     } finally {
@@ -99,54 +211,61 @@ export default function AdminPromosPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 max-w-7xl mx-auto pb-16 animate-in fade-in duration-300">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line pb-6">
         <div>
-          <h2 className="text-2xl font-bold font-display text-ink">Promo Codes & Coupons</h2>
-          <p className="text-sm text-ink-soft">
-            Manage promotional campaign codes, discount percentages, and usage caps.
+          <h1 className="text-2xl sm:text-3xl font-bold font-display text-ink tracking-tight flex items-center gap-3">
+            <TicketPercent className="w-8 h-8 text-forest" />
+            <span>Discount & Promo Codes</span>
+          </h1>
+          <p className="text-sm text-ink-soft mt-1">
+            Create, activate, deactivate, or manage marketing discount vouchers.
           </p>
         </div>
 
         <button
           onClick={() => setModalOpen(true)}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-forest hover:bg-forest-deep text-white font-semibold text-sm shadow-premium transition-all hover:-translate-y-0.5"
+          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-forest hover:bg-forest-deep text-white font-semibold text-sm shadow-premium transition-all duration-200"
         >
           <Plus className="w-4 h-4" />
-          <span>Create Promo Code</span>
+          <span>New Promo Code</span>
         </button>
       </div>
 
-      {/* Promos Table */}
+      {/* Table List */}
       <div className="bg-paper rounded-3xl border border-line shadow-card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-bg text-ink-soft text-xs uppercase tracking-wider border-b border-line">
-              <tr>
-                <th className="py-4 px-6">Promo Code</th>
-                <th className="py-4 px-6">Discount Type & Value</th>
+          <table className="w-full text-left text-sm border-collapse">
+            <thead>
+              <tr className="border-b border-line bg-bg/50 text-ink font-semibold">
+                <th className="py-4 px-6">Promo Token</th>
+                <th className="py-4 px-6">Discount</th>
                 <th className="py-4 px-6">Min Order</th>
-                <th className="py-4 px-6">Usage Progress</th>
-                <th className="py-4 px-6">Status</th>
+                <th className="py-4 px-6">Usage</th>
+                <th className="py-4 px-6">Status / Toggle</th>
+                <th className="py-4 px-6 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-ink-soft">
+                  <td colSpan={6} className="py-12 text-center text-ink-soft">
                     Loading promo codes...
                   </td>
                 </tr>
               ) : promos.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-12 text-center text-ink-soft">
-                    No promo codes created yet.
+                  <td colSpan={6} className="py-12 text-center text-ink-soft">
+                    No promo codes created yet. Click &quot;New Promo Code&quot; to create one.
                   </td>
                 </tr>
               ) : (
                 promos.map((p) => (
-                  <tr key={p.id} className="hover:bg-bg/50 transition-colors">
+                  <tr
+                    key={p.id}
+                    className={`hover:bg-bg/50 transition-colors ${!p.isActive ? "opacity-60 bg-gray-50/50" : ""}`}
+                  >
                     {/* Code */}
                     <td className="py-4 px-6">
                       <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-forest-soft border border-forest/20 text-forest font-mono font-bold text-sm tracking-wider">
@@ -178,12 +297,39 @@ export default function AdminPromosPage() {
                       </div>
                     </td>
 
-                    {/* Status */}
+                    {/* Status & Deactivate/Activate Toggle */}
                     <td className="py-4 px-6">
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>Active</span>
-                      </span>
+                      <button
+                        onClick={() => handleToggleActive(p)}
+                        disabled={togglingId === p.id}
+                        className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all duration-200 ${
+                          p.isActive
+                            ? "bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100"
+                            : "bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100"
+                        }`}
+                        title={p.isActive ? "Click to Deactivate" : "Click to Activate"}
+                      >
+                        {togglingId === p.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : p.isActive ? (
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        ) : (
+                          <XCircle className="w-3.5 h-3.5 text-rose-600" />
+                        )}
+                        <span>{p.isActive ? "Active (Enabled)" : "Deactivated"}</span>
+                        <Power className="w-3 h-3 ml-1 opacity-60" />
+                      </button>
+                    </td>
+
+                    {/* Actions */}
+                    <td className="py-4 px-6 text-right">
+                      <button
+                        onClick={() => handleDelete(p.id, p.code)}
+                        className="p-2 text-ink-soft hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors"
+                        title="Delete Promo Code"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </td>
                   </tr>
                 ))
