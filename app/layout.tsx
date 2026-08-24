@@ -25,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="bn" suppressHydrationWarning>
+    <html lang="bn" suppressHydrationWarning className="overflow-x-hidden max-w-[100vw]">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -34,11 +34,11 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-screen bg-[#FAF8F5] text-stone-900 antialiased" suppressHydrationWarning>
+      <body className="min-h-screen bg-[#FAF8F5] text-stone-900 antialiased overflow-x-hidden max-w-[100vw] w-full relative" suppressHydrationWarning>
         <FeatureFlagProvider>
           <LanguageProvider>
             <CartProvider>
-              <div className="pb-16 md:pb-0 min-h-screen flex flex-col justify-between">
+              <div className="pb-20 md:pb-0 min-h-screen flex flex-col justify-between w-full overflow-x-hidden">
                 {children}
               </div>
               <MobileBottomNav />

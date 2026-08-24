@@ -71,7 +71,7 @@ export default function StorefrontHeader() {
   ];
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/80 shadow-xs">
+    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/80 shadow-xs overflow-x-hidden w-full">
       {/* 1. Top Announcement Bar */}
       <div className="bg-forest-deep text-white text-xs py-2 px-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
