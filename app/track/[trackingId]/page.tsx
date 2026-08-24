@@ -1,3 +1,4 @@
+import { useLiveSync } from "@/lib/useLiveSync";
 // app/track/[trackingId]/page.tsx
 "use client";
 
@@ -66,6 +67,9 @@ function OrderTrackingDetailContent({
   useEffect(() => {
     fetchTracking();
   }, [trackingId]);
+
+  // Bidirectional real-time sync (polls every 4s to reflect admin status updates live)
+  useLiveSync(fetchTracking, { interval: 4000 });
 
   const handleRefresh = () => {
     setRefreshing(true);

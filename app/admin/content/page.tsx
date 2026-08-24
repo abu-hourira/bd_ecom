@@ -1,3 +1,4 @@
+import AlertModal from "@/components/ui/AlertModal";
 // app/admin/content/page.tsx
 "use client";
 
@@ -30,6 +31,12 @@ export default function AdminContentPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [alertState, setAlertState] = useState<{ isOpen: boolean; title: string; message: string; type: "success" | "error" | "warning" | "info" }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "info",
+  });
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSection, setSelectedSection] = useState("all");
@@ -107,10 +114,20 @@ export default function AdminContentPage() {
         setSavedSuccess(true);
         setTimeout(() => setSavedSuccess(false), 3000);
       } else {
-        alert(data.error || "Failed to save content.");
+        setAlertState({
+          isOpen: true,
+          title: "Content Save Error",
+          message: data.error || "Failed to save content.",
+          type: "error",
+        });
       }
     } catch (err: any) {
-      alert("Error: " + err.message);
+      setAlertState({
+        isOpen: true,
+        title: "Save Error",
+        message: err.message || "Failed to save content.",
+        type: "error",
+      });
     } finally {
       setSaving(false);
     }
@@ -381,6 +398,14 @@ export default function AdminContentPage() {
           </div>
         </div>
       )}
+
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={() => setAlertState((prev) => ({ ...prev, isOpen: false }))}
+        title={alertState.title}
+        message={alertState.message}
+        type={alertState.type}
+      />
     </div>
   );
 }

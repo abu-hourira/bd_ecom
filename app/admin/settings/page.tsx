@@ -1,3 +1,4 @@
+import AlertModal from "@/components/ui/AlertModal";
 // app/admin/settings/page.tsx
 "use client";
 
@@ -21,6 +22,12 @@ import ImageUploader from "@/components/admin/ImageUploader";
 export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [alertState, setAlertState] = useState<{ isOpen: boolean; title: string; message: string; type: "success" | "error" | "warning" | "info" }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "info",
+  });
 
   const [settings, setSettings] = useState<Record<string, string>>({
     brandName: "ENMAR",
@@ -71,9 +78,19 @@ export default function AdminSettingsPage() {
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.error || "Save failed");
 
-      alert("Settings and Theme updated successfully!");
+      setAlertState({
+        isOpen: true,
+        title: "Settings Saved",
+        message: "Site settings and theme customizations have been published successfully.",
+        type: "success",
+      });
     } catch (err: any) {
-      alert("Error: " + err.message);
+      setAlertState({
+        isOpen: true,
+        title: "Save Error",
+        message: err.message || "Failed to save settings.",
+        type: "error",
+      });
     } finally {
       setSaving(false);
     }
@@ -405,6 +422,14 @@ export default function AdminSettingsPage() {
           </div>
         </div>
       </form>
+
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={() => setAlertState((prev) => ({ ...prev, isOpen: false }))}
+        title={alertState.title}
+        message={alertState.message}
+        type={alertState.type}
+      />
     </div>
   );
 }

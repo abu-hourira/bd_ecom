@@ -1,3 +1,4 @@
+import AlertModal from "@/components/ui/AlertModal";
 // app/admin/promos/page.tsx
 "use client";
 
@@ -17,6 +18,12 @@ import {
 import { formatTaka } from "@/lib/utils";
 
 export default function AdminPromosPage() {
+  const [alertState, setAlertState] = useState<{ isOpen: boolean; title: string; message: string; type: "success" | "error" | "warning" | "info" }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "info",
+  });
   const [promos, setPromos] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -80,7 +87,12 @@ export default function AdminPromosPage() {
       });
       fetchPromos();
     } catch (err: any) {
-      alert("Error: " + err.message);
+      setAlertState({
+        isOpen: true,
+        title: "Promo Code Error",
+        message: err.message || "Failed to create promo code.",
+        type: "error",
+      });
     } finally {
       setSaving(false);
     }
@@ -283,6 +295,14 @@ export default function AdminPromosPage() {
           </div>
         </div>
       )}
+
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={() => setAlertState((prev) => ({ ...prev, isOpen: false }))}
+        title={alertState.title}
+        message={alertState.message}
+        type={alertState.type}
+      />
     </div>
   );
 }

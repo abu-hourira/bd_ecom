@@ -1,3 +1,4 @@
+import AlertModal from "@/components/ui/AlertModal";
 // app/admin/features/page.tsx
 "use client";
 
@@ -27,6 +28,12 @@ interface FeatureFlag {
 }
 
 export default function AdminFeaturesPage() {
+  const [alertState, setAlertState] = useState<{ isOpen: boolean; title: string; message: string; type: "success" | "error" | "warning" | "info" }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "info",
+  });
   const [flags, setFlags] = useState<FeatureFlag[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingKey, setUpdatingKey] = useState<string | null>(null);
@@ -77,13 +84,23 @@ export default function AdminFeaturesPage() {
         setFlags((prev) =>
           prev.map((f) => (f.key === flag.key ? { ...f, isEnabled: !nextState } : f))
         );
-        alert(data.error || "Failed to update feature toggle.");
+        setAlertState({
+          isOpen: true,
+          title: "Feature Toggle Error",
+          message: data.error || "Failed to update feature toggle.",
+          type: "error",
+        });
       }
     } catch (err: any) {
       setFlags((prev) =>
         prev.map((f) => (f.key === flag.key ? { ...f, isEnabled: !nextState } : f))
       );
-      alert("Error: " + err.message);
+      setAlertState({
+        isOpen: true,
+        title: "Toggle Error",
+        message: err.message || "Failed to update toggle.",
+        type: "error",
+      });
     } finally {
       setUpdatingKey(null);
     }

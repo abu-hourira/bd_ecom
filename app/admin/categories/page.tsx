@@ -1,3 +1,5 @@
+import ConfirmModal from "@/components/ui/ConfirmModal";
+import AlertModal from "@/components/ui/AlertModal";
 // app/admin/categories/page.tsx
 "use client";
 
@@ -12,6 +14,17 @@ export default function AdminCategoriesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCat, setEditingCat] = useState<any | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deleteModalState, setDeleteModalState] = useState<{ isOpen: boolean; category: any | null }>({
+    isOpen: false,
+    category: null,
+  });
+  const [deleting, setDeleting] = useState(false);
+  const [alertState, setAlertState] = useState<{ isOpen: boolean; title: string; message: string; type: "success" | "error" | "warning" | "info" }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "info",
+  });
 
   const [formData, setFormData] = useState({
     name: "",
@@ -88,20 +101,51 @@ export default function AdminCategoriesPage() {
       setModalOpen(false);
       fetchCategories();
     } catch (err: any) {
-      alert("Error: " + err.message);
+      setAlertState({
+        isOpen: true,
+        title: "Category Save Error",
+        message: err.message || "Failed to save category.",
+        type: "error",
+      });
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async (id: number, name: string) => {
-    if (!confirm(`Are you sure you want to delete category "${name}"?`)) return;
+  const confirmDeleteCategory = async () => {
+    if (!deleteModalState.category) return;
+    const { id, name } = deleteModalState.category;
+    setDeleting(true);
+
     try {
       const res = await fetch(`/api/admin/categories/${id}`, { method: "DELETE" });
       const json = await res.json();
-      if (json.success) fetchCategories();
+      if (json.success) {
+        setDeleteModalState({ isOpen: false, category: null });
+        fetchCategories();
+        setAlertState({
+          isOpen: true,
+          title: "Category Removed",
+          message: `Category "${name}" was moved to the recycle bin.`,
+          type: "success",
+        });
+      } else {
+        setAlertState({
+          isOpen: true,
+          title: "Delete Error",
+          message: json.error || "Failed to delete category.",
+          type: "error",
+        });
+      }
     } catch (e: any) {
-      alert("Error: " + e.message);
+      setAlertState({
+        isOpen: true,
+        title: "Delete Error",
+        message: e.message || "An unexpected error occurred.",
+        type: "error",
+      });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -172,7 +216,7 @@ export default function AdminCategoriesPage() {
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button
-                    onClick={() => handleDelete(cat.id, cat.name)}
+                    onClick={() => setDeleteModalState({ isOpen: true, category: cat })}
                     className="p-1.5 rounded-lg hover:bg-rose-50 text-ink-soft hover:text-rose-600 transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -281,6 +325,26 @@ export default function AdminCategoriesPage() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={deleteModalState.isOpen}
+        onClose={() => setDeleteModalState({ isOpen: false, category: null })}
+        onConfirm={confirmDeleteCategory}
+        title="Delete Food Category?"
+        message={`Are you sure you want to remove "${deleteModalState.category?.name || ""}" from categories?\n\nThis will archive the category to the recycle bin.`}
+        confirmText="Delete Category"
+        cancelText="Keep Category"
+        type="danger"
+        isLoading={deleting}
+      />
+
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={() => setAlertState((prev) => ({ ...prev, isOpen: false }))}
+        title={alertState.title}
+        message={alertState.message}
+        type={alertState.type}
+      />
     </div>
   );
 }

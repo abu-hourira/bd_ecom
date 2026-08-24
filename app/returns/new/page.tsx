@@ -1,3 +1,4 @@
+import AlertModal from "@/components/ui/AlertModal";
 "use client";
 
 import { useState } from "react";
@@ -20,6 +21,12 @@ export default function NewReturnPage() {
   const [returnType, setReturnType] = useState("REFUND");
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [alertState, setAlertState] = useState<{ isOpen: boolean; title: string; message: string; type: "success" | "error" | "warning" | "info" }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "info",
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,10 +44,20 @@ export default function NewReturnPage() {
       if (json.success) {
         setSuccess(true);
       } else {
-        alert(json.error || "Failed to submit return request");
+        setAlertState({
+          isOpen: true,
+          title: "Submission Error",
+          message: json.error || "Failed to submit return request. Please check tracking ID.",
+          type: "error",
+        });
       }
     } catch (e: any) {
-      alert(e.message);
+      setAlertState({
+        isOpen: true,
+        title: "Submission Error",
+        message: e.message || "An unexpected error occurred.",
+        type: "error",
+      });
     } finally {
       setSubmitting(false);
     }

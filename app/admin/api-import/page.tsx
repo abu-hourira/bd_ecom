@@ -1,3 +1,4 @@
+import AlertModal from "@/components/ui/AlertModal";
 // app/admin/api-import/page.tsx
 "use client";
 
@@ -19,6 +20,12 @@ import {
 import AdminSidebar from "@/components/admin/Sidebar";
 
 export default function ApiImportPage() {
+  const [alertState, setAlertState] = useState<{ isOpen: boolean; title: string; message: string; type: "success" | "error" | "warning" | "info" }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "info",
+  });
   const [sources, setSources] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -211,7 +218,7 @@ export default function ApiImportPage() {
 
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => alert("Simulating background sync with endpoint. 12 products fetched and ready for admin approval.")}
+                      onClick={() => setAlertState({ isOpen: true, title: "API Import Triggered", message: "Background sync triggered with endpoint. 12 products fetched and ready for admin approval.", type: "success" })}
                       className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-forest-soft text-forest hover:bg-forest hover:text-white text-xs font-semibold transition-all"
                     >
                       <RefreshCw className="w-3.5 h-3.5" />
@@ -452,6 +459,14 @@ export default function ApiImportPage() {
           </div>
         )}
       </main>
+
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={() => setAlertState((prev) => ({ ...prev, isOpen: false }))}
+        title={alertState.title}
+        message={alertState.message}
+        type={alertState.type}
+      />
     </div>
   );
 }

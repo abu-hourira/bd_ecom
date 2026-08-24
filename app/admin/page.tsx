@@ -1,3 +1,4 @@
+import { useLiveSync } from "@/lib/useLiveSync";
 // app/admin/page.tsx
 "use client";
 
@@ -21,8 +22,8 @@ export default function AdminDashboardPage() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchStats = async () => {
-    setLoading(true);
+  const fetchStats = async (isBackground = false) => {
+    if (!isBackground) setLoading(true);
     try {
       const res = await fetch("/api/admin/stats");
       const json = await res.json();
@@ -37,14 +38,23 @@ export default function AdminDashboardPage() {
   };
 
   useEffect(() => {
-    fetchStats();
+    fetchStats(false);
   }, []);
+
+  // Real-time live sync every 5 seconds for orders, revenue, and low stock alerts
+  useLiveSync(() => fetchStats(true), { interval: 5000 });
 
   return (
     <div className="space-y-8">
       {/* Top Banner / Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-paper p-6 rounded-3xl border border-line shadow-card">
         <div>
+          <div className="flex items-center gap-2.5 mb-1">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold uppercase tracking-wider border border-emerald-300">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Live Sync Active
+            </span>
+          </div>
           <h2 className="text-2xl font-bold font-display text-ink">
             Organic Farm Store Performance
           </h2>
@@ -54,7 +64,7 @@ export default function AdminDashboardPage() {
         </div>
         <div className="flex items-center gap-3">
           <button
-            onClick={fetchStats}
+            onClick={() => fetchStats(false)}
             className="p-2.5 rounded-xl border border-line hover:bg-bg text-ink-soft hover:text-ink transition-colors"
             title="Refresh metrics"
           >

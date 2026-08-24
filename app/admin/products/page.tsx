@@ -1,3 +1,5 @@
+import ConfirmModal from "@/components/ui/ConfirmModal";
+import AlertModal from "@/components/ui/AlertModal";
 // app/admin/products/page.tsx
 "use client";
 
@@ -24,6 +26,17 @@ export default function AdminProductsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [deleteModalState, setDeleteModalState] = useState<{ isOpen: boolean; product: any | null }>({
+    isOpen: false,
+    product: null,
+  });
+  const [deleting, setDeleting] = useState(false);
+  const [alertState, setAlertState] = useState<{ isOpen: boolean; title: string; message: string; type: "success" | "error" | "warning" | "info" }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "info",
+  });
 
   const fetchProducts = async () => {
     setLoading(true);
@@ -60,19 +73,40 @@ export default function AdminProductsPage() {
     fetchProducts();
   }, [search, selectedCategory]);
 
-  const handleDeleteProduct = async (id: number, name: string) => {
-    if (!confirm(`Are you sure you want to move "${name}" to the recycle bin?`)) return;
+  const confirmDeleteProduct = async () => {
+    if (!deleteModalState.product) return;
+    const { id, name } = deleteModalState.product;
+    setDeleting(true);
 
     try {
       const res = await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
       const json = await res.json();
       if (json.success) {
-        setProducts(products.filter((p) => p.id !== id));
+        setProducts((prev) => prev.filter((p) => p.id !== id));
+        setDeleteModalState({ isOpen: false, product: null });
+        setAlertState({
+          isOpen: true,
+          title: "Product Removed",
+          message: `"${name}" was moved to the recycle bin.`,
+          type: "success",
+        });
       } else {
-        alert(json.error || "Failed to delete");
+        setAlertState({
+          isOpen: true,
+          title: "Delete Error",
+          message: json.error || "Failed to delete product.",
+          type: "error",
+        });
       }
     } catch (e: any) {
-      alert("Error deleting: " + e.message);
+      setAlertState({
+        isOpen: true,
+        title: "Delete Error",
+        message: e.message || "An unexpected error occurred.",
+        type: "error",
+      });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -257,7 +291,7 @@ export default function AdminProductsPage() {
                             <Edit2 className="w-4 h-4" />
                           </Link>
                           <button
-                            onClick={() => handleDeleteProduct(p.id, p.name)}
+                            onClick={() => setDeleteModalState({ isOpen: true, product: p })}
                             className="p-2 rounded-lg bg-bg hover:bg-rose-50 text-ink-soft hover:text-rose-600 transition-colors"
                             title="Move to Recycle Bin"
                           >
@@ -273,6 +307,27 @@ export default function AdminProductsPage() {
           </table>
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={deleteModalState.isOpen}
+        onClose={() => setDeleteModalState({ isOpen: false, product: null })}
+        onConfirm={confirmDeleteProduct}
+        title="Move Product to Recycle Bin?"
+        message={`Are you sure you want to remove "${deleteModalState.product?.name || ""}" from the active storefront catalog?\n\nThis will archive the item to the recycle bin with 1-click restore enabled.`}
+        confirmText="Move to Recycle Bin"
+        cancelText="Keep Product"
+        type="danger"
+        isLoading={deleting}
+        requireSafetyDelay={true}
+      />
+
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={() => setAlertState((prev) => ({ ...prev, isOpen: false }))}
+        title={alertState.title}
+        message={alertState.message}
+        type={alertState.type}
+      />
     </div>
   );
 }

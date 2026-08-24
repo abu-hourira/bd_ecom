@@ -1,3 +1,5 @@
+import { useLiveSync } from "@/lib/useLiveSync";
+import AlertModal from "@/components/ui/AlertModal";
 // app/admin/inventory/page.tsx
 "use client";
 
@@ -22,13 +24,29 @@ export default function AdminInventoryPage() {
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
+  const [alertState, setAlertState] = useState<{ isOpen: boolean; title: string; message: string; type: "success" | "error" | "warning" | "info" }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "info",
+  });
 
-  const fetchInventory = async () => {
-    setLoading(true);
+  const fetchInventory = async (isBackground = false) => {
+    if (!isBackground) setLoading(true);
     try {
       const res = await fetch("/api/admin/products");
       const json = await res.json();
-      if (json.success) setProducts(json.products);
+      if (json.success) {
+        setProducts((prev) => {
+          if (!isBackground || prev.length === 0) return json.products;
+          // Keep dirty edited values if in background sync
+          return json.products.map((p: any) => {
+            const existing = prev.find((x) => x.id === p.id);
+            if (existing && existing._dirty) return existing;
+            return p;
+          });
+        });
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -37,8 +55,11 @@ export default function AdminInventoryPage() {
   };
 
   useEffect(() => {
-    fetchInventory();
+    fetchInventory(false);
   }, []);
+
+  // Real-time live inventory sync every 6 seconds
+  useLiveSync(() => fetchInventory(true), { interval: 6000 });
 
   const handleStockChange = (id: number, delta: number) => {
     setProducts((prev) =>
@@ -80,7 +101,12 @@ export default function AdminInventoryPage() {
         prev.map((p) => (p.id === product.id ? { ...p, _dirty: false } : p))
       );
     } catch (err: any) {
-      alert("Error saving stock: " + err.message);
+      setAlertState({
+        isOpen: true,
+        title: "Stock Update Error",
+        message: err.message || "Failed to update stock.",
+        type: "error",
+      });
     } finally {
       setSavingId(null);
     }
@@ -97,6 +123,12 @@ export default function AdminInventoryPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold uppercase tracking-wider border border-emerald-300">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Live Stock Sync Active
+            </span>
+          </div>
           <h2 className="text-2xl font-bold font-display text-ink">Inventory Stock Controller</h2>
           <p className="text-sm text-ink-soft">
             Real-time organic stock levels with quick restock increment buttons.
@@ -110,7 +142,7 @@ export default function AdminInventoryPage() {
           </div>
 
           <button
-            onClick={fetchInventory}
+            onClick={() => fetchInventory(false)}
             className="p-2.5 rounded-xl border border-line bg-paper text-ink-soft hover:text-ink hover:bg-bg transition-colors"
             title="Refresh"
           >
@@ -298,6 +330,14 @@ export default function AdminInventoryPage() {
           </table>
         </div>
       </div>
+
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={() => setAlertState((prev) => ({ ...prev, isOpen: false }))}
+        title={alertState.title}
+        message={alertState.message}
+        type={alertState.type}
+      />
     </div>
   );
 }

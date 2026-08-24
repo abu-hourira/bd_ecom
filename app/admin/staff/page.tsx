@@ -1,3 +1,4 @@
+import AlertModal from "@/components/ui/AlertModal";
 // app/admin/staff/page.tsx
 "use client";
 
@@ -37,6 +38,12 @@ export default function StaffManagementPage() {
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
+  const [alertState, setAlertState] = useState<{ isOpen: boolean; title: string; message: string; type: "success" | "error" | "warning" | "info" }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "info",
+  });
 
   const fetchStaffData = async () => {
     try {
@@ -79,10 +86,20 @@ export default function StaffManagementPage() {
         setTimeout(() => setActionFeedback(null), 3000);
         fetchStaffData();
       } else {
-        alert(json.error || "Failed to create staff account");
+        setAlertState({
+          isOpen: true,
+          title: "Staff Creation Error",
+          message: json.error || "Failed to create staff account.",
+          type: "error",
+        });
       }
     } catch (e: any) {
-      alert(e.message);
+      setAlertState({
+        isOpen: true,
+        title: "Error",
+        message: e.message || "An unexpected error occurred.",
+        type: "error",
+      });
     } finally {
       setInviting(false);
     }
@@ -104,10 +121,20 @@ export default function StaffManagementPage() {
         setTimeout(() => setActionFeedback(null), 3000);
         fetchStaffData();
       } else {
-        alert(json.error || "Failed to delete staff member.");
+        setAlertState({
+          isOpen: true,
+          title: "Delete Blocked",
+          message: json.error || "Failed to delete staff member.",
+          type: "warning",
+        });
       }
     } catch (e: any) {
-      alert("Error: " + e.message);
+      setAlertState({
+        isOpen: true,
+        title: "Action Error",
+        message: e.message || "An unexpected error occurred.",
+        type: "error",
+      });
     } finally {
       setDeleting(false);
     }
@@ -130,10 +157,20 @@ export default function StaffManagementPage() {
         setTimeout(() => setActionFeedback(null), 3000);
         fetchStaffData();
       } else {
-        alert(json.error || "Failed to update staff status.");
+        setAlertState({
+          isOpen: true,
+          title: "Status Update Error",
+          message: json.error || "Failed to update staff status.",
+          type: "error",
+        });
       }
     } catch (e: any) {
-      alert("Error: " + e.message);
+      setAlertState({
+        isOpen: true,
+        title: "Action Error",
+        message: e.message || "An unexpected error occurred.",
+        type: "error",
+      });
     }
   };
 
@@ -595,6 +632,14 @@ export default function StaffManagementPage() {
           </div>
         </div>
       )}
+
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={() => setAlertState((prev) => ({ ...prev, isOpen: false }))}
+        title={alertState.title}
+        message={alertState.message}
+        type={alertState.type}
+      />
     </div>
   );
 }

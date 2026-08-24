@@ -1,3 +1,5 @@
+import ConfirmModal from "@/components/ui/ConfirmModal";
+import AlertModal from "@/components/ui/AlertModal";
 // app/admin/products/[id]/page.tsx
 "use client";
 
@@ -13,6 +15,14 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [alertState, setAlertState] = useState<{ isOpen: boolean; title: string; message: string; type: "success" | "error" | "warning" | "info" }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "info",
+  });
 
   const [formData, setFormData] = useState({
     name: "",
@@ -69,7 +79,12 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.price) {
-      alert("Product name and price are required.");
+      setAlertState({
+        isOpen: true,
+        title: "Validation Error",
+        message: "Product name and regular price are required fields.",
+        type: "warning",
+      });
       return;
     }
 
@@ -88,22 +103,41 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
 
       router.push("/admin/products");
     } catch (error: any) {
-      alert("Error updating product: " + error.message);
+      setAlertState({
+        isOpen: true,
+        title: "Save Error",
+        message: error.message || "Failed to update product.",
+        type: "error",
+      });
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async () => {
-    if (!confirm("Are you sure you want to move this product to the recycle bin?")) return;
+  const confirmDelete = async () => {
+    setDeleting(true);
     try {
       const res = await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
       const json = await res.json();
       if (json.success) {
         router.push("/admin/products");
+      } else {
+        setAlertState({
+          isOpen: true,
+          title: "Delete Error",
+          message: json.error || "Failed to delete product.",
+          type: "error",
+        });
       }
     } catch (e: any) {
-      alert("Error: " + e.message);
+      setAlertState({
+        isOpen: true,
+        title: "Delete Error",
+        message: e.message || "An unexpected error occurred.",
+        type: "error",
+      });
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -136,7 +170,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={handleDelete}
+            onClick={() => setShowDeleteModal(true)}
             className="p-2.5 rounded-xl border border-line bg-paper hover:bg-rose-50 text-ink-soft hover:text-rose-600 transition-colors"
             title="Move to Recycle Bin"
           >
@@ -369,6 +403,27 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
           </div>
         </div>
       </form>
+
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmDelete}
+        title="Move Product to Recycle Bin?"
+        message={`Are you sure you want to remove "${formData.name}" from active catalog?\n\nThis will archive the item to the recycle bin with 1-click restore enabled.`}
+        confirmText="Move to Recycle Bin"
+        cancelText="Keep Editing"
+        type="danger"
+        isLoading={deleting}
+        requireSafetyDelay={true}
+      />
+
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={() => setAlertState((prev) => ({ ...prev, isOpen: false }))}
+        title={alertState.title}
+        message={alertState.message}
+        type={alertState.type}
+      />
     </div>
   );
 }

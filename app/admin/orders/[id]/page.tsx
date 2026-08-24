@@ -1,3 +1,4 @@
+import AlertModal from "@/components/ui/AlertModal";
 // app/admin/orders/[id]/page.tsx
 "use client";
 
@@ -27,6 +28,12 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const [order, setOrder] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [alertState, setAlertState] = useState<{ isOpen: boolean; title: string; message: string; type: "success" | "error" | "warning" | "info" }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "info",
+  });
 
   const [orderStatus, setOrderStatus] = useState<OrderStatus>("PENDING");
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>("PENDING");
@@ -85,7 +92,12 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       setStatusNote("");
       fetchOrder();
     } catch (err: any) {
-      alert("Error: " + err.message);
+      setAlertState({
+        isOpen: true,
+        title: "Order Update Error",
+        message: err.message || "Failed to update order status.",
+        type: "error",
+      });
     } finally {
       setUpdating(false);
     }
@@ -363,6 +375,14 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
           </div>
         </div>
       </div>
+
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={() => setAlertState((prev) => ({ ...prev, isOpen: false }))}
+        title={alertState.title}
+        message={alertState.message}
+        type={alertState.type}
+      />
     </div>
   );
 }

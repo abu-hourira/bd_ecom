@@ -1,3 +1,4 @@
+import AlertModal from "@/components/ui/AlertModal";
 // app/checkout/page.tsx
 "use client";
 
@@ -55,6 +56,12 @@ export default function CheckoutPage() {
   const [validatingPromo, setValidatingPromo] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
+  const [alertState, setAlertState] = useState<{ isOpen: boolean; title: string; message: string; type: "success" | "error" | "warning" | "info"; onConfirm?: () => void }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "info",
+  });
 
   useEffect(() => {
     try {
@@ -150,8 +157,13 @@ export default function CheckoutPage() {
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
     if (!customer) {
-      alert(t("checkout.loginRequiredTitle"));
-      router.push("/auth/login?callbackUrl=/checkout");
+      setAlertState({
+        isOpen: true,
+        title: t("checkout.loginRequiredTitle"),
+        message: t("checkout.loginRequiredDesc"),
+        type: "warning",
+        onConfirm: () => router.push("/auth/login?callbackUrl=/checkout"),
+      });
       return;
     }
     e.preventDefault();
@@ -211,10 +223,20 @@ export default function CheckoutPage() {
 
         router.push(`/track/${json.order.trackingId}`);
       } else {
-        alert(json.error || "Failed to place order. Please try again.");
+        setAlertState({
+          isOpen: true,
+          title: "Order Placement Error",
+          message: json.error || "Failed to place order. Please try again.",
+          type: "error",
+        });
       }
     } catch (error: any) {
-      alert(error.message || "An unexpected error occurred.");
+      setAlertState({
+        isOpen: true,
+        title: "Order Placement Error",
+        message: error.message || "An unexpected error occurred.",
+        type: "error",
+      });
     } finally {
       setSubmitting(false);
     }

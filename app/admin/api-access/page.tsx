@@ -1,3 +1,4 @@
+import ConfirmModal from "@/components/ui/ConfirmModal";
 // app/admin/api-access/page.tsx
 "use client";
 
@@ -31,6 +32,8 @@ export default function ApiAccessPage() {
   const [createdRawKey, setCreatedRawKey] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [revokeKeyTarget, setRevokeKeyTarget] = useState<any | null>(null);
+  const [revoking, setRevoking] = useState(false);
 
   const fetchKeys = async () => {
     try {
@@ -90,14 +93,17 @@ export default function ApiAccessPage() {
     }
   };
 
-  const handleDeleteKey = async (id: number) => {
-    if (!confirm("Are you sure you want to permanently revoke and delete this API key? External clients using this key will immediately lose access.")) return;
-
+  const confirmRevokeKey = async () => {
+    if (!revokeKeyTarget) return;
+    setRevoking(true);
     try {
-      await fetch(`/api/admin/api-keys/${id}`, { method: "DELETE" });
+      await fetch(`/api/admin/api-keys/${revokeKeyTarget.id}`, { method: "DELETE" });
+      setRevokeKeyTarget(null);
       fetchKeys();
     } catch (e) {
       console.error(e);
+    } finally {
+      setRevoking(false);
     }
   };
 
@@ -220,7 +226,7 @@ export default function ApiAccessPage() {
                       </td>
                       <td className="p-4 text-right">
                         <button
-                          onClick={() => handleDeleteKey(k.id)}
+                          onClick={() => setRevokeKeyTarget(k)}
                           className="p-1.5 text-ink-soft hover:text-rose-600 rounded-lg hover:bg-rose-50 transition-colors"
                           title="Revoke & Delete Key"
                         >
@@ -419,6 +425,19 @@ export default function ApiAccessPage() {
           </div>
         )}
       </main>
+
+      <ConfirmModal
+        isOpen={Boolean(revokeKeyTarget)}
+        onClose={() => setRevokeKeyTarget(null)}
+        onConfirm={confirmRevokeKey}
+        title="Revoke & Delete API Key?"
+        message={`Are you sure you want to permanently revoke API key "${revokeKeyTarget?.name || ""}"?\n\nExternal consumers and connected mobile apps using this key will immediately lose access to ENMAR's catalog API.`}
+        confirmText="Revoke Key"
+        cancelText="Keep Key Active"
+        type="danger"
+        isLoading={revoking}
+        requireTypedConfirmation="REVOKE"
+      />
     </div>
   );
 }

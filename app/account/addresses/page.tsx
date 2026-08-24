@@ -1,3 +1,5 @@
+import ConfirmModal from "@/components/ui/ConfirmModal";
+import AlertModal from "@/components/ui/AlertModal";
 // app/account/addresses/page.tsx
 "use client";
 
@@ -35,6 +37,14 @@ export default function CustomerAddressesPage() {
   const [city, setCity] = useState("Dhaka");
   const [isDefault, setIsDefault] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [alertState, setAlertState] = useState<{ isOpen: boolean; title: string; message: string; type: "success" | "error" | "warning" | "info" }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "info",
+  });
 
   const fetchAddresses = (userId: number) => {
     fetch(`/api/account/addresses?userId=${userId}`)
@@ -92,22 +102,36 @@ export default function CustomerAddressesPage() {
         setArea("");
         fetchAddresses(customer.id);
       } else {
-        alert(data.error || "Failed to save address");
+        setAlertState({
+          isOpen: true,
+          title: "Address Error",
+          message: data.error || "Failed to save address.",
+          type: "error",
+        });
       }
     } catch (err: any) {
-      alert(err.message);
+      setAlertState({
+        isOpen: true,
+        title: "Address Error",
+        message: err.message || "An unexpected error occurred.",
+        type: "error",
+      });
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDeleteAddress = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this address?")) return;
+  const confirmDeleteAddress = async () => {
+    if (!deleteTargetId) return;
+    setDeleting(true);
     try {
-      await fetch(`/api/account/addresses?id=${id}`, { method: "DELETE" });
+      await fetch(`/api/account/addresses?id=${deleteTargetId}`, { method: "DELETE" });
+      setDeleteTargetId(null);
       if (customer?.id) fetchAddresses(customer.id);
     } catch (e) {
       console.error(e);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -188,7 +212,7 @@ export default function CustomerAddressesPage() {
 
                       <div className="pt-2 border-t border-line/60 flex items-center justify-end">
                         <button
-                          onClick={() => handleDeleteAddress(a.id)}
+                          onClick={() => setDeleteTargetId(a.id)}
                           className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />

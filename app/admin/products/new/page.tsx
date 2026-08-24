@@ -1,3 +1,4 @@
+import AlertModal from "@/components/ui/AlertModal";
 // app/admin/products/new/page.tsx
 "use client";
 
@@ -8,6 +9,12 @@ import { ArrowLeft, Save, Loader2, Leaf, Sparkles, Layers } from "lucide-react";
 import ImageUploader from "@/components/admin/ImageUploader";
 
 export default function NewProductPage() {
+  const [alertState, setAlertState] = useState<{ isOpen: boolean; title: string; message: string; type: "success" | "error" | "warning" | "info" }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "info",
+  });
   const router = useRouter();
   const [categories, setCategories] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
@@ -46,7 +53,12 @@ export default function NewProductPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.price) {
-      alert("Please fill in the product name and regular price.");
+      setAlertState({
+        isOpen: true,
+        title: "Missing Required Fields",
+        message: "Please fill in the product name and regular price before saving.",
+        type: "warning",
+      });
       return;
     }
 
@@ -65,7 +77,12 @@ export default function NewProductPage() {
 
       router.push("/admin/products");
     } catch (error: any) {
-      alert("Error: " + error.message);
+      setAlertState({
+        isOpen: true,
+        title: "Creation Error",
+        message: error.message || "Failed to create product.",
+        type: "error",
+      });
     } finally {
       setSaving(false);
     }
@@ -356,6 +373,14 @@ export default function NewProductPage() {
           </button>
         </div>
       </form>
+
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={() => setAlertState((prev) => ({ ...prev, isOpen: false }))}
+        title={alertState.title}
+        message={alertState.message}
+        type={alertState.type}
+      />
     </div>
   );
 }

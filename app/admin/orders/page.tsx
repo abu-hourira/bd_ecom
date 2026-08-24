@@ -1,3 +1,5 @@
+import { useLiveSync } from "@/lib/useLiveSync";
+import AlertModal from "@/components/ui/AlertModal";
 // app/admin/orders/page.tsx
 "use client";
 
@@ -32,9 +34,15 @@ export default function AdminOrdersPage() {
   const [courierTrackingId, setCourierTrackingId] = useState("");
   const [statusNote, setStatusNote] = useState("");
   const [updating, setUpdating] = useState(false);
+  const [alertState, setAlertState] = useState<{ isOpen: boolean; title: string; message: string; type: "success" | "error" | "warning" | "info" }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "info",
+  });
 
-  const fetchOrders = async () => {
-    setLoading(true);
+  const fetchOrders = async (isBackground = false) => {
+    if (!isBackground) setLoading(true);
     try {
       const query = new URLSearchParams();
       if (search) query.set("search", search);
@@ -51,8 +59,11 @@ export default function AdminOrdersPage() {
   };
 
   useEffect(() => {
-    fetchOrders();
+    fetchOrders(false);
   }, [activeTab, search]);
+
+  // Real-time live sync for orders queue every 5 seconds
+  useLiveSync(() => fetchOrders(true), { interval: 5000 });
 
   const openStatusModal = (order: any) => {
     setStatusModalOrder(order);
@@ -87,7 +98,12 @@ export default function AdminOrdersPage() {
       setStatusModalOrder(null);
       fetchOrders();
     } catch (err: any) {
-      alert("Error: " + err.message);
+      setAlertState({
+        isOpen: true,
+        title: "Order Update Error",
+        message: err.message || "Failed to update order status.",
+        type: "error",
+      });
     } finally {
       setUpdating(false);
     }
@@ -109,6 +125,12 @@ export default function AdminOrdersPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold uppercase tracking-wider border border-emerald-300">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Live Order Queue Active
+            </span>
+          </div>
           <h2 className="text-2xl font-bold font-display text-ink">Order Operations & Live Tracking</h2>
           <p className="text-sm text-ink-soft">
             Manage incoming orders, dispatch couriers, and update real-time tracking stages.
@@ -116,7 +138,7 @@ export default function AdminOrdersPage() {
         </div>
 
         <button
-          onClick={fetchOrders}
+          onClick={() => fetchOrders(false)}
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-line bg-paper text-ink-soft hover:text-ink hover:bg-bg transition-colors text-sm font-medium"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
@@ -389,6 +411,14 @@ export default function AdminOrdersPage() {
           </div>
         </div>
       )}
+
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={() => setAlertState((prev) => ({ ...prev, isOpen: false }))}
+        title={alertState.title}
+        message={alertState.message}
+        type={alertState.type}
+      />
     </div>
   );
 }

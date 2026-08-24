@@ -1,3 +1,4 @@
+import AlertModal from "@/components/ui/AlertModal";
 // components/admin/ImageUploader.tsx
 "use client";
 
@@ -25,6 +26,7 @@ export default function ImageUploader({
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [alertError, setAlertError] = useState<string | null>(null);
 
   const handleUploadFiles = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -53,7 +55,7 @@ export default function ImageUploader({
       }
     } catch (error: any) {
       console.error("[Upload Error]:", error);
-      alert("Failed to upload image: " + error.message);
+      setAlertError(error.message || "Failed to upload image.");
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -222,6 +224,14 @@ export default function ImageUploader({
           )}
         </div>
       )}
+
+      <AlertModal
+        isOpen={Boolean(alertError)}
+        onClose={() => setAlertError(null)}
+        title="Upload Error"
+        message={alertError || ""}
+        type="error"
+      />
     </div>
   );
 }
