@@ -86,7 +86,7 @@ export default function StorefrontHeader() {
       ["SUPER_ADMIN", "ADMIN", "MANAGER", "MODERATOR"].includes(customer.role)
   );
 
-  const brandTitle = siteSettings.brandName || "STORE";
+  const brandTitle = siteSettings.brandName || "";
   const brandSub = siteSettings.brandTagline || "";
 
   return (
@@ -136,31 +136,32 @@ export default function StorefrontHeader() {
             {mobileMenuOpen ? <X className="w-4 h-4 sm:w-5 sm:h-5" /> : <Menu className="w-4 h-4 sm:w-5 sm:h-5" />}
           </button>
 
-          <Link href="/" className="flex items-center gap-2 group">
+          <Link href="/" className="flex items-center gap-2 group min-h-[36px]">
             {siteSettings.siteLogo ? (
               <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-xl overflow-hidden shadow-xs shrink-0 bg-stone-50 border border-stone-200">
                 <Image
                   src={getSafeImageUrl(siteSettings.siteLogo)}
-                  alt={brandTitle}
+                  alt={brandTitle || "Logo"}
                   fill
                   className="object-contain p-0.5"
                   sizes="40px"
+                  priority
                 />
               </div>
-            ) : (
-              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-forest text-white flex items-center justify-center font-bold shadow-xs shrink-0">
-                <Store className="w-4 h-4 sm:w-5 sm:h-5" />
-              </div>
-            )}
-            <div className="flex flex-col">
-              <span className="font-display font-bold text-base sm:text-xl tracking-tight text-forest leading-none truncate max-w-[130px] sm:max-w-xs">
-                {brandTitle}
-              </span>
-              {brandSub && (
+            ) : null}
+            <div className="flex flex-col justify-center">
+              {brandTitle ? (
+                <span className="font-display font-bold text-base sm:text-xl tracking-tight text-forest leading-none truncate max-w-[140px] sm:max-w-xs">
+                  {brandTitle}
+                </span>
+              ) : (
+                <div className="w-24 sm:w-32 h-5 bg-stone-200/70 rounded-md animate-pulse" />
+              )}
+              {brandSub ? (
                 <span className="hidden sm:block text-[9px] tracking-wider uppercase text-stone-500 font-mono font-semibold mt-0.5 truncate max-w-xs">
                   {brandSub}
                 </span>
-              )}
+              ) : null}
             </div>
           </Link>
         </div>

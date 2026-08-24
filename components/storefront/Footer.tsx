@@ -43,7 +43,7 @@ export default function StorefrontFooter() {
       .catch(() => {});
   }, []);
 
-  const brandTitle = settings.brandName || "STORE";
+  const brandTitle = settings.brandName || "";
 
   return (
     <footer className="bg-stone-900 text-stone-300 border-t border-stone-800">
@@ -51,26 +51,26 @@ export default function StorefrontFooter() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Column 1: Brand Info */}
           <div className="space-y-3">
-            <Link href="/" className="flex items-center gap-2.5 group">
+            <Link href="/" className="flex items-center gap-2.5 group min-h-[36px]">
               {settings.siteLogo ? (
-                <div className="relative w-10 h-10 rounded-xl overflow-hidden shadow-xs bg-stone-800 border border-stone-700">
+                <div className="relative w-10 h-10 rounded-xl overflow-hidden shadow-xs bg-stone-800 border border-stone-700 shrink-0">
                   <Image
                     src={getSafeImageUrl(settings.siteLogo)}
-                    alt={brandTitle}
+                    alt={brandTitle || "Logo"}
                     fill
                     className="object-contain p-0.5"
                     sizes="40px"
                   />
                 </div>
-              ) : (
-                <div className="w-10 h-10 rounded-xl bg-emerald-800 flex items-center justify-center text-amber-400">
-                  <Store className="w-5 h-5" />
-                </div>
-              )}
+              ) : null}
               <div>
-                <span className="font-display font-bold text-xl tracking-tight text-white leading-none">
-                  {brandTitle}
-                </span>
+                {brandTitle ? (
+                  <span className="font-display font-bold text-xl tracking-tight text-white leading-none">
+                    {brandTitle}
+                  </span>
+                ) : (
+                  <div className="w-28 h-5 bg-stone-800 rounded-md animate-pulse" />
+                )}
                 {settings.brandTagline && (
                   <span className="block text-[10px] tracking-wider uppercase text-amber-400 font-mono font-semibold mt-0.5">
                     {settings.brandTagline}
@@ -174,7 +174,7 @@ export default function StorefrontFooter() {
         {/* Bottom Copyright */}
         <div className="mt-8 pt-4 border-t border-stone-800 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-stone-500">
           <div>
-            © {new Date().getFullYear()} {brandTitle}. All rights reserved.
+            {brandTitle ? `© ${new Date().getFullYear()} ${brandTitle}. All rights reserved.` : `© ${new Date().getFullYear()}. All rights reserved.`}
           </div>
         </div>
       </div>
