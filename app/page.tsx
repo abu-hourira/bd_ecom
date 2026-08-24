@@ -1,5 +1,5 @@
 "use client";
-// app/page.tsx
+// app/page.tsx - Mobile-First & Ultra-Polished Storefront
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -16,6 +16,9 @@ import {
   CheckCircle2,
   Phone,
   Flame,
+  Clock,
+  ChevronRight,
+  Filter,
 } from "lucide-react";
 import StorefrontHeader from "@/components/storefront/Header";
 import StorefrontFooter from "@/components/storefront/Footer";
@@ -52,75 +55,83 @@ export default function HomePage() {
     <div className="min-h-screen bg-[#FAF8F5] text-stone-900 flex flex-col justify-between">
       <StorefrontHeader />
 
-      <main className="space-y-16 sm:space-y-20 pb-20">
-        {/* 1. Hero Banner */}
-        <section className="relative overflow-hidden bg-[#143520] text-white py-14 sm:py-20 px-4 sm:px-6 lg:px-8 border-b border-stone-200/20">
-          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-            {/* Left Copy */}
-            <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-900/60 text-amber-300 text-xs font-semibold tracking-wide border border-amber-300/30">
+      <main className="space-y-8 sm:space-y-16 pb-24 md:pb-20">
+        {/* 1. Mobile-Optimized & Desktop-Rich Hero Banner */}
+        <section className="relative overflow-hidden bg-[#143520] text-white py-6 sm:py-16 lg:py-20 px-4 sm:px-6 lg:px-8 border-b border-stone-200/20">
+          {/* Subtle Background Glow */}
+          <div className="absolute top-0 right-0 -mr-20 -mt-20 w-72 h-72 rounded-full bg-amber-500/10 blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-72 h-72 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
+
+          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-center relative z-10">
+            {/* Left Main Hero Copy */}
+            <div className="lg:col-span-7 space-y-4 sm:space-y-6 text-center lg:text-left">
+              {/* Organic Badge */}
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-900/80 text-amber-300 text-[11px] sm:text-xs font-semibold tracking-wide border border-amber-300/30 shadow-xs">
                 <Leaf className="w-3.5 h-3.5" />
                 <span>{t("hero.badge")}</span>
               </div>
 
-              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold font-display tracking-tight text-white leading-[1.18]">
-                {t("hero.title")} <br />
-                <span className="text-amber-400">{t("hero.titleHighlight")}</span>
+              {/* Main Headline */}
+              <h1 className="text-2xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold font-display tracking-tight text-white leading-[1.2]">
+                {t("hero.title")}{" "}
+                <span className="text-amber-400 block sm:inline">{t("hero.titleHighlight")}</span>
               </h1>
 
-              <p className="text-sm sm:text-base text-stone-200 max-w-xl mx-auto lg:mx-0 leading-relaxed font-normal">
+              {/* Subtitle */}
+              <p className="text-xs sm:text-sm lg:text-base text-stone-200 max-w-xl mx-auto lg:mx-0 leading-relaxed font-normal">
                 {t("hero.subtitle")}
               </p>
 
-              {/* Action Buttons */}
-              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3.5 pt-2">
+              {/* Action Buttons (Compact on Mobile) */}
+              <div className="flex items-center justify-center lg:justify-start gap-2.5 sm:gap-3.5 pt-1">
                 <Link
                   href="/products"
-                  className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-sm shadow-md transition-all duration-200 hover:-translate-y-0.5 cursor-pointer active:scale-95"
+                  className="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-5 sm:px-7 py-2.5 sm:py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs sm:text-sm shadow-md transition-all duration-200 active:scale-95 cursor-pointer"
                 >
+                  <ShoppingBag className="w-4 h-4" />
                   <span>{t("hero.ctaExplore")}</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
                 <Link
                   href="/track"
-                  className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-sm border border-white/20 transition-all duration-200 hover:-translate-y-0.5 cursor-pointer active:scale-95"
+                  className="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2.5 sm:py-3.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs sm:text-sm border border-white/20 transition-all duration-200 active:scale-95 cursor-pointer"
                 >
-                  <Truck className="w-4 h-4 text-amber-300" />
+                  <Truck className="w-3.5 h-3.5 text-amber-300" />
                   <span>{t("hero.ctaTrack")}</span>
                 </Link>
               </div>
 
-              {/* Trust Metrics */}
-              <div className="grid grid-cols-3 gap-4 pt-6 border-t border-white/15 max-w-md mx-auto lg:mx-0">
-                <div>
-                  <div className="text-xl sm:text-2xl font-bold font-display text-amber-400">
+              {/* Quick Trust Badges Strip (Mobile & Desktop) */}
+              <div className="grid grid-cols-3 gap-2 sm:gap-4 pt-4 border-t border-white/15 max-w-md mx-auto lg:mx-0">
+                <div className="text-center lg:text-left">
+                  <div className="text-base sm:text-2xl font-bold font-display text-amber-400">
                     {t("hero.metric1Value")}
                   </div>
-                  <div className="text-[11px] text-stone-300 font-medium">
+                  <div className="text-[10px] sm:text-[11px] text-stone-300 font-medium leading-tight">
                     {t("hero.metric1Label")}
                   </div>
                 </div>
-                <div>
-                  <div className="text-xl sm:text-2xl font-bold font-display text-amber-400">
+                <div className="text-center lg:text-left border-x border-white/10 lg:border-none px-1">
+                  <div className="text-base sm:text-2xl font-bold font-display text-amber-400">
                     {t("hero.metric2Value")}
                   </div>
-                  <div className="text-[11px] text-stone-300 font-medium">
+                  <div className="text-[10px] sm:text-[11px] text-stone-300 font-medium leading-tight">
                     {t("hero.metric2Label")}
                   </div>
                 </div>
-                <div>
-                  <div className="text-xl sm:text-2xl font-bold font-display text-amber-400">
+                <div className="text-center lg:text-left">
+                  <div className="text-base sm:text-2xl font-bold font-display text-amber-400">
                     {t("hero.metric3Value")}
                   </div>
-                  <div className="text-[11px] text-stone-300 font-medium">
+                  <div className="text-[10px] sm:text-[11px] text-stone-300 font-medium leading-tight">
                     {t("hero.metric3Label")}
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Right Card / Promo Highlight */}
-            <div className="lg:col-span-5">
+            {/* Right Card / Promo Highlight (Desktop Only to save mobile scroll space) */}
+            <div className="hidden lg:block lg:col-span-5">
               <div className="bg-emerald-950/70 border border-white/15 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl backdrop-blur-xs">
                 <div className="flex items-center justify-between">
                   <span className="px-3 py-1 rounded-full bg-amber-400/20 text-amber-300 text-xs font-bold font-mono border border-amber-400/30">
@@ -130,154 +141,145 @@ export default function HomePage() {
                 </div>
 
                 <div className="space-y-3">
-                  <div className="flex items-center gap-1 text-amber-400 text-xs">
+                  <div className="flex items-center gap-1 text-amber-400">
                     <Star className="w-4 h-4 fill-amber-400" />
                     <Star className="w-4 h-4 fill-amber-400" />
                     <Star className="w-4 h-4 fill-amber-400" />
                     <Star className="w-4 h-4 fill-amber-400" />
                     <Star className="w-4 h-4 fill-amber-400" />
-                    <span className="text-stone-200 text-xs font-semibold ml-1">
-                      ১০০% বিশুদ্ধতার গ্যারান্টি
+                    <span className="text-xs text-stone-300 ml-1.5 font-medium">
+                      ১০০% নির্ভরযোগ্য গ্যারান্টি
                     </span>
                   </div>
-                  <h3 className="text-xl font-bold font-display text-white">
-                    {locale === "bn"
-                      ? "সুন্দরবনের কাঁচা মধু ও কাঠের ঘানির খাঁটি তেল"
-                      : "Sundarban Raw Honey & Wood-Ghani Pure Oils"}
+                  <h3 className="text-xl sm:text-2xl font-bold text-white font-display leading-snug">
+                    সুন্দরবনের কাঁচা মধু ও কাঠের ঘানির খাঁটি তেল
                   </h3>
                   <p className="text-xs text-stone-300 leading-relaxed">
-                    {locale === "bn"
-                      ? "কোনো ক্ষতিকর প্রিজারভেটিভ বা রিফাইনিং ছাড়াই প্রাকৃতিক নিয়মে সংগৃহীত ও প্রক্রিয়াজাত।"
-                      : "Directly harvested from natural mangrove hives and indigenous village ghani churners without chemical refining."}
+                    কোনো কৃত্রিম প্রিজারভেটিভ বা ভেজালহীন বাছাইকৃত প্রাকৃতিক বিষমুক্ত সামগ্রী ও প্রক্রিয়াজাত।
                   </p>
                 </div>
 
                 <div className="pt-4 border-t border-white/10 flex items-center justify-between">
-                  <div className="text-xs text-stone-300">
-                    <span className="text-amber-300 font-bold">৳১,৫০০+</span> অর্ডারে ফ্রি ডেলিভারি
+                  <div>
+                    <div className="text-xs text-stone-400">সর্বমোট ডেলিভারি</div>
+                    <div className="text-lg font-bold text-amber-400 font-display">১২,০০০+ পরিবার</div>
                   </div>
-                  <Link
-                    href="/products"
-                    className="text-xs font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1 group"
-                  >
-                    <span>{t("hero.badge")}</span>
-                    <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
-                  </Link>
+                  <div className="text-right">
+                    <div className="text-xs text-stone-400">প্রাকৃতিক উৎস</div>
+                    <div className="text-lg font-bold text-emerald-400 font-display">১০০% খাঁটি ও অর্গানিক</div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* 2. 10 Categories Circular / Card Grid */}
+        {/* 2. Fast Horizontal Category Story-Bar (Instant Access on Mobile) */}
         <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-2xl mx-auto space-y-1.5 mb-8">
-            <h2 className="text-2xl sm:text-3xl font-bold font-display text-stone-900">
-              {t("categories.title")}
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm sm:text-lg font-bold text-stone-900 flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-forest" />
+              <span>{locale === "bn" ? "জনপ্রিয় ক্যাটাগরি" : "Top Categories"}</span>
             </h2>
-            <p className="text-xs sm:text-sm text-stone-600">
-              {t("categories.subtitle")}
-            </p>
+            <Link
+              href="/products"
+              className="text-xs font-semibold text-forest hover:underline flex items-center gap-0.5"
+            >
+              <span>{locale === "bn" ? "সবগুলো দেখুন" : "View All"}</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
 
-          <div className="flex sm:grid sm:grid-cols-5 lg:grid-cols-10 gap-3 sm:gap-3.5 overflow-x-auto sm:overflow-visible pb-2 sm:pb-0 scrollbar-none snap-x">
-            {categories.map((cat: any) => (
-              <Link
-                key={cat.id}
-                href={`/products?category=${cat.slug}`}
-                className="group flex flex-col items-center text-center p-3 rounded-2xl bg-white border border-stone-200 hover:border-forest shadow-xs hover:shadow-md transition-all duration-200 hover:-translate-y-1 cursor-pointer min-w-[90px] sm:min-w-0 snap-start shrink-0 sm:shrink"
-              >
-                <div className="relative w-12 h-12 rounded-xl bg-emerald-50 group-hover:ring-2 group-hover:ring-forest overflow-hidden flex items-center justify-center transition-all duration-200 mb-2 border border-stone-200">
-                  {cat.image ? (
-                    <Image
-                      src={getSafeImageUrl(cat.image)}
-                      alt={cat.name}
-                      fill
-                      sizes="48px"
-                      className="object-cover group-hover:scale-110 transition-transform duration-300"
-                      unoptimized={true}
-                    />
-                  ) : (
-                    <Leaf className="w-5 h-5 text-emerald-700 group-hover:text-forest" />
-                  )}
-                </div>
-                <span className="text-xs font-semibold text-stone-800 group-hover:text-forest transition-colors line-clamp-2 leading-tight">
-                  {cat.name.split(" ")[0]}
-                </span>
-                <span className="text-[10px] text-stone-400 font-mono mt-0.5">
-                  {cat._count?.products || 0} {t("categories.itemsCount")}
-                </span>
-              </Link>
-            ))}
-          </div>
-        </section>
+          <div className="flex items-center gap-2.5 sm:gap-4 overflow-x-auto pb-2 scrollbar-none snap-x">
+            {/* All Category Pill */}
+            <button
+              onClick={() => setSelectedCategoryTab("all")}
+              className={`snap-start shrink-0 px-4 py-2 rounded-2xl text-xs font-bold transition-all duration-200 flex items-center gap-2 border cursor-pointer ${
+                selectedCategoryTab === "all"
+                  ? "bg-forest text-white border-forest shadow-sm scale-105"
+                  : "bg-white text-stone-700 border-stone-200 hover:border-forest/40"
+              }`}
+            >
+              <Leaf className="w-3.5 h-3.5" />
+              <span>{t("products.filterAll")}</span>
+            </button>
 
-        {/* 3. Farm Fresh Products Grid with Category Tabs */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-stone-200 pb-4">
-            <div>
-              <div className="inline-flex items-center gap-1.5 text-xs font-bold text-forest uppercase tracking-wider mb-1">
-                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                <span>{t("products.sectionBadge")}</span>
-              </div>
-              <h2 className="text-2xl sm:text-3xl font-bold font-display text-stone-900">
-                {t("products.sectionTitle")}
-              </h2>
-            </div>
-
-            {/* Category Filter Pills */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full">
-              <button
-                type="button"
-                onClick={() => setSelectedCategoryTab("all")}
-                className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                  selectedCategoryTab === "all"
-                    ? "bg-forest text-white shadow-xs"
-                    : "bg-white text-stone-700 hover:bg-stone-100 border border-stone-200"
-                }`}
-              >
-                {t("products.allTab")} ({products.length})
-              </button>
-              {categories.slice(0, 6).map((c: any) => (
+            {/* Dynamic Categories */}
+            {categories.map((c: any) => {
+              const isSelected = selectedCategoryTab === c.slug;
+              return (
                 <button
                   key={c.id}
-                  type="button"
                   onClick={() => setSelectedCategoryTab(c.slug)}
-                  className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                    selectedCategoryTab === c.slug
-                      ? "bg-forest text-white shadow-xs"
-                      : "bg-white text-stone-700 hover:bg-stone-100 border border-stone-200"
+                  className={`snap-start shrink-0 px-4 py-2 rounded-2xl text-xs font-bold transition-all duration-200 flex items-center gap-2 border cursor-pointer ${
+                    isSelected
+                      ? "bg-forest text-white border-forest shadow-sm scale-105"
+                      : "bg-white text-stone-700 border-stone-200 hover:border-forest/40"
                   }`}
                 >
-                  {c.name}
+                  <span>{c.name}</span>
                 </button>
-              ))}
+              );
+            })}
+          </div>
+        </section>
+
+        {/* 3. Main Product Grid — Immediately in View! */}
+        <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 space-y-4">
+          <div className="flex items-center justify-between border-b border-stone-200/80 pb-3">
+            <div>
+              <h2 className="text-lg sm:text-2xl font-bold font-display text-stone-900 flex items-center gap-2">
+                <Flame className="w-5 h-5 text-amber-500" />
+                <span>{t("products.title")}</span>
+              </h2>
+              <p className="text-xs text-stone-500 hidden sm:block">
+                {t("products.subtitle")}
+              </p>
             </div>
+
+            <span className="text-xs font-mono font-bold text-forest bg-forest-soft px-2.5 py-1 rounded-full border border-forest/15">
+              {filteredProducts.length} {locale === "bn" ? "টি পণ্য" : "items"}
+            </span>
           </div>
 
-          {/* Products Grid */}
-          {filteredProducts.length === 0 ? (
-            <div className="text-center py-16 bg-white rounded-2xl border border-stone-200 p-8">
-              <Leaf className="w-10 h-10 text-stone-300 mx-auto mb-2" />
-              <h3 className="font-bold text-base text-stone-800 font-display">
-                {t("hero.badge")}
+          {/* 2-Columns on Mobile, 4-Columns on Desktop */}
+          {loading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-6">
+              {[...Array(6)].map((_, i) => (
+                <div
+                  key={i}
+                  className="bg-white rounded-2xl border border-stone-200 p-3 sm:p-4 space-y-3 animate-pulse"
+                >
+                  <div className="w-full aspect-square bg-stone-100 rounded-xl" />
+                  <div className="h-4 bg-stone-100 rounded w-3/4" />
+                  <div className="h-3 bg-stone-100 rounded w-1/2" />
+                  <div className="h-8 bg-stone-100 rounded-xl w-full" />
+                </div>
+              ))}
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-2xl border border-stone-200 p-6">
+              <Leaf className="w-8 h-8 text-stone-300 mx-auto mb-2" />
+              <h3 className="font-bold text-sm text-stone-800 font-display">
+                কোনো পণ্য পাওয়া যায়নি
               </h3>
               <p className="text-xs text-stone-500 mt-1">
-                {t("hero.badge")}
+                অন্য ক্যাটাগরি সিলেক্ট করুন বা সব পণ্য দেখুন।
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3.5 sm:gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-6">
               {filteredProducts.map((p: any) => (
                 <ProductCard key={p.id} product={p} />
               ))}
             </div>
           )}
 
-          <div className="text-center pt-2">
+          {/* View Full Catalog Button */}
+          <div className="text-center pt-4">
             <Link
               href="/products"
-              className="inline-flex items-center gap-2 px-7 py-3 rounded-full bg-white hover:bg-emerald-50 text-forest font-bold text-xs sm:text-sm border border-forest/30 shadow-xs transition-all hover:scale-105 cursor-pointer"
+              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-white hover:bg-emerald-50 text-forest font-bold text-xs sm:text-sm border border-forest/30 shadow-xs transition-all hover:scale-105 active:scale-95 cursor-pointer"
             >
               <span>{t("products.viewFull")}</span>
               <ArrowRight className="w-4 h-4" />
@@ -287,31 +289,28 @@ export default function HomePage() {
 
         {/* 4. Family Combo & Bundle Deals */}
         {comboDeals.length > 0 && (
-          <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="bg-[#F7F4EE] p-6 sm:p-8 rounded-3xl border border-stone-200/80 space-y-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+            <div className="bg-[#F7F4EE] p-4 sm:p-8 rounded-3xl border border-stone-200/80 space-y-4 sm:space-y-6">
+              <div className="flex items-center justify-between">
                 <div>
-                  <span className="px-3 py-1 rounded-full bg-amber-500 text-stone-950 text-[11px] font-extrabold tracking-wider uppercase">
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500 text-stone-950 text-[10px] font-extrabold tracking-wider uppercase">
                     {t("combos.badge")}
                   </span>
-                  <h2 className="text-2xl sm:text-3xl font-bold font-display text-stone-900 mt-2">
+                  <h2 className="text-lg sm:text-2xl font-bold font-display text-stone-900 mt-1">
                     {t("combos.title")}
                   </h2>
-                  <p className="text-xs sm:text-sm text-stone-600 mt-0.5">
-                    {t("combos.subtitle")}
-                  </p>
                 </div>
 
                 <Link
                   href="/products?category=combo-bundle-deals"
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-forest hover:underline cursor-pointer"
+                  className="inline-flex items-center gap-1 text-xs font-bold text-forest hover:underline cursor-pointer"
                 >
                   <span>{t("combos.viewAll")}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-6">
                 {comboDeals.map((combo: any) => (
                   <ProductCard key={combo.id} product={combo} />
                 ))}
@@ -321,72 +320,72 @@ export default function HomePage() {
         )}
 
         {/* 5. Customer Testimonials */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-white p-6 sm:p-10 rounded-3xl border border-stone-200 shadow-xs space-y-8">
-            <div className="text-center max-w-2xl mx-auto space-y-1.5">
-              <h2 className="text-2xl sm:text-3xl font-bold font-display text-stone-900">
+        <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+          <div className="bg-white p-5 sm:p-8 rounded-3xl border border-stone-200 shadow-xs space-y-5">
+            <div className="text-center max-w-xl mx-auto space-y-1">
+              <h2 className="text-lg sm:text-2xl font-bold font-display text-stone-900">
                 {t("testimonials.title")}
               </h2>
-              <p className="text-xs sm:text-sm text-stone-600">
+              <p className="text-xs text-stone-600">
                 {t("testimonials.subtitle")}
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              <div className="p-5 rounded-2xl bg-stone-50 border border-stone-200/80 space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-5">
+              <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200/80 space-y-2.5">
                 <div className="flex items-center gap-1 text-amber-500">
-                  <Star className="w-4 h-4 fill-amber-500" />
-                  <Star className="w-4 h-4 fill-amber-500" />
-                  <Star className="w-4 h-4 fill-amber-500" />
-                  <Star className="w-4 h-4 fill-amber-500" />
-                  <Star className="w-4 h-4 fill-amber-500" />
+                  <Star className="w-3.5 h-3.5 fill-amber-500" />
+                  <Star className="w-3.5 h-3.5 fill-amber-500" />
+                  <Star className="w-3.5 h-3.5 fill-amber-500" />
+                  <Star className="w-3.5 h-3.5 fill-amber-500" />
+                  <Star className="w-3.5 h-3.5 fill-amber-500" />
                 </div>
                 <p className="text-xs text-stone-700 leading-relaxed">
-                  "সুন্দরবনের কাঁচা মধুটির স্বাদ এবং ঘ্রাণ অসাধারণ। বাজারের চিনিযুক্ত মধুর চেয়ে অনেক গুণ ভালো। প্যাকেজিংও খুব প্রিমিয়াম।"
+                  &quot;সুন্দরবনের কাঁচা মধুটির স্বাদ এবং ঘ্রাণ অসাধারণ। বাজারের চিনিযুক্ত মধুর চেয়ে অনেক গুণ ভালো। প্যাকেজিংও খুব প্রিমিয়াম।&quot;
                 </p>
-                <div className="pt-2 border-t border-stone-200 flex items-center justify-between text-xs">
+                <div className="pt-2 border-t border-stone-200 flex items-center justify-between text-[11px]">
                   <span className="font-bold text-stone-900">ডাঃ রাশেদ করিম (ধানমন্ডি)</span>
-                  <span className="text-emerald-700 text-[11px] flex items-center gap-1 font-semibold">
+                  <span className="text-emerald-700 flex items-center gap-1 font-semibold">
                     <CheckCircle2 className="w-3 h-3" />
                     {t("testimonials.verified")}
                   </span>
                 </div>
               </div>
 
-              <div className="p-5 rounded-2xl bg-stone-50 border border-stone-200/80 space-y-3">
+              <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200/80 space-y-2.5">
                 <div className="flex items-center gap-1 text-amber-500">
-                  <Star className="w-4 h-4 fill-amber-500" />
-                  <Star className="w-4 h-4 fill-amber-500" />
-                  <Star className="w-4 h-4 fill-amber-500" />
-                  <Star className="w-4 h-4 fill-amber-500" />
-                  <Star className="w-4 h-4 fill-amber-500" />
+                  <Star className="w-3.5 h-3.5 fill-amber-500" />
+                  <Star className="w-3.5 h-3.5 fill-amber-500" />
+                  <Star className="w-3.5 h-3.5 fill-amber-500" />
+                  <Star className="w-3.5 h-3.5 fill-amber-500" />
+                  <Star className="w-3.5 h-3.5 fill-amber-500" />
                 </div>
                 <p className="text-xs text-stone-700 leading-relaxed">
-                  "ঐতিহ্যবাহী কাঠের ঘানির সরিষার তেলের ঝাঁঝ দারুণ! অর্ডারের মাত্র ৫ ঘণ্টায় উত্তরায় হোম ডেলিভারি পেয়েছি।"
+                  &quot;ঐতিহ্যবাহী কাঠের ঘানির সরিষার তেলের ঝাঁঝ দারুণ! অর্ডারের মাত্র ৫ ঘণ্টায় উত্তরায় হোম ডেলিভারি পেয়েছি।&quot;
                 </p>
-                <div className="pt-2 border-t border-stone-200 flex items-center justify-between text-xs">
+                <div className="pt-2 border-t border-stone-200 flex items-center justify-between text-[11px]">
                   <span className="font-bold text-stone-900">নুসরাত জাহান (উত্তরা)</span>
-                  <span className="text-emerald-700 text-[11px] flex items-center gap-1 font-semibold">
+                  <span className="text-emerald-700 flex items-center gap-1 font-semibold">
                     <CheckCircle2 className="w-3 h-3" />
                     {t("testimonials.verified")}
                   </span>
                 </div>
               </div>
 
-              <div className="p-5 rounded-2xl bg-stone-50 border border-stone-200/80 space-y-3">
+              <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200/80 space-y-2.5">
                 <div className="flex items-center gap-1 text-amber-500">
-                  <Star className="w-4 h-4 fill-amber-500" />
-                  <Star className="w-4 h-4 fill-amber-500" />
-                  <Star className="w-4 h-4 fill-amber-500" />
-                  <Star className="w-4 h-4 fill-amber-500" />
-                  <Star className="w-4 h-4 fill-amber-500" />
+                  <Star className="w-3.5 h-3.5 fill-amber-500" />
+                  <Star className="w-3.5 h-3.5 fill-amber-500" />
+                  <Star className="w-3.5 h-3.5 fill-amber-500" />
+                  <Star className="w-3.5 h-3.5 fill-amber-500" />
+                  <Star className="w-3.5 h-3.5 fill-amber-500" />
                 </div>
                 <p className="text-xs text-stone-700 leading-relaxed">
-                  "গাওয়া ঘির দানা ও খাঁটি মিষ্টি সুবাস পুরো রান্নাঘরে ছড়িয়ে পড়ে। প্রতিটি স্ট্যাটাস পরিবর্তনের লাইভ SMS ট্র্যাকিং সত্যিই প্রশংসনীয়।"
+                  &quot;গাওয়া ঘির দানা ও খাঁটি মিষ্টি সুবাস পুরো রান্নাঘরে ছড়িয়ে পড়ে। প্রতিটি স্ট্যাটাস পরিবর্তনের লাইভ SMS ট্র্যাকিং সত্যিই প্রশংসনীয়।&quot;
                 </p>
-                <div className="pt-2 border-t border-stone-200 flex items-center justify-between text-xs">
+                <div className="pt-2 border-t border-stone-200 flex items-center justify-between text-[11px]">
                   <span className="font-bold text-stone-900">তানভীর আহমেদ (মিরপুর)</span>
-                  <span className="text-emerald-700 text-[11px] flex items-center gap-1 font-semibold">
+                  <span className="text-emerald-700 flex items-center gap-1 font-semibold">
                     <CheckCircle2 className="w-3 h-3" />
                     {t("testimonials.verified")}
                   </span>
