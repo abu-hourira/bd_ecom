@@ -1,5 +1,5 @@
 "use client";
-// app/admin/notifications/page.tsx
+// app/admin/notifications/page.tsx - Complete Notifications Management with Direct Live Diagnostics
 
 import { useEffect, useState } from "react";
 import {
@@ -14,6 +14,9 @@ import {
   Shield,
   Activity,
   Phone,
+  KeyRound,
+  ExternalLink,
+  Info,
 } from "lucide-react";
 
 export default function AdminNotificationSettingsPage() {
@@ -44,7 +47,7 @@ export default function AdminNotificationSettingsPage() {
 
   // Test Dispatches
   const [testPhone, setTestPhone] = useState("01614113082");
-  const [testEmail, setTestEmail] = useState("admin@enmar.bd");
+  const [testEmail, setTestEmail] = useState("");
   const [sendingTestSMS, setSendingTestSMS] = useState(false);
   const [sendingTestEmail, setSendingTestEmail] = useState(false);
   const [testMessage, setTestMessage] = useState<{ text: string; type: "success" | "error" } | null>(null);
@@ -78,6 +81,9 @@ export default function AdminNotificationSettingsPage() {
             smtpPass: email.smtpPass || "",
             isActive: email.isActive,
           });
+          if (email.smtpUser && !testEmail) {
+            setTestEmail(email.smtpUser);
+          }
         }
       }
     } catch (e) {
@@ -103,13 +109,13 @@ export default function AdminNotificationSettingsPage() {
       });
       const json = await res.json();
       if (json.success) {
-        setTestMessage({ text: "SMS Gateway credentials encrypted & saved!", type: "success" });
+        setTestMessage({ text: "SMS Gateway credentials saved successfully.", type: "success" });
         fetchSettings();
       } else {
-        throw new Error(json.error);
+        setTestMessage({ text: json.error || "Failed to save SMS settings.", type: "error" });
       }
     } catch (err: any) {
-      setTestMessage({ text: "Failed to save SMS: " + err.message, type: "error" });
+      setTestMessage({ text: err.message, type: "error" });
     } finally {
       setSavingSMS(false);
     }
@@ -117,6 +123,15 @@ export default function AdminNotificationSettingsPage() {
 
   const handleSaveEmail = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!emailForm.smtpUser.trim()) {
+      setTestMessage({ text: "Please enter your Gmail address (Username).", type: "error" });
+      return;
+    }
+    if (!emailForm.smtpPass.trim()) {
+      setTestMessage({ text: "Please enter your 16-character Google App Password.", type: "error" });
+      return;
+    }
+
     setSavingEmail(true);
     setTestMessage(null);
     try {
@@ -127,356 +142,512 @@ export default function AdminNotificationSettingsPage() {
       });
       const json = await res.json();
       if (json.success) {
-        setTestMessage({ text: "Email Gateway credentials saved!", type: "success" });
+        setTestMessage({ text: "Gmail / SMTP Gateway credentials saved and encrypted securely! You can now send a test email below.", type: "success" });
         fetchSettings();
       } else {
-        throw new Error(json.error);
+        setTestMessage({ text: json.error || "Failed to save Email settings.", type: "error" });
       }
     } catch (err: any) {
-      setTestMessage({ text: "Failed to save Email: " + err.message, type: "error" });
+      setTestMessage({ text: err.message, type: "error" });
     } finally {
       setSavingEmail(false);
     }
   };
 
-  const handleSendTest = async (channel: "SMS" | "EMAIL") => {
-    if (channel === "SMS") setSendingTestSMS(true);
-    if (channel === "EMAIL") setSendingTestEmail(true);
+  const handleSendTestSMS = async () => {
+    if (!testPhone.trim()) return;
+    setSendingTestSMS(true);
     setTestMessage(null);
-
     try {
       const res = await fetch("/api/admin/notifications/test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          channel,
-          recipient: channel === "SMS" ? testPhone : testEmail,
-        }),
+        body: JSON.stringify({ channel: "SMS", recipient: testPhone }),
       });
       const json = await res.json();
       if (json.success) {
         setTestMessage({ text: json.message, type: "success" });
-        fetchSettings(); // Refresh logs
+        fetchSettings();
       } else {
-        throw new Error(json.error);
+        setTestMessage({ text: json.error || "Failed to send test SMS.", type: "error" });
       }
     } catch (err: any) {
-      setTestMessage({ text: `Test ${channel} Failed: ` + err.message, type: "error" });
+      setTestMessage({ text: err.message, type: "error" });
     } finally {
-      if (channel === "SMS") setSendingTestSMS(false);
-      if (channel === "EMAIL") setSendingTestEmail(false);
+      setSendingTestSMS(false);
+    }
+  };
+
+  const handleSendTestEmail = async () => {
+    const recipient = testEmail.trim() || emailForm.smtpUser.trim();
+    if (!recipient) {
+      setTestMessage({ text: "Please enter a recipient email address to receive the test email.", type: "error" });
+      return;
+    }
+    setSendingTestEmail(true);
+    setTestMessage(null);
+    try {
+      const res = await fetch("/api/admin/notifications/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channel: "EMAIL", recipient }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setTestMessage({ text: json.message, type: "success" });
+        fetchSettings();
+      } else {
+        setTestMessage({ text: json.error || "Failed to send test email.", type: "error" });
+      }
+    } catch (err: any) {
+      setTestMessage({ text: err.message, type: "error" });
+    } finally {
+      setSendingTestEmail(false);
     }
   };
 
   if (loading) {
     return (
-      <div className="py-24 text-center text-ink-soft">
+      <div className="p-8 text-center text-stone-500">
         <Loader2 className="w-8 h-8 animate-spin mx-auto text-forest mb-2" />
-        <span>Loading notification gateways...</span>
+        <p className="text-sm font-semibold">Loading notification gateway settings...</p>
       </div>
     );
   }
 
+  const emailGateway = gateways.find((g: any) => g.channel === "EMAIL");
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-5xl pb-16">
       {/* Top Banner */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold font-display text-ink flex items-center gap-2">
-          <Bell className="w-7 h-7 text-forest" />
-          <span>Notification Gateways & Automation</span>
-        </h1>
-        <p className="text-xs text-ink-soft mt-1">
-          Configure automated customer SMS & Email notifications for new orders, tracking updates, and admin alerts.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-stone-200 pb-5">
+        <div>
+          <h1 className="text-2xl font-bold font-display text-stone-900 flex items-center gap-2">
+            <Bell className="w-6 h-6 text-forest" />
+            <span>Notification Gateway Settings</span>
+          </h1>
+          <p className="text-xs sm:text-sm text-stone-500 mt-1">
+            Configure automated SMS and Email credentials for customer order updates and admin alerts.
+          </p>
+        </div>
       </div>
 
-      {/* Global Status Message */}
+      {/* Global Alert Notification */}
       {testMessage && (
         <div
-          className={`p-4 rounded-2xl border text-xs flex items-center gap-3 ${
+          className={`p-4 rounded-2xl border flex items-start gap-3 animate-in fade-in ${
             testMessage.type === "success"
-              ? "bg-emerald-50 border-emerald-200 text-emerald-900"
-              : "bg-rose-50 border-rose-200 text-rose-900"
+              ? "bg-emerald-50 border-emerald-300 text-emerald-900"
+              : "bg-red-50 border-red-300 text-red-900"
           }`}
         >
           {testMessage.type === "success" ? (
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
           ) : (
-            <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+            <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
           )}
-          <span>{testMessage.text}</span>
+          <div className="text-xs sm:text-sm font-semibold leading-relaxed flex-1">
+            {testMessage.text}
+          </div>
         </div>
       )}
 
-      {/* 2-Column Gateways Configuration */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* 1. SMS Gateway Card */}
-        <div className="bg-paper p-6 sm:p-8 rounded-3xl border border-line shadow-card space-y-6">
-          <div className="flex items-center justify-between border-b border-line pb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-forest-soft text-forest flex items-center justify-center">
-                <MessageSquare className="w-5 h-5" />
+        {/* 1. EMAIL GATEWAY (SMTP / GMAIL) */}
+        <div className="bg-white rounded-3xl border border-stone-200 shadow-xs p-6 space-y-6 flex flex-col justify-between">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between border-b border-stone-100 pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center border border-amber-200">
+                  <Mail className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="font-display font-bold text-base text-stone-900">Email Gateway (Gmail / SMTP)</h2>
+                  <span className="text-xs text-stone-500">Transactional Order & Verification Emails</span>
+                </div>
               </div>
-              <div>
-                <h2 className="text-base font-bold font-display text-ink">
-                  Bangladeshi SMS Gateway
-                </h2>
-                <p className="text-[11px] text-ink-soft">
-                  BulkSMSBD, AlphaSMS, Onnorokom, or Custom API
-                </p>
-              </div>
-            </div>
-
-            <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold font-mono">
-              AES-256 ENCRYPTED
-            </span>
-          </div>
-
-          <form onSubmit={handleSaveSMS} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-ink">SMS Provider</label>
-              <select
-                value={smsForm.provider}
-                onChange={(e) => setSmsForm({ ...smsForm, provider: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl bg-bg border border-line text-xs font-semibold text-ink"
+              <span
+                className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                  emailGateway?.isActive
+                    ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                    : "bg-stone-100 text-stone-500"
+                }`}
               >
-                <option value="BulkSMSBD">BulkSMSBD (Recommended)</option>
-                <option value="AlphaSMS">Alpha SMS</option>
-                <option value="Onnorokom">Onnorokom SMS</option>
-                <option value="GenericREST">Generic REST Endpoint</option>
-              </select>
+                {emailGateway?.isActive ? "Active" : "Inactive"}
+              </span>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-ink">API Key / Token</label>
-              <input
-                type="password"
-                placeholder="Enter SMS API Key"
-                value={smsForm.apiKey}
-                onChange={(e) => setSmsForm({ ...smsForm, apiKey: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl bg-bg border border-line text-xs font-mono"
-              />
+            {/* Google App Password Guide Note */}
+            <div className="p-3.5 rounded-2xl bg-blue-50/80 border border-blue-200 text-xs text-blue-900 space-y-2">
+              <div className="flex items-center gap-1.5 font-bold">
+                <Info className="w-4 h-4 text-blue-600 shrink-0" />
+                <span>How to connect your Gmail in 2 minutes:</span>
+              </div>
+              <ol className="list-decimal list-inside space-y-1 text-[11px] text-blue-800 leading-relaxed pl-1">
+                <li>Make sure <strong>2-Step Verification</strong> is turned ON in your Google account.</li>
+                <li>Go to <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" className="underline font-bold text-blue-950 inline-flex items-center gap-0.5">Google App Passwords <ExternalLink className="w-2.5 h-2.5" /></a>.</li>
+                <li>Create an App Password named <strong>ENMAR</strong> and copy the 16-character code.</li>
+                <li>Paste your Gmail ID and the 16-character code below and click <strong>Save Settings</strong>.</li>
+              </ol>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-ink">Sender ID (Masking)</label>
+            <form onSubmit={handleSaveEmail} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1">
+                  Provider
+                </label>
+                <select
+                  value={emailForm.provider}
+                  onChange={(e) => setEmailForm({ ...emailForm, provider: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-xs bg-stone-50 focus:outline-none focus:border-forest"
+                >
+                  <option value="SMTP">Gmail SMTP (Recommended)</option>
+                  <option value="SendGrid">SendGrid / Custom SMTP</option>
+                </select>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-2">
+                  <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1">
+                    SMTP Host
+                  </label>
+                  <input
+                    type="text"
+                    value={emailForm.smtpHost}
+                    onChange={(e) => setEmailForm({ ...emailForm, smtpHost: e.target.value })}
+                    placeholder="smtp.gmail.com"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-xs focus:outline-none focus:border-forest"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1">
+                    Port
+                  </label>
+                  <input
+                    type="text"
+                    value={emailForm.smtpPort}
+                    onChange={(e) => setEmailForm({ ...emailForm, smtpPort: e.target.value })}
+                    placeholder="587"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-xs focus:outline-none focus:border-forest"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1">
+                  Gmail Address (Username)
+                </label>
                 <input
-                  type="text"
-                  placeholder="ENMAR"
-                  value={smsForm.senderId}
-                  onChange={(e) => setSmsForm({ ...smsForm, senderId: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-bg border border-line text-xs font-mono font-bold"
+                  type="email"
+                  value={emailForm.smtpUser}
+                  onChange={(e) => setEmailForm({ ...emailForm, smtpUser: e.target.value })}
+                  placeholder="yourname@gmail.com"
+                  required
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-xs focus:outline-none focus:border-forest"
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-ink">Gateway Status</label>
-                <button
-                  type="button"
-                  onClick={() => setSmsForm({ ...smsForm, isActive: !smsForm.isActive })}
-                  className={`w-full py-2.5 rounded-xl text-xs font-bold border transition-colors ${
-                    smsForm.isActive
-                      ? "bg-emerald-50 text-emerald-800 border-emerald-300"
-                      : "bg-bg text-ink-soft border-line"
-                  }`}
-                >
-                  {smsForm.isActive ? "● Active & Online" : "Disabled"}
-                </button>
+              <div>
+                <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1 flex items-center justify-between">
+                  <span>Google App Password (16-characters)</span>
+                  <span className="text-[10px] text-stone-400 font-normal">Encrypted at rest</span>
+                </label>
+                <input
+                  type="text"
+                  value={emailForm.smtpPass}
+                  onChange={(e) => setEmailForm({ ...emailForm, smtpPass: e.target.value })}
+                  placeholder="e.g. abcd efgh ijkl mnop"
+                  required
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-xs font-mono focus:outline-none focus:border-forest"
+                />
               </div>
-            </div>
 
-            <button
-              type="submit"
-              disabled={savingSMS}
-              className="w-full py-3 rounded-xl bg-forest hover:bg-forest-deep text-white font-bold text-xs shadow-xs flex items-center justify-center gap-2"
-            >
-              {savingSMS ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              <span>Save SMS Gateway Settings</span>
-            </button>
-          </form>
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="emailActive"
+                  checked={emailForm.isActive}
+                  onChange={(e) => setEmailForm({ ...emailForm, isActive: e.target.checked })}
+                  className="w-4 h-4 rounded text-forest focus:ring-forest"
+                />
+                <label htmlFor="emailActive" className="text-xs font-semibold text-stone-700">
+                  Enable this Email Gateway for live notifications
+                </label>
+              </div>
 
-          {/* Test SMS Box */}
-          <div className="p-4 rounded-2xl bg-bg border border-line space-y-3">
-            <span className="text-xs font-bold text-ink block">Send Live Test SMS</span>
-            <div className="flex items-center gap-2">
+              <button
+                type="submit"
+                disabled={savingEmail}
+                className="w-full py-2.5 px-4 rounded-xl bg-forest hover:bg-forest-deep text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer active:scale-98"
+              >
+                {savingEmail ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Saving & Encrypting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 text-amber-400" />
+                    <span>Save Email Settings</span>
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+
+          {/* Test Email Dispatcher */}
+          <div className="border-t border-stone-100 pt-4 space-y-3 bg-stone-50/70 -mx-6 -mb-6 p-6 rounded-b-3xl">
+            <h3 className="text-xs font-bold text-stone-900 uppercase tracking-wider flex items-center gap-1.5">
+              <Send className="w-3.5 h-3.5 text-forest" />
+              <span>Send Live Test Email</span>
+            </h3>
+            <div className="flex gap-2">
               <input
-                type="text"
-                placeholder="01XXXXXXXXX"
-                value={testPhone}
-                onChange={(e) => setTestPhone(e.target.value)}
-                className="flex-1 px-3 py-2 rounded-xl bg-paper border border-line text-xs font-mono"
+                type="email"
+                placeholder="Recipient email address"
+                value={testEmail}
+                onChange={(e) => setTestEmail(e.target.value)}
+                className="flex-1 px-3 py-2 rounded-xl border border-stone-200 text-xs bg-white focus:outline-none focus:border-forest"
               />
               <button
                 type="button"
-                disabled={sendingTestSMS}
-                onClick={() => handleSendTest("SMS")}
-                className="px-4 py-2 rounded-xl bg-forest-deep text-white text-xs font-bold shadow-xs disabled:opacity-50 flex items-center gap-1.5"
+                onClick={handleSendTestEmail}
+                disabled={sendingTestEmail}
+                className="px-4 py-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95 shrink-0"
               >
-                {sendingTestSMS ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                <span>Test SMS</span>
+                {sendingTestEmail ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Send className="w-3.5 h-3.5 text-amber-400" />
+                )}
+                <span>Send Test</span>
               </button>
             </div>
           </div>
         </div>
 
-        {/* 2. Email SMTP Gateway Card */}
-        <div className="bg-paper p-6 sm:p-8 rounded-3xl border border-line shadow-card space-y-6">
-          <div className="flex items-center justify-between border-b border-line pb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-forest-soft text-forest flex items-center justify-center">
-                <Mail className="w-5 h-5" />
+        {/* 2. SMS GATEWAY (BulkSMSBD / Alpha SMS) */}
+        <div className="bg-white rounded-3xl border border-stone-200 shadow-xs p-6 space-y-6 flex flex-col justify-between">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between border-b border-stone-100 pb-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-forest flex items-center justify-center border border-emerald-200">
+                  <MessageSquare className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="font-display font-bold text-base text-stone-900">SMS Gateway (Bangladeshi API)</h2>
+                  <span className="text-xs text-stone-500">Order SMS & Login OTP</span>
+                </div>
               </div>
-              <div>
-                <h2 className="text-base font-bold font-display text-ink">
-                  Email Gateway (SMTP / Resend)
-                </h2>
-                <p className="text-[11px] text-ink-soft">
-                  Transactional order confirmation invoices
-                </p>
-              </div>
+              <span
+                className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                  smsForm.isActive
+                    ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                    : "bg-stone-100 text-stone-500"
+                }`}
+              >
+                {smsForm.isActive ? "Active" : "Inactive"}
+              </span>
             </div>
 
-            <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold font-mono">
-              AES-256 ENCRYPTED
-            </span>
+            <form onSubmit={handleSaveSMS} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1">
+                  Provider
+                </label>
+                <select
+                  value={smsForm.provider}
+                  onChange={(e) => setSmsForm({ ...smsForm, provider: e.target.value })}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-xs bg-stone-50 focus:outline-none focus:border-forest"
+                >
+                  <option value="BulkSMSBD">BulkSMSBD</option>
+                  <option value="AlphaSMS">Alpha SMS</option>
+                  <option value="Greenweb">Greenweb BD</option>
+                  <option value="GenericREST">Generic REST API</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1">
+                  API Key / Token
+                </label>
+                <input
+                  type="password"
+                  value={smsForm.apiKey}
+                  onChange={(e) => setSmsForm({ ...smsForm, apiKey: e.target.value })}
+                  placeholder="Enter API Key from your SMS provider"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-xs font-mono focus:outline-none focus:border-forest"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1">
+                  Sender ID (Approved Masking / Non-Masking)
+                </label>
+                <input
+                  type="text"
+                  value={smsForm.senderId}
+                  onChange={(e) => setSmsForm({ ...smsForm, senderId: e.target.value })}
+                  placeholder="ENMAR"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-xs focus:outline-none focus:border-forest"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1">
+                  Custom Endpoint URL (Optional)
+                </label>
+                <input
+                  type="url"
+                  value={smsForm.apiEndpoint}
+                  onChange={(e) => setSmsForm({ ...smsForm, apiEndpoint: e.target.value })}
+                  placeholder="https://bulksmsbd.net/api/smsapi"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-xs font-mono focus:outline-none focus:border-forest"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="smsActive"
+                  checked={smsForm.isActive}
+                  onChange={(e) => setSmsForm({ ...smsForm, isActive: e.target.checked })}
+                  className="w-4 h-4 rounded text-forest focus:ring-forest"
+                />
+                <label htmlFor="smsActive" className="text-xs font-semibold text-stone-700">
+                  Enable this SMS Gateway for live SMS
+                </label>
+              </div>
+
+              <button
+                type="submit"
+                disabled={savingSMS}
+                className="w-full py-2.5 px-4 rounded-xl bg-forest hover:bg-forest-deep text-white font-bold text-xs flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer active:scale-98"
+              >
+                {savingSMS ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Saving & Encrypting...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 text-amber-400" />
+                    <span>Save SMS Settings</span>
+                  </>
+                )}
+              </button>
+            </form>
           </div>
 
-          <form onSubmit={handleSaveEmail} className="space-y-4">
-            <div className="grid grid-cols-3 gap-3">
-              <div className="col-span-2 space-y-1.5">
-                <label className="block text-xs font-semibold text-ink">SMTP Host</label>
-                <input
-                  type="text"
-                  placeholder="smtp.gmail.com"
-                  value={emailForm.smtpHost}
-                  onChange={(e) => setEmailForm({ ...emailForm, smtpHost: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-bg border border-line text-xs font-mono"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-ink">Port</label>
-                <input
-                  type="text"
-                  placeholder="587"
-                  value={emailForm.smtpPort}
-                  onChange={(e) => setEmailForm({ ...emailForm, smtpPort: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-bg border border-line text-xs font-mono"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-ink">SMTP Username / Email</label>
+          {/* Test SMS Dispatcher */}
+          <div className="border-t border-stone-100 pt-4 space-y-3 bg-stone-50/70 -mx-6 -mb-6 p-6 rounded-b-3xl">
+            <h3 className="text-xs font-bold text-stone-900 uppercase tracking-wider flex items-center gap-1.5">
+              <Send className="w-3.5 h-3.5 text-forest" />
+              <span>Send Live Test SMS</span>
+            </h3>
+            <div className="flex gap-2">
               <input
-                type="text"
-                placeholder="orders@enmar.bd"
-                value={emailForm.smtpUser}
-                onChange={(e) => setEmailForm({ ...emailForm, smtpUser: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl bg-bg border border-line text-xs font-mono"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-ink">SMTP Password / App Key</label>
-              <input
-                type="password"
-                placeholder="Enter SMTP App Password"
-                value={emailForm.smtpPass}
-                onChange={(e) => setEmailForm({ ...emailForm, smtpPass: e.target.value })}
-                className="w-full px-4 py-2.5 rounded-xl bg-bg border border-line text-xs font-mono"
-              />
-            </div>
-
-            <button
-              type="submit"
-              disabled={savingEmail}
-              className="w-full py-3 rounded-xl bg-forest hover:bg-forest-deep text-white font-bold text-xs shadow-xs flex items-center justify-center gap-2"
-            >
-              {savingEmail ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              <span>Save Email Settings</span>
-            </button>
-          </form>
-
-          {/* Test Email Box */}
-          <div className="p-4 rounded-2xl bg-bg border border-line space-y-3">
-            <span className="text-xs font-bold text-ink block">Send Live Test Email</span>
-            <div className="flex items-center gap-2">
-              <input
-                type="email"
-                placeholder="admin@enmar.bd"
-                value={testEmail}
-                onChange={(e) => setTestEmail(e.target.value)}
-                className="flex-1 px-3 py-2 rounded-xl bg-paper border border-line text-xs"
+                type="tel"
+                placeholder="01XXXXXXXXX"
+                value={testPhone}
+                onChange={(e) => setTestPhone(e.target.value)}
+                className="flex-1 px-3 py-2 rounded-xl border border-stone-200 text-xs bg-white focus:outline-none focus:border-forest font-mono"
               />
               <button
                 type="button"
-                disabled={sendingTestEmail}
-                onClick={() => handleSendTest("EMAIL")}
-                className="px-4 py-2 rounded-xl bg-forest-deep text-white text-xs font-bold shadow-xs disabled:opacity-50 flex items-center gap-1.5"
+                onClick={handleSendTestSMS}
+                disabled={sendingTestSMS}
+                className="px-4 py-2 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer active:scale-95 shrink-0"
               >
-                {sendingTestEmail ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                <span>Test Email</span>
+                {sendingTestSMS ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Send className="w-3.5 h-3.5 text-amber-400" />
+                )}
+                <span>Send Test</span>
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Notification Activity Logs */}
-      <div className="bg-paper p-6 sm:p-8 rounded-3xl border border-line shadow-card space-y-4">
-        <h2 className="text-base font-bold font-display text-ink flex items-center gap-2">
-          <Activity className="w-5 h-5 text-forest" />
-          <span>Notification Dispatch Audit Logs</span>
-        </h2>
+      {/* Notification Activity Logs Table */}
+      <div className="bg-white rounded-3xl border border-stone-200 p-6 space-y-4 shadow-xs">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Activity className="w-5 h-5 text-forest" />
+            <h3 className="font-display font-bold text-base text-stone-900">Recent Notification Delivery Logs</h3>
+          </div>
+          <button
+            onClick={fetchSettings}
+            className="text-xs font-bold text-forest hover:underline cursor-pointer"
+          >
+            Refresh Logs
+          </button>
+        </div>
 
-        {logs.length === 0 ? (
-          <p className="text-xs text-ink-soft py-6 text-center">
-            No notification logs yet. Orders and status changes will log their dispatch results here.
-          </p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-bg text-ink-soft uppercase font-mono text-[10px] border-b border-line">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-stone-200 text-stone-400 font-mono text-[10px] uppercase tracking-wider">
+                <th className="py-2.5 px-3">Timestamp</th>
+                <th className="py-2.5 px-3">Channel</th>
+                <th className="py-2.5 px-3">Recipient</th>
+                <th className="py-2.5 px-3">Subject / Event</th>
+                <th className="py-2.5 px-3">Status</th>
+                <th className="py-2.5 px-3">Details / Error</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-stone-100 text-stone-700">
+              {logs.length === 0 ? (
                 <tr>
-                  <th className="py-3 px-4">Channel</th>
-                  <th className="py-3 px-4">Recipient</th>
-                  <th className="py-3 px-4">Type</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4">Time</th>
-                  <th className="py-3 px-4">Note/Error</th>
+                  <td colSpan={6} className="py-8 text-center text-stone-400">
+                    No notification logs recorded yet.
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-line">
-                {logs.map((log) => (
-                  <tr key={log.id} className="hover:bg-bg/50">
-                    <td className="py-3 px-4 font-bold text-ink">{log.channel}</td>
-                    <td className="py-3 px-4 font-mono">{log.recipient}</td>
-                    <td className="py-3 px-4">{log.subject || "Notification"}</td>
-                    <td className="py-3 px-4">
+              ) : (
+                logs.map((log) => (
+                  <tr key={log.id} className="hover:bg-stone-50/60 transition-colors">
+                    <td className="py-2.5 px-3 font-mono text-[11px] text-stone-500 whitespace-nowrap">
+                      {new Date(log.createdAt).toLocaleString("en-GB")}
+                    </td>
+                    <td className="py-2.5 px-3 font-bold">
                       <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold font-mono ${
+                        className={`px-2 py-0.5 rounded-md text-[10px] ${
+                          log.channel === "SMS"
+                            ? "bg-emerald-50 text-forest border border-emerald-200"
+                            : "bg-blue-50 text-blue-700 border border-blue-200"
+                        }`}
+                      >
+                        {log.channel}
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-3 font-mono font-medium text-stone-900">
+                      {log.recipient}
+                    </td>
+                    <td className="py-2.5 px-3 font-semibold text-stone-800 truncate max-w-xs">
+                      {log.subject || "Order Notification"}
+                    </td>
+                    <td className="py-2.5 px-3">
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                           log.status === "SENT"
-                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                            : "bg-rose-50 text-rose-700 border border-rose-200"
+                            ? "bg-emerald-100 text-emerald-800"
+                            : "bg-red-100 text-red-800"
                         }`}
                       >
                         {log.status}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-ink-soft font-mono text-[11px]">
-                      {new Date(log.createdAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })} • {new Date(log.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
-                    </td>
-                    <td className="py-3 px-4 text-ink-soft truncate max-w-xs">
+                    <td className="py-2.5 px-3 text-stone-500 text-[11px] max-w-xs truncate font-mono">
                       {log.errorReason || "Delivered successfully"}
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
