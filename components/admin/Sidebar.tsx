@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
+  Trash2,
   Bike,
   Sliders,
   FileText,
@@ -50,6 +51,7 @@ export default function AdminSidebar({ mobileOpen, onCloseMobile }: SidebarProps
     { label: "Site Content & Text", href: "/admin/content", icon: FileText },
     { label: "Feature Toggles", href: "/admin/features", icon: Sliders },
     { label: "Site Settings & Theme", href: "/admin/settings", icon: Palette },
+    { label: "Recycle Bin", href: "/admin/bin", icon: Trash2 },
   ];
 
   const advancedItems = [
