@@ -1,6 +1,4 @@
 "use client";
-import ConfirmModal from "@/components/ui/ConfirmModal";
-import AlertModal from "@/components/ui/AlertModal";
 // app/admin/products/page.tsx
 
 import { useEffect, useState } from "react";
@@ -19,9 +17,12 @@ import {
   Package,
   CheckSquare,
   Square,
+  RefreshCw,
   Loader2,
 } from "lucide-react";
 import { formatTaka } from "@/lib/utils";
+import ConfirmModal from "@/components/ui/ConfirmModal";
+import AlertModal from "@/components/ui/AlertModal";
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -30,13 +31,18 @@ export default function AdminProductsPage() {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
+
+  // Modals state
+  const [singleDeleteProduct, setSingleDeleteProduct] = useState<any | null>(null);
   const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
-  const [deleteModalState, setDeleteModalState] = useState<{ isOpen: boolean; product: any | null }>({
-    isOpen: false,
-    product: null,
-  });
   const [deleting, setDeleting] = useState(false);
-  const [alertState, setAlertState] = useState<{ isOpen: boolean; title: string; message: string; type: "success" | "error" | "warning" | "info" }>({
+
+  const [alertState, setAlertState] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: "success" | "error" | "warning" | "info";
+  }>({
     isOpen: false,
     title: "",
     message: "",
@@ -50,9 +56,11 @@ export default function AdminProductsPage() {
       if (search) query.set("search", search);
       if (selectedCategory && selectedCategory !== "all") query.set("categoryId", selectedCategory);
 
-      const res = await fetch(`/api/admin/products?${query.toString()}`);
+      const res = await fetch("/api/admin/products?" + query.toString());
       const json = await res.json();
-      if (json.success) setProducts(json.products);
+      if (json.success) {
+        setProducts(json.products || []);
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -64,7 +72,7 @@ export default function AdminProductsPage() {
     try {
       const res = await fetch("/api/admin/categories");
       const json = await res.json();
-      if (json.success) setCategories(json.categories);
+      if (json.success) setCategories(json.categories || []);
     } catch (e) {
       console.error(e);
     }
@@ -79,7 +87,6 @@ export default function AdminProductsPage() {
     setSelectedIds([]);
   }, [search, selectedCategory]);
 
-  
   const handleSelectAll = () => {
     if (selectedIds.length === products.length) {
       setSelectedIds([]);
@@ -92,6 +99,44 @@ export default function AdminProductsPage() {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
+  };
+
+  const confirmSingleDelete = async () => {
+    if (!singleDeleteProduct) return;
+    const { id, name } = singleDeleteProduct;
+    setDeleting(true);
+
+    try {
+      const res = await fetch("/api/admin/products/" + id, { method: "DELETE" });
+      const json = await res.json();
+      if (json.success) {
+        setProducts((prev) => prev.filter((p) => p.id !== id));
+        setSelectedIds((prev) => prev.filter((itemId) => itemId !== id));
+        setSingleDeleteProduct(null);
+        setAlertState({
+          isOpen: true,
+          title: "Moved to Recycle Bin",
+          message: `"${name}" was moved to the recycle bin. You can restore it anytime.`,
+          type: "success",
+        });
+      } else {
+        setAlertState({
+          isOpen: true,
+          title: "Delete Error",
+          message: json.error || "Failed to delete product.",
+          type: "error",
+        });
+      }
+    } catch (e: any) {
+      setAlertState({
+        isOpen: true,
+        title: "Delete Error",
+        message: e.message || "An unexpected error occurred.",
+        type: "error",
+      });
+    } finally {
+      setDeleting(false);
+    }
   };
 
   const confirmBulkDelete = async () => {
@@ -135,51 +180,14 @@ export default function AdminProductsPage() {
     }
   };
 
-  const confirmDeleteProduct = async () => {
-    if (!deleteModalState.product) return;
-    const { id, name } = deleteModalState.product;
-    setDeleting(true);
-
-    try {
-      const res = await fetch(`/api/admin/products/${id}`, { method: "DELETE" });
-      const json = await res.json();
-      if (json.success) {
-        setProducts((prev) => prev.filter((p) => p.id !== id));
-        setDeleteModalState({ isOpen: false, product: null });
-        setAlertState({
-          isOpen: true,
-          title: "Product Removed",
-          message: `"${name}" was moved to the recycle bin.`,
-          type: "success",
-        });
-      } else {
-        setAlertState({
-          isOpen: true,
-          title: "Delete Error",
-          message: json.error || "Failed to delete product.",
-          type: "error",
-        });
-      }
-    } catch (e: any) {
-      setAlertState({
-        isOpen: true,
-        title: "Delete Error",
-        message: e.message || "An unexpected error occurred.",
-        type: "error",
-      });
-    } finally {
-      setDeleting(false);
-    }
-  };
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-16">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold font-display text-ink">Product Catalog</h2>
           <p className="text-sm text-ink-soft">
-            Manage your certified organic food items, inventory stock, and pricing.
+            Manage your organic food products, inventory stock, and bulk product management.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -191,12 +199,12 @@ export default function AdminProductsPage() {
             <span>Recycle Bin</span>
           </Link>
           <Link
-          href="/admin/products/new"
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-forest hover:bg-forest-deep text-white font-semibold text-sm shadow-premium transition-all hover:-translate-y-0.5"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add Product</span>
-        </Link>
+            href="/admin/products/new"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-forest hover:bg-forest-deep text-white font-semibold text-sm shadow-premium transition-all hover:-translate-y-0.5"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Product</span>
+          </Link>
         </div>
       </div>
 
@@ -233,7 +241,6 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
-      
       {/* Bulk Action Sticky Bar */}
       {selectedIds.length > 0 && (
         <div className="bg-forest-deep text-white px-5 py-3.5 rounded-2xl shadow-xl flex items-center justify-between animate-fadeIn sticky top-20 z-20 border border-white/20">
@@ -291,14 +298,15 @@ export default function AdminProductsPage() {
                 <th className="py-4 px-4">Price</th>
                 <th className="py-4 px-4">Stock Status</th>
                 <th className="py-4 px-4">Badge / Deal</th>
-                <th className="py-4 px-4 text-right">Actions</th>
+                <th className="py-4 px-5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-ink-soft">
-                    Loading catalog...
+                  <td colSpan={7} className="py-12 text-center text-ink-soft space-y-2">
+                    <Loader2 className="w-6 h-6 animate-spin text-forest mx-auto" />
+                    <p className="text-xs">Loading catalog...</p>
                   </td>
                 </tr>
               ) : products.length === 0 ? (
@@ -314,20 +322,22 @@ export default function AdminProductsPage() {
                       ? p.images[0]
                       : "/assets/products/placeholder.jpg";
 
+                  const isSelected = selectedIds.includes(p.id);
                   const isLowStock = p.stockQuantity <= 10;
                   const isOutOfStock = p.stockQuantity === 0;
 
                   return (
-                    <tr key={p.id} className={"transition-colors " + (selectedIds.includes(p.id) ? "bg-forest/5 hover:bg-forest/10" : "hover:bg-bg/50")}>
-
-                      {/* Checkbox */}
+                    <tr
+                      key={p.id}
+                      className={"transition-colors " + (isSelected ? "bg-forest/5 hover:bg-forest/10" : "hover:bg-bg/50")}
+                    >
                       <td className="py-4 px-4 pl-5">
                         <button
                           type="button"
                           onClick={() => handleToggleSelect(p.id)}
                           className="flex items-center justify-center cursor-pointer"
                         >
-                          {selectedIds.includes(p.id) ? (
+                          {isSelected ? (
                             <CheckSquare className="w-4 h-4 text-forest" />
                           ) : (
                             <Square className="w-4 h-4 text-ink-soft hover:text-stone-700" />
@@ -335,7 +345,6 @@ export default function AdminProductsPage() {
                         </button>
                       </td>
 
-                      {/* Product Name + Image */}
                       <td className="py-4 px-4">
                         <div className="flex items-center gap-3">
                           <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-bg border border-line shrink-0">
@@ -352,9 +361,9 @@ export default function AdminProductsPage() {
                               {p.name}
                             </div>
                             <div className="text-xs text-ink-soft flex items-center gap-2 mt-0.5">
-                              <span>Unit: {p.unit}</span>
+                              <span>Unit: {p.unit || "N/A"}</span>
                               {p.organicCertified && (
-                                <span className="inline-flex items-center gap-1 text-[11px] text-forest font-medium">
+                                <span className="inline-flex items-center gap-0.5 text-forest font-medium text-[11px] bg-forest/10 px-1.5 py-0.5 rounded">
                                   <Leaf className="w-3 h-3" />
                                   Organic
                                 </span>
@@ -364,69 +373,80 @@ export default function AdminProductsPage() {
                         </div>
                       </td>
 
-                      {/* Category */}
-                      <td className="py-4 px-4 text-ink-soft text-xs">
-                        {p.category?.name || "Uncategorized"}
-                      </td>
-
-                      {/* Price */}
                       <td className="py-4 px-4">
-                        <div className="font-semibold text-ink">{formatTaka(p.price)}</div>
-                        {p.discountPrice && (
-                          <div className="text-xs text-ink-muted line-through">
-                            {formatTaka(p.discountPrice)}
-                          </div>
-                        )}
+                        <span className="inline-flex items-center gap-1 text-xs font-medium text-ink-soft bg-bg px-2.5 py-1 rounded-lg border border-line">
+                          <Layers className="w-3 h-3 text-ink-soft" />
+                          {p.category?.name || "Uncategorized"}
+                        </span>
                       </td>
 
-                      {/* Stock */}
                       <td className="py-4 px-4">
-                        {isOutOfStock ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
-                            <AlertCircle className="w-3.5 h-3.5" />
-                            Out of Stock
-                          </span>
-                        ) : isLowStock ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200">
-                            <AlertCircle className="w-3.5 h-3.5" />
-                            Low ({p.stockQuantity} {p.unit})
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-800 border border-emerald-200">
-                            <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-                            {p.stockQuantity} {p.unit}
-                          </span>
-                        )}
+                        <div>
+                          {p.discountPrice ? (
+                            <div className="flex flex-col">
+                              <span className="font-bold text-forest">
+                                {formatTaka(p.discountPrice)}
+                              </span>
+                              <span className="text-xs text-ink-soft line-through">
+                                {formatTaka(p.price)}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="font-semibold text-ink">
+                              {formatTaka(p.price)}
+                            </span>
+                          )}
+                        </div>
                       </td>
 
-                      {/* Badge / Deal */}
+                      <td className="py-4 px-4">
+                        <div>
+                          {isOutOfStock ? (
+                            <span className="inline-flex items-center gap-1 text-xs font-bold text-rose-600 bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-200">
+                              <AlertCircle className="w-3.5 h-3.5" />
+                              Out of Stock
+                            </span>
+                          ) : isLowStock ? (
+                            <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
+                              <AlertCircle className="w-3.5 h-3.5" />
+                              Low Stock ({p.stockQuantity})
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-xs font-medium text-forest bg-forest/10 px-2.5 py-1 rounded-lg">
+                              <CheckCircle className="w-3.5 h-3.5" />
+                              In Stock ({p.stockQuantity})
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
                       <td className="py-4 px-4">
                         {p.badge ? (
-                          <span className="px-2.5 py-1 rounded-md bg-forest-soft text-forest text-xs font-bold">
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-accent/20 text-forest-deep border border-accent/40">
                             {p.badge}
                           </span>
-                        ) : p.isCombo ? (
-                          <span className="px-2.5 py-1 rounded-md bg-accent-soft text-accent text-xs font-bold">
-                            Combo Deal
+                        ) : p.savingsPercentage ? (
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-200">
+                            Save {p.savingsPercentage}%
                           </span>
                         ) : (
-                          <span className="text-xs text-ink-muted">—</span>
+                          <span className="text-xs text-ink-soft/40">—</span>
                         )}
                       </td>
 
-                      {/* Actions */}
-                      <td className="py-4 px-4 text-right">
-                        <div className="flex items-center justify-end gap-2">
+                      <td className="py-4 px-5 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
                           <Link
-                            href={`/admin/products/${p.id}`}
-                            className="p-2 rounded-lg bg-bg hover:bg-forest-soft text-ink-soft hover:text-forest transition-colors"
+                            href={"/admin/products/" + p.id}
+                            className="p-2 rounded-xl text-ink-soft hover:text-forest hover:bg-forest/10 transition-colors"
                             title="Edit Product"
                           >
                             <Edit2 className="w-4 h-4" />
                           </Link>
                           <button
-                            onClick={() => setDeleteModalState({ isOpen: true, product: p })}
-                            className="p-2 rounded-lg bg-bg hover:bg-rose-50 text-ink-soft hover:text-rose-600 transition-colors"
+                            type="button"
+                            onClick={() => setSingleDeleteProduct(p)}
+                            className="p-2 rounded-xl text-ink-soft hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                             title="Move to Recycle Bin"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -442,25 +462,37 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
+      {/* Single Product Delete Modal (Instant response, 0 safety delay lock) */}
       <ConfirmModal
-        isOpen={deleteModalState.isOpen}
-        onClose={() => setDeleteModalState({ isOpen: false, product: null })}
-        onConfirm={confirmDeleteProduct}
-        title="Move Product to Recycle Bin?"
-        message={`Are you sure you want to remove "${deleteModalState.product?.name || ""}" from the active storefront catalog?\n\nThis will archive the item to the recycle bin with 1-click restore enabled.`}
-        confirmText="Move to Recycle Bin"
-        cancelText="Keep Product"
-        type="danger"
+        isOpen={!!singleDeleteProduct}
+        title="Move to Recycle Bin?"
+        message={`Are you sure you want to move "${singleDeleteProduct?.name || ""}" to the Recycle Bin? You can restore it anytime.`}
+        confirmText="Move to Trash"
+        type="warning"
         isLoading={deleting}
-        requireSafetyDelay={true}
+        onConfirm={confirmSingleDelete}
+        onClose={() => setSingleDeleteProduct(null)}
       />
 
+      {/* Bulk Delete Modal (Instant response, 0 safety delay lock) */}
+      <ConfirmModal
+        isOpen={bulkDeleteModalOpen}
+        title={`Move ${selectedIds.length} Products to Recycle Bin?`}
+        message={`Are you sure you want to move ${selectedIds.length} selected products to the Recycle Bin? They will be removed from the active storefront but can be restored anytime.`}
+        confirmText={`Delete ${selectedIds.length} Products`}
+        type="danger"
+        isLoading={deleting}
+        onConfirm={confirmBulkDelete}
+        onClose={() => setBulkDeleteModalOpen(false)}
+      />
+
+      {/* Alert Notification Modal */}
       <AlertModal
         isOpen={alertState.isOpen}
-        onClose={() => setAlertState((prev) => ({ ...prev, isOpen: false }))}
         title={alertState.title}
         message={alertState.message}
-        type={alertState.type}
+        type={alertState.type || "info"}
+        onClose={() => setAlertState((prev) => ({ ...prev, isOpen: false }))}
       />
     </div>
   );

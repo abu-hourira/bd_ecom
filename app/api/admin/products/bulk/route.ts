@@ -38,7 +38,15 @@ export async function POST(req: NextRequest) {
           });
         }
 
-        // 2. Delete from Product table
+        // 2. Unlink foreign keys safely
+        await tx.wishlistItem.deleteMany({ where: { productId: { in: numericIds } } });
+        await tx.review.deleteMany({ where: { productId: { in: numericIds } } });
+        await tx.orderItem.updateMany({
+          where: { productId: { in: numericIds } },
+          data: { productId: null },
+        });
+
+        // 3. Delete from Product table
         await tx.product.deleteMany({
           where: { id: { in: numericIds } },
         });

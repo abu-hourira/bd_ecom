@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 // app/api/admin/products/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
 
 export async function GET(
@@ -14,9 +14,7 @@ export async function GET(
 
     const product = await prisma.product.findUnique({
       where: { id: productId },
-      include: {
-        category: true,
-      },
+      include: { category: true },
     });
 
     if (!product) {
@@ -121,23 +119,37 @@ export async function DELETE(
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
-    // Archive into recycle bin before deleting
-    await prisma.binItem.create({
-      data: {
-        entityType: "product",
-        entityId: productId,
-        title: product.name,
-        subtitle: `৳${product.price} | Stock: ${product.stockQuantity}`,
-        payload: product as any,
-        deletedBy: "Admin",
-      },
+    await prisma.$transaction(async (tx) => {
+      // 1. Archive into recycle bin
+      await tx.binItem.create({
+        data: {
+          entityType: "PRODUCT",
+          entityId: productId,
+          title: product.name,
+          subtitle: `৳${product.price} | Stock: ${product.stockQuantity}`,
+          payload: product as any,
+          deletedBy: "Admin",
+        },
+      });
+
+      // 2. Unlink foreign keys safely so delete never fails
+      await tx.wishlistItem.deleteMany({ where: { productId } });
+      await tx.review.deleteMany({ where: { productId } });
+      await tx.orderItem.updateMany({
+        where: { productId },
+        data: { productId: null },
+      });
+
+      // 3. Delete product
+      await tx.product.delete({ where: { id: productId } });
     });
 
-    await prisma.product.delete({ where: { id: productId } });
+    revalidatePath("/", "layout");
+    revalidatePath("/products");
 
     return NextResponse.json({
       success: true,
-      message: "Product moved to recycle bin with 1-click restore enabled.",
+      message: `"${product.name}" moved to Recycle Bin successfully.`,
     });
   } catch (error: any) {
     console.error("[Product DELETE Error]:", error);
