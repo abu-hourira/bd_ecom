@@ -1,5 +1,5 @@
-import Image from "next/image";
 "use client";
+import Image from "next/image";
 // components/storefront/Header.tsx
 
 import Link from "next/link";
