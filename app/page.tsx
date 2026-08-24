@@ -1,5 +1,5 @@
-import BrandLoader from "@/components/ui/BrandLoader";
 "use client";
+import BrandLoader from "@/components/ui/BrandLoader";
 // app/page.tsx - 100% Database-Driven Dynamic Storefront (Zero Hardcoded Data)
 
 import { useEffect, useState } from "react";
