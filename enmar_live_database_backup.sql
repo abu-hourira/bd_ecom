@@ -670,13 +670,13 @@ ALTER TABLE `community_comments` ADD CONSTRAINT `community_comments_userId_fkey`
 -- Dumping data for table `users` (Super Admin)
 -- --------------------------------------------------------
 INSERT INTO `users` (`id`, `name`, `email`, `phone`, `passwordHash`, `role`, `city`, `isPhoneVerified`, `isEmailVerified`, `createdAt`, `updatedAt`) VALUES
-(1, 'Abu Hourira (Superadmin)', 'admin@enmar.bd', '01614113082', '$2b$10$z1bzqaPErzHV4P310atBIeGDfjdtnXzR5N3/7vVOgOgl8Elt92dXq', 'SUPER_ADMIN', 'Dhaka', 1, 1, NOW(), NOW());
+(1, 'Abu Hourira (Superadmin)', 'admin@enmar.bd', '01614113082', '$2b$10$3xmj.luxpF9sG0oSdklVdOWhgwd1lvvSnHjdm7vVDtnicMoBuoKHK', 'SUPER_ADMIN', 'Dhaka', 1, 1, NOW(), NOW());
 
 -- --------------------------------------------------------
 -- Dumping data for table `delivery_personnel` (Rider)
 -- --------------------------------------------------------
 INSERT INTO `delivery_personnel` (`id`, `name`, `phone`, `passwordHash`, `vehicleType`, `isActive`, `isSharingLocation`, `currentLat`, `currentLng`, `createdAt`, `updatedAt`) VALUES
-(1, 'Kamal Hossain (Rider)', '01711000111', '$2b$10$xkIWLV1gYiURL4pwcblRBe6qiLClT5RG6RpKzL6QcqnY5b5X.jmMS', 'Motorbike', 1, 1, 23.8699, 90.3987, NOW(), NOW());
+(1, 'Kamal Hossain (Rider)', '01711000111', '$2b$10$AA5I1l6GtcyIeJH1ZOd6eOp6rve4sM.wjbEXeWvOXtIHDI0e0JmDG', 'Motorbike', 1, 1, 23.8699, 90.3987, NOW(), NOW());
 
 -- --------------------------------------------------------
 -- Dumping data for table `categories`
@@ -693,15 +693,15 @@ INSERT INTO `categories` (`id`, `name`, `slug`, `description`, `image`, `created
 -- --------------------------------------------------------
 -- Dumping data for table `products`
 -- --------------------------------------------------------
-INSERT INTO `products` (`id`, `name`, `slug`, `categoryId`, `price`, `discountPrice`, `stockQuantity`, `unit`, `images`, `description`, `isOrganic`, `isFeatured`, `createdAt`, `updatedAt`) VALUES
-(1, 'সুন্দরবনের খলিসা ফুলের মধু (Sundarban Raw Honey)', 'sundarban-raw-honey-500g', 1, 750.00, 680.00, 45, '500g', '["/uploads/products/honey_500g.png"]', 'সুন্দরবনের প্রাকৃতিক চাক থেকে সংগৃহীত ১০০% বিশুদ্ধ ও অপ্রক্রিয়াজাত খলিসা ফুলের কাঁচা মধু।', 1, 1, NOW(), NOW()),
-(2, 'কাঠের ঘানির খাঁটি সরিষার তেল (Cold Pressed Mustard Oil)', 'cold-pressed-mustard-oil-1l', 2, 380.00, 350.00, 60, '1L', '["/uploads/products/mustard_oil_1l.png"]', 'ঘরোয়া কাঠের ঘানিতে ভাঙা প্রথম চাপের ১০০% ঝাঁঝালো ও পুষ্টিকর সরিষার তেল।', 1, 1, NOW(), NOW()),
-(3, 'খাঁটি গাওয়া ঘি (Traditional Bilona Cow Ghee)', 'traditional-cow-ghee-500g', 2, 1150.00, 1050.00, 30, '500g', '["/uploads/products/cow_ghee_500g.png"]', 'দেশি গাভীর দুধের মাখন থেকে ঐতিহ্যবাহী পদ্ধতিতে জ্বাল দেওয়া সুস্বাদু দানাদার গাওয়া ঘি।', 1, 1, NOW(), NOW()),
-(4, 'অর্গানিক চিয়া সিড (Premium Organic Chia Seeds)', 'premium-chia-seeds-250g', 4, 320.00, 290.00, 50, '250g', '["/uploads/products/chia_seeds.png"]', 'ওমেগা-৩ ফ্যাটি এসিড, ফাইবার ও প্রোটিনে ভরপুর প্রিমিয়াম গ্রেড অর্গানিক চিয়া সিড।', 1, 1, NOW(), NOW()),
-(5, 'হাতে তৈরি আটার রুটি (Handmade Wheat Roti - 10 Pcs)', 'handmade-wheat-roti-10pcs', 5, 120.00, NULL, 100, 'pack', '["/uploads/products/handmade_roti.png"]', '১০০% লাল আটার হাতে বেলা স্বাস্থ্যকর তাজা রুটি। নো প্রিজারভেটিভ।', 1, 0, NOW(), NOW()),
-(6, 'ফ্রোজেন ডাল পুরী (Frozen Dal Puri - 10 Pcs)', 'frozen-dal-puri-10pcs', 6, 150.00, NULL, 80, 'pack', '["/uploads/products/dal_puri.png"]', 'ঘরোয়া স্বাদে তৈরি রেডি-টু-ফ্রাই মচমচে ডাল পুরী।', 1, 0, NOW(), NOW()),
-(7, 'স্পেশাল ফ্রোজেন পরোটা (Special Frozen Paratha - 10 Pcs)', 'special-frozen-paratha-10pcs', 5, 180.00, NULL, 75, 'pack', '["/uploads/products/paratha.png"]', 'খাঁটি ঘিয়ে তৈরি লেয়ারড মচমচে ফ্রোজেন পরোটা।', 1, 0, NOW(), NOW()),
-(8, 'প্রিমিয়াম অর্গানিক মসলা কম্বো (Premium Spice Combo)', 'premium-organic-spice-combo', 3, 580.00, 520.00, 25, 'pack', '["/uploads/products/spice_combo.png"]', 'হলুদ, মরিচ, ধনিয়া ও জিরার খাঁটি ১০০% কেমিক্যালমুক্ত ফ্রেশ মশলা কম্বো প্যাক।', 1, 1, NOW(), NOW());
+INSERT INTO `products` (`id`, `name`, `slug`, `categoryId`, `price`, `discountPrice`, `stockQuantity`, `unit`, `images`, `description`, `organicCertified`, `featured`, `isActive`, `isCombo`, `createdAt`, `updatedAt`) VALUES
+(1, 'সুন্দরবনের খলিসা ফুলের মধু (Sundarban Raw Honey)', 'sundarban-raw-honey-500g', 1, 750.00, 680.00, 45, '500g', '["/uploads/products/honey_500g.png"]', 'সুন্দরবনের প্রাকৃতিক চাক থেকে সংগৃহীত ১০০% বিশুদ্ধ ও অপ্রক্রিয়াজাত খলিসা ফুলের কাঁচা মধু।', 1, 1, 1, 0, NOW(), NOW()),
+(2, 'কাঠের ঘানির খাঁটি সরিষার তেল (Cold Pressed Mustard Oil)', 'cold-pressed-mustard-oil-1l', 2, 380.00, 350.00, 60, '1L', '["/uploads/products/mustard_oil_1l.png"]', 'ঘরোয়া কাঠের ঘানিতে ভাঙা প্রথম চাপের ১০০% ঝাঁঝালো ও পুষ্টিকর সরিষার তেল।', 1, 1, 1, 0, NOW(), NOW()),
+(3, 'খাঁটি গাওয়া ঘি (Traditional Bilona Cow Ghee)', 'traditional-cow-ghee-500g', 2, 1150.00, 1050.00, 30, '500g', '["/uploads/products/cow_ghee_500g.png"]', 'দেশি গাভীর দুধের মাখন থেকে ঐতিহ্যবাহী পদ্ধতিতে জ্বাল দেওয়া সুস্বাদু দানাদার গাওয়া ঘি।', 1, 1, 1, 0, NOW(), NOW()),
+(4, 'অর্গানিক চিয়া সিড (Premium Organic Chia Seeds)', 'premium-chia-seeds-250g', 4, 320.00, 290.00, 50, '250g', '["/uploads/products/chia_seeds.png"]', 'ওমেগা-৩ ফ্যাটি এসিড, ফাইবার ও প্রোটিনে ভরপুর প্রিমিয়াম গ্রেড অর্গানিক চিয়া সিড।', 1, 1, 1, 0, NOW(), NOW()),
+(5, 'হাতে তৈরি আটার রুটি (Handmade Wheat Roti - 10 Pcs)', 'handmade-wheat-roti-10pcs', 5, 120.00, NULL, 100, 'pack', '["/uploads/products/handmade_roti.png"]', '১০০% লাল আটার হাতে বেলা স্বাস্থ্যকর তাজা রুটি। নো প্রিজারভেটিভ।', 1, 0, 1, 0, NOW(), NOW()),
+(6, 'ফ্রোজেন ডাল পুরী (Frozen Dal Puri - 10 Pcs)', 'frozen-dal-puri-10pcs', 6, 150.00, NULL, 80, 'pack', '["/uploads/products/dal_puri.png"]', 'ঘরোয়া স্বাদে তৈরি রেডি-টু-ফ্রাই মচমচে ডাল পুরী।', 1, 0, 1, 0, NOW(), NOW()),
+(7, 'স্পেশাল ফ্রোজেন পরোটা (Special Frozen Paratha - 10 Pcs)', 'special-frozen-paratha-10pcs', 5, 180.00, NULL, 75, 'pack', '["/uploads/products/paratha.png"]', 'খাঁটি ঘিয়ে তৈরি লেয়ারড মচমচে ফ্রোজেন পরোটা।', 1, 0, 1, 0, NOW(), NOW()),
+(8, 'প্রিমিয়াম অর্গানিক মসলা কম্বো (Premium Spice Combo)', 'premium-organic-spice-combo', 3, 580.00, 520.00, 25, 'pack', '["/uploads/products/spice_combo.png"]', 'হলুদ, মরিচ, ধনিয়া ও জিরার খাঁটি ১০০% কেমিক্যালমুক্ত ফ্রেশ মশলা কম্বো প্যাক।', 1, 1, 1, 1, NOW(), NOW());
 
 -- --------------------------------------------------------
 -- Dumping data for table `theme_settings`
