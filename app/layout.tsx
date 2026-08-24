@@ -33,7 +33,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-screen bg-[#FAF8F5] text-stone-900 antialiased">
+      <body className="min-h-screen bg-[#FAF8F5] text-stone-900 antialiased" suppressHydrationWarning>
         <FeatureFlagProvider>
           <LanguageProvider>
             <CartProvider>
