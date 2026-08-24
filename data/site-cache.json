@@ -1,0 +1,23 @@
+{
+  "brandName": "",
+  "brandTagline": "",
+  "contactPhone": "",
+  "contactEmail": "",
+  "contactAddress": "",
+  "whatsappNumber": "",
+  "siteLogo": "",
+  "categories": [
+    {
+      "id": 30001,
+      "name": "Frozen",
+      "slug": "frozen"
+    },
+    {
+      "id": 30002,
+      "name": "Ruti",
+      "slug": "ruti"
+    }
+  ],
+  "banners": [],
+  "products": []
+}

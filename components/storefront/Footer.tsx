@@ -1,4 +1,6 @@
 "use client";
+import { getCachedSettings, setCachedSettings, getCachedCategories, setCachedCategories } from "@/lib/storeCache";
+
 // components/storefront/Footer.tsx - Clean 100% Dynamic Footer
 
 import { useState, useEffect } from "react";
@@ -16,16 +18,8 @@ import { getSafeImageUrl } from "@/lib/utils";
 
 export default function StorefrontFooter() {
   const { locale } = useLanguage();
-  const [categories, setCategories] = useState<any[]>([]);
-  const [settings, setSettings] = useState<Record<string, string>>({
-    brandName: "",
-    brandTagline: "",
-    contactPhone: "",
-    contactEmail: "",
-    contactAddress: "",
-    whatsappNumber: "",
-    siteLogo: "",
-  });
+  const [categories, setCategories] = useState<any[]>(() => getCachedCategories());
+  const [settings, setSettings] = useState<Record<string, string>>(() => getCachedSettings());
 
   useEffect(() => {
     fetch("/api/storefront/categories", { cache: "no-store" })
@@ -33,6 +27,7 @@ export default function StorefrontFooter() {
       .then((data) => {
         if (data.success && data.categories) {
           setCategories(data.categories);
+          setCachedCategories(data.categories);
         }
       })
       .catch(() => {});
@@ -42,6 +37,7 @@ export default function StorefrontFooter() {
       .then((data) => {
         if (data.success && data.settings) {
           setSettings(data.settings);
+          setCachedSettings(data.settings);
         }
       })
       .catch(() => {});

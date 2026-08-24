@@ -1,6 +1,5 @@
 "use client";
-import BrandLoader from "@/components/ui/BrandLoader";
-// app/page.tsx - 100% Database-Driven Dynamic Storefront (Zero Hardcoded Data)
+// app/page.tsx - Instant Zero-Flicker Dynamic Storefront
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -17,21 +16,25 @@ import StorefrontFooter from "@/components/storefront/Footer";
 import HeroSlider from "@/components/storefront/HeroSlider";
 import ProductCard from "@/components/storefront/ProductCard";
 import { useLanguage } from "@/context/LanguageContext";
+import { getCachedHomeData, setCachedHomeData } from "@/lib/storeCache";
 
 export default function HomePage() {
-  const [data, setData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  // Initialize state immediately from cache if available (instant 0ms render)
+  const [data, setData] = useState<any>(() => getCachedHomeData());
   const [selectedCategoryTab, setSelectedCategoryTab] = useState<string>("all");
   const { t, locale } = useLanguage();
 
   useEffect(() => {
+    // Background silent SWR refresh
     fetch("/api/storefront/home", { cache: "no-store" })
       .then((res) => res.json())
       .then((json) => {
-        if (json.success) setData(json);
+        if (json.success) {
+          setData(json);
+          setCachedHomeData(json);
+        }
       })
-      .catch((e) => console.error(e))
-      .finally(() => setLoading(false));
+      .catch((e) => console.error("Silent home sync error:", e));
   }, []);
 
   const categories = data?.categories || [];
@@ -49,14 +52,14 @@ export default function HomePage() {
       <StorefrontHeader />
 
       <main className="space-y-6 sm:space-y-10 pb-24 md:pb-20">
-        {/* 1. Dynamic Top Ad Banners & Promo Slider (Only renders if admin uploaded banners) */}
+        {/* 1. Dynamic Top Ad Banners & Promo Slider (Instant Render) */}
         {banners && banners.length > 0 && (
           <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-3 sm:pt-6">
             <HeroSlider banners={banners} />
           </section>
         )}
 
-        {/* 2. Fast Horizontal Category Story-Bar (Only renders if categories exist in DB) */}
+        {/* 2. Horizontal Category Story-Bar */}
         {categories && categories.length > 0 && (
           <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between mb-2.5">
@@ -87,7 +90,7 @@ export default function HomePage() {
                 <span>{t("products.filterAll")}</span>
               </button>
 
-              {/* Dynamic Categories from DB */}
+              {/* Dynamic Categories */}
               {categories.map((c: any) => {
                 const isSelected = selectedCategoryTab === c.slug;
                 return (
@@ -108,7 +111,7 @@ export default function HomePage() {
           </section>
         )}
 
-        {/* 3. Main Product Grid — Only shows real database products */}
+        {/* 3. Main Product Grid — Instant Direct Render */}
         <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 space-y-3.5">
           <div className="flex items-center justify-between border-b border-stone-200/80 pb-2.5">
             <div>
@@ -125,12 +128,7 @@ export default function HomePage() {
             )}
           </div>
 
-          {/* 2-Columns on Mobile, 4-Columns on Desktop */}
-          {loading ? (
-            <div className="py-12 flex items-center justify-center">
-              <BrandLoader message="পণ্যসমূহ লোড হচ্ছে..." />
-            </div>
-          ) : filteredProducts.length === 0 ? (
+          {filteredProducts.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-2xl border border-stone-200 p-6 space-y-2">
               <ShoppingBag className="w-8 h-8 text-stone-300 mx-auto mb-1" />
               <h3 className="font-bold text-sm text-stone-800 font-display">
@@ -150,7 +148,6 @@ export default function HomePage() {
             </div>
           )}
 
-          {/* View Full Catalog Button */}
           {filteredProducts.length > 0 && (
             <div className="text-center pt-3">
               <Link
@@ -164,7 +161,7 @@ export default function HomePage() {
           )}
         </section>
 
-        {/* 4. Family Combo & Bundle Deals (Only renders if active combos exist in DB) */}
+        {/* 4. Family Combo & Bundle Deals */}
         {comboDeals.length > 0 && (
           <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
             <div className="bg-[#F7F4EE] p-4 sm:p-8 rounded-3xl border border-stone-200/80 space-y-3.5 sm:space-y-6">

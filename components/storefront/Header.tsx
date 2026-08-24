@@ -1,4 +1,6 @@
 "use client";
+import { getCachedSettings, setCachedSettings, getCachedCategories, setCachedCategories } from "@/lib/storeCache";
+
 // components/storefront/Header.tsx - Ultra-Sleek Mobile & Desktop Storefront Header
 
 import { useState, useEffect } from "react";
@@ -36,13 +38,8 @@ export default function StorefrontHeader() {
   const [searchOpenMobile, setSearchOpenMobile] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [customer, setCustomer] = useState<LoggedInUser | null>(null);
-  const [navCategories, setNavCategories] = useState<any[]>([]);
-  const [siteSettings, setSiteSettings] = useState<Record<string, string>>({
-    brandName: "",
-    brandTagline: "",
-    contactPhone: "",
-    siteLogo: "",
-  });
+  const [navCategories, setNavCategories] = useState<any[]>(() => getCachedCategories());
+  const [siteSettings, setSiteSettings] = useState<Record<string, string>>(() => getCachedSettings());
 
   useEffect(() => {
     fetch("/api/storefront/categories", { cache: "no-store" })
@@ -50,6 +47,7 @@ export default function StorefrontHeader() {
       .then((data) => {
         if (data.success && data.categories) {
           setNavCategories(data.categories);
+          setCachedCategories(data.categories);
         }
       })
       .catch(() => {});
@@ -59,6 +57,7 @@ export default function StorefrontHeader() {
       .then((data) => {
         if (data.success && data.settings) {
           setSiteSettings(data.settings);
+          setCachedSettings(data.settings);
         }
       })
       .catch(() => {});
