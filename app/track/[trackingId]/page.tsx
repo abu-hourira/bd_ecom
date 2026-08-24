@@ -7,6 +7,7 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   Truck,
+  Printer,
   CheckCircle2,
   Clock,
   Package,
@@ -44,7 +45,7 @@ function OrderTrackingDetailContent({
   const { trackingId } = use(params);
   const searchParams = useSearchParams();
   const paymentQuery = searchParams?.get("payment");
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
 
   const STAGES = [
     { key: "PENDING", label: t("track.stagePending"), desc: "Awaiting confirmation" },
@@ -243,6 +244,16 @@ function OrderTrackingDetailContent({
           </div>
 
           <div className="flex flex-col sm:items-end justify-between gap-2">
+            <div className="flex items-center gap-2 mt-1 print:hidden">
+              <button
+                onClick={() => window.print()}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-bg border border-line hover:border-forest text-xs font-semibold text-ink transition-colors cursor-pointer shadow-xs"
+                title="Print Customer Receipt"
+              >
+                <Printer className="w-3.5 h-3.5 text-forest" />
+                <span>{locale === "bn" ? "রিসিট প্রিন্ট করুন" : "Print Receipt"}</span>
+              </button>
+            </div>
             <div className="sm:text-right">
               <span className="text-xs text-ink-soft block">Payable Amount</span>
               <span className="text-2xl font-bold font-display font-mono text-forest">
