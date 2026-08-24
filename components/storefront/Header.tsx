@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { getSafeImageUrl } from "@/lib/utils";
 import LanguageToggle from "./LanguageToggle";
 
 interface LoggedInUser {
