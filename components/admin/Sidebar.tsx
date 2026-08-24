@@ -48,6 +48,7 @@ export default function AdminSidebar({ mobileOpen, onCloseMobile }: SidebarProps
     { label: "Inventory Stock", href: "/admin/inventory", icon: Boxes },
     { label: "Promo Codes", href: "/admin/promos", icon: TicketPercent },
     { label: "Staff & RBAC", href: "/admin/staff", icon: UserCheck },
+    { label: "Ads & Promo Banners", href: "/admin/banners", icon: Sparkles },
     { label: "Site Content & Text", href: "/admin/content", icon: FileText },
     { label: "Feature Toggles", href: "/admin/features", icon: Sliders },
     { label: "Site Settings & Theme", href: "/admin/settings", icon: Palette },
