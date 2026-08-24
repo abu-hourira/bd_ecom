@@ -1,5 +1,6 @@
 -- ==========================================================
 -- ENMAR Live Production Database Dump (100% phpMyAdmin / cPanel Safe)
+-- Idempotent: Can be imported on fresh or existing databases safely
 -- Encoding: UTF-8 (No BOM)
 -- Compatible with: MySQL 5.7+, MySQL 8.0+, MariaDB 10.3+
 -- Generated: 2026-08-24
@@ -12,38 +13,44 @@ SET AUTOCOMMIT = 0;
 START TRANSACTION;
 SET time_zone = "+00:00";
 
-
-DROP TABLE IF EXISTS `community_comments`;
-DROP TABLE IF EXISTS `reviews`;
-DROP TABLE IF EXISTS `api_access_logs`;
-DROP TABLE IF EXISTS `api_keys`;
-DROP TABLE IF EXISTS `api_import_sources`;
-DROP TABLE IF EXISTS `ai_conversation_logs`;
-DROP TABLE IF EXISTS `notification_logs`;
-DROP TABLE IF EXISTS `notification_gateways`;
-DROP TABLE IF EXISTS `wellness_profiles`;
-DROP TABLE IF EXISTS `return_timelines`;
-DROP TABLE IF EXISTS `return_requests`;
-DROP TABLE IF EXISTS `order_messages`;
-DROP TABLE IF EXISTS `order_history`;
-DROP TABLE IF EXISTS `order_items`;
-DROP TABLE IF EXISTS `orders`;
-DROP TABLE IF EXISTS `delivery_personnel`;
-DROP TABLE IF EXISTS `wishlist_items`;
-DROP TABLE IF EXISTS `addresses`;
-DROP TABLE IF EXISTS `staff_audit_logs`;
-DROP TABLE IF EXISTS `products`;
-DROP TABLE IF EXISTS `categories`;
-DROP TABLE IF EXISTS `promo_codes`;
-DROP TABLE IF EXISTS `feature_flags`;
-DROP TABLE IF EXISTS `recycle_bin`;
-DROP TABLE IF EXISTS `backup_logs`;
-DROP TABLE IF EXISTS `theme_settings`;
-DROP TABLE IF EXISTS `site_settings`;
+-- --------------------------------------------------------
+-- Drop existing tables to avoid "already exists" errors
+-- --------------------------------------------------------
 DROP TABLE IF EXISTS `users`;
+DROP TABLE IF EXISTS `wishlist_items`;
+DROP TABLE IF EXISTS `role_permissions`;
+DROP TABLE IF EXISTS `staff_audit_logs`;
+DROP TABLE IF EXISTS `addresses`;
+DROP TABLE IF EXISTS `categories`;
+DROP TABLE IF EXISTS `products`;
+DROP TABLE IF EXISTS `orders`;
+DROP TABLE IF EXISTS `order_items`;
+DROP TABLE IF EXISTS `order_history`;
+DROP TABLE IF EXISTS `order_messages`;
+DROP TABLE IF EXISTS `return_requests`;
+DROP TABLE IF EXISTS `return_timelines`;
+DROP TABLE IF EXISTS `promo_codes`;
+DROP TABLE IF EXISTS `wellness_profiles`;
+DROP TABLE IF EXISTS `product_subscribers`;
+DROP TABLE IF EXISTS `notification_gateways`;
+DROP TABLE IF EXISTS `notification_logs`;
+DROP TABLE IF EXISTS `site_settings`;
+DROP TABLE IF EXISTS `theme_settings`;
+DROP TABLE IF EXISTS `promotion_banners`;
+DROP TABLE IF EXISTS `ai_settings`;
+DROP TABLE IF EXISTS `ai_conversation_logs`;
+DROP TABLE IF EXISTS `api_keys`;
+DROP TABLE IF EXISTS `api_access_logs`;
+DROP TABLE IF EXISTS `api_import_sources`;
+DROP TABLE IF EXISTS `reviews`;
+DROP TABLE IF EXISTS `community_comments`;
+DROP TABLE IF EXISTS `backup_logs`;
+DROP TABLE IF EXISTS `recycle_bin`;
+DROP TABLE IF EXISTS `feature_flags`;
+DROP TABLE IF EXISTS `delivery_personnel`;
 
 -- CreateTable
-CREATE TABLE `users` (
+CREATE TABLE IF NOT EXISTS `users` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(191) NOT NULL,
     `email` VARCHAR(191) NOT NULL,
@@ -71,7 +78,7 @@ CREATE TABLE `users` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `wishlist_items` (
+CREATE TABLE IF NOT EXISTS `wishlist_items` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `userId` INTEGER NOT NULL,
     `productId` INTEGER NOT NULL,
@@ -82,7 +89,7 @@ CREATE TABLE `wishlist_items` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `role_permissions` (
+CREATE TABLE IF NOT EXISTS `role_permissions` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `role` ENUM('SUPER_ADMIN', 'ADMIN', 'MANAGER', 'MODERATOR', 'CUSTOMER') NOT NULL,
     `module` VARCHAR(191) NOT NULL,
@@ -97,7 +104,7 @@ CREATE TABLE `role_permissions` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `staff_audit_logs` (
+CREATE TABLE IF NOT EXISTS `staff_audit_logs` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `userId` INTEGER NOT NULL,
     `userEmail` VARCHAR(191) NOT NULL,
@@ -113,7 +120,7 @@ CREATE TABLE `staff_audit_logs` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `addresses` (
+CREATE TABLE IF NOT EXISTS `addresses` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `userId` INTEGER NOT NULL,
     `title` VARCHAR(191) NOT NULL DEFAULT 'Home',
@@ -130,7 +137,7 @@ CREATE TABLE `addresses` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `categories` (
+CREATE TABLE IF NOT EXISTS `categories` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(191) NOT NULL,
     `slug` VARCHAR(191) NOT NULL,
@@ -149,7 +156,7 @@ CREATE TABLE `categories` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `products` (
+CREATE TABLE IF NOT EXISTS `products` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(191) NOT NULL,
     `slug` VARCHAR(191) NOT NULL,
@@ -179,7 +186,7 @@ CREATE TABLE `products` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `orders` (
+CREATE TABLE IF NOT EXISTS `orders` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `orderNumber` VARCHAR(191) NOT NULL,
     `trackingId` VARCHAR(191) NOT NULL,
@@ -221,7 +228,7 @@ CREATE TABLE `orders` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `order_items` (
+CREATE TABLE IF NOT EXISTS `order_items` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `orderId` INTEGER NOT NULL,
     `productId` INTEGER NULL,
@@ -236,7 +243,7 @@ CREATE TABLE `order_items` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `order_history` (
+CREATE TABLE IF NOT EXISTS `order_history` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `orderId` INTEGER NOT NULL,
     `status` ENUM('PENDING', 'CONFIRMED', 'PACKED', 'SHIPPED', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED', 'RETURNED') NOT NULL,
@@ -249,7 +256,7 @@ CREATE TABLE `order_history` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `order_messages` (
+CREATE TABLE IF NOT EXISTS `order_messages` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `orderId` INTEGER NOT NULL,
     `sender` VARCHAR(191) NOT NULL,
@@ -261,7 +268,7 @@ CREATE TABLE `order_messages` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `return_requests` (
+CREATE TABLE IF NOT EXISTS `return_requests` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `orderId` INTEGER NOT NULL,
     `userId` INTEGER NULL,
@@ -280,7 +287,7 @@ CREATE TABLE `return_requests` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `return_timelines` (
+CREATE TABLE IF NOT EXISTS `return_timelines` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `returnId` INTEGER NOT NULL,
     `status` ENUM('REQUESTED', 'UNDER_REVIEW', 'APPROVED', 'REJECTED', 'REFUNDED', 'EXCHANGED') NOT NULL,
@@ -292,7 +299,7 @@ CREATE TABLE `return_timelines` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `promo_codes` (
+CREATE TABLE IF NOT EXISTS `promo_codes` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `code` VARCHAR(191) NOT NULL,
     `discountType` ENUM('PERCENTAGE', 'FIXED', 'FREE_SHIPPING') NOT NULL DEFAULT 'PERCENTAGE',
@@ -315,7 +322,7 @@ CREATE TABLE `promo_codes` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `wellness_profiles` (
+CREATE TABLE IF NOT EXISTS `wellness_profiles` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `userId` INTEGER NOT NULL,
     `heightCm` DOUBLE NULL,
@@ -333,7 +340,7 @@ CREATE TABLE `wellness_profiles` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `product_subscribers` (
+CREATE TABLE IF NOT EXISTS `product_subscribers` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `email` VARCHAR(191) NULL,
     `phone` VARCHAR(191) NULL,
@@ -345,7 +352,7 @@ CREATE TABLE `product_subscribers` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `notification_gateways` (
+CREATE TABLE IF NOT EXISTS `notification_gateways` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `channel` VARCHAR(191) NOT NULL,
     `provider` VARCHAR(191) NOT NULL,
@@ -359,7 +366,7 @@ CREATE TABLE `notification_gateways` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `notification_logs` (
+CREATE TABLE IF NOT EXISTS `notification_logs` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `gatewayId` INTEGER NULL,
     `channel` VARCHAR(191) NOT NULL,
@@ -374,7 +381,7 @@ CREATE TABLE `notification_logs` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `site_settings` (
+CREATE TABLE IF NOT EXISTS `site_settings` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `key` VARCHAR(191) NOT NULL,
     `value` LONGTEXT NOT NULL,
@@ -387,7 +394,7 @@ CREATE TABLE `site_settings` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `theme_settings` (
+CREATE TABLE IF NOT EXISTS `theme_settings` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `primaryColor` VARCHAR(191) NOT NULL DEFAULT '#14421a',
     `secondaryColor` VARCHAR(191) NOT NULL DEFAULT '#5c3a21',
@@ -405,7 +412,7 @@ CREATE TABLE `theme_settings` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `promotion_banners` (
+CREATE TABLE IF NOT EXISTS `promotion_banners` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `title` VARCHAR(191) NOT NULL,
     `headline` VARCHAR(191) NULL,
@@ -426,7 +433,7 @@ CREATE TABLE `promotion_banners` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `ai_settings` (
+CREATE TABLE IF NOT EXISTS `ai_settings` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `provider` VARCHAR(191) NOT NULL DEFAULT 'openai',
     `apiKeyEncrypted` TEXT NOT NULL,
@@ -442,7 +449,7 @@ CREATE TABLE `ai_settings` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `ai_conversation_logs` (
+CREATE TABLE IF NOT EXISTS `ai_conversation_logs` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `sessionId` VARCHAR(191) NOT NULL,
     `userId` INTEGER NULL,
@@ -457,7 +464,7 @@ CREATE TABLE `ai_conversation_logs` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `api_keys` (
+CREATE TABLE IF NOT EXISTS `api_keys` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(191) NOT NULL,
     `keyPrefix` VARCHAR(12) NOT NULL,
@@ -475,7 +482,7 @@ CREATE TABLE `api_keys` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `api_access_logs` (
+CREATE TABLE IF NOT EXISTS `api_access_logs` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `apiKeyId` INTEGER NOT NULL,
     `endpoint` VARCHAR(191) NOT NULL,
@@ -488,7 +495,7 @@ CREATE TABLE `api_access_logs` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `api_import_sources` (
+CREATE TABLE IF NOT EXISTS `api_import_sources` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(191) NOT NULL,
     `endpointUrl` TEXT NOT NULL,
@@ -508,7 +515,7 @@ CREATE TABLE `api_import_sources` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `reviews` (
+CREATE TABLE IF NOT EXISTS `reviews` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `productId` INTEGER NOT NULL,
     `userId` INTEGER NULL,
@@ -523,7 +530,7 @@ CREATE TABLE `reviews` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `community_comments` (
+CREATE TABLE IF NOT EXISTS `community_comments` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `userId` INTEGER NULL,
     `authorName` VARCHAR(191) NOT NULL,
@@ -535,7 +542,7 @@ CREATE TABLE `community_comments` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `backup_logs` (
+CREATE TABLE IF NOT EXISTS `backup_logs` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `fileName` VARCHAR(191) NOT NULL,
     `fileSize` INTEGER NOT NULL,
@@ -547,7 +554,7 @@ CREATE TABLE `backup_logs` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `recycle_bin` (
+CREATE TABLE IF NOT EXISTS `recycle_bin` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `entityType` VARCHAR(191) NOT NULL,
     `entityId` INTEGER NOT NULL,
@@ -561,7 +568,7 @@ CREATE TABLE `recycle_bin` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `feature_flags` (
+CREATE TABLE IF NOT EXISTS `feature_flags` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `key` VARCHAR(191) NOT NULL,
     `name` VARCHAR(191) NOT NULL,
@@ -575,7 +582,7 @@ CREATE TABLE `feature_flags` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
-CREATE TABLE `delivery_personnel` (
+CREATE TABLE IF NOT EXISTS `delivery_personnel` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(191) NOT NULL,
     `phone` VARCHAR(191) NOT NULL,
@@ -670,13 +677,13 @@ ALTER TABLE `community_comments` ADD CONSTRAINT `community_comments_userId_fkey`
 -- Dumping data for table `users` (Super Admin)
 -- --------------------------------------------------------
 INSERT INTO `users` (`id`, `name`, `email`, `phone`, `passwordHash`, `role`, `city`, `isPhoneVerified`, `isEmailVerified`, `createdAt`, `updatedAt`) VALUES
-(1, 'Abu Hourira (Superadmin)', 'admin@enmar.bd', '01614113082', '$2b$10$3xmj.luxpF9sG0oSdklVdOWhgwd1lvvSnHjdm7vVDtnicMoBuoKHK', 'SUPER_ADMIN', 'Dhaka', 1, 1, NOW(), NOW());
+(1, 'Abu Hourira (Superadmin)', 'admin@enmar.bd', '01614113082', '$2b$10$4yyycP.0fJfZC5aOB31atOXNHOZo6Xe5pzn4OIrVutYriGxzwGALi', 'SUPER_ADMIN', 'Dhaka', 1, 1, NOW(), NOW());
 
 -- --------------------------------------------------------
 -- Dumping data for table `delivery_personnel` (Rider)
 -- --------------------------------------------------------
 INSERT INTO `delivery_personnel` (`id`, `name`, `phone`, `passwordHash`, `vehicleType`, `isActive`, `isSharingLocation`, `currentLat`, `currentLng`, `createdAt`, `updatedAt`) VALUES
-(1, 'Kamal Hossain (Rider)', '01711000111', '$2b$10$AA5I1l6GtcyIeJH1ZOd6eOp6rve4sM.wjbEXeWvOXtIHDI0e0JmDG', 'Motorbike', 1, 1, 23.8699, 90.3987, NOW(), NOW());
+(1, 'Kamal Hossain (Rider)', '01711000111', '$2b$10$Z38p0QFuVifSqMEXrmBiMeOT2wJhHUsJG9ov8yXRBvgiOZ.anqORO', 'Motorbike', 1, 1, 23.8699, 90.3987, NOW(), NOW());
 
 -- --------------------------------------------------------
 -- Dumping data for table `categories`
