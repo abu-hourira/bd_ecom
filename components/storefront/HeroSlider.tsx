@@ -1,5 +1,5 @@
 "use client";
-// components/storefront/HeroSlider.tsx - Modern E-Commerce Dynamic Promo Slider
+// components/storefront/HeroSlider.tsx - 100% Dynamic Database-Driven Slider
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
@@ -24,39 +24,12 @@ interface HeroSliderProps {
 }
 
 export default function HeroSlider({ banners = [] }: HeroSliderProps) {
-  // Default high-converting organic promotional banners if admin hasn't added custom ones
-  const defaultBanners: BannerItem[] = [
-    {
-      id: "def-1",
-      title: "সুন্দরবনের ১০০% খাঁটি কাঁচা মধু",
-      headline: "প্রকৃতির খাঁটি উপহার",
-      subtitle: "সরাসরি সুন্দরবনের চাকভাঙা অপরিশোধিত প্রাকৃতিক মধু। বিশেষ ছাড় চলছে!",
-      imageUrl: "https://images.unsplash.com/photo-1587049352846-4a222e784d38?q=80&w=1200&auto=format&fit=crop",
-      targetLink: "/products?category=honey-sweeteners",
-      bgColor: "#143520",
-    },
-    {
-      id: "def-2",
-      title: "ঐতিহ্যবাহী কাঠের ঘানির সরিষার তেল",
-      headline: "শতভাগ খাঁটি ও ঝাঁঝালো",
-      subtitle: "কোনো প্রকার কেমিক্যাল বা কৃত্রিম গন্ধ ছাড়া সম্পূর্ণ স্বাস্থ্যসম্মত ঘানির তেল।",
-      imageUrl: "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?q=80&w=1200&auto=format&fit=crop",
-      targetLink: "/products?category=oils-ghee",
-      bgColor: "#23180c",
-    },
-    {
-      id: "def-3",
-      title: "মদিনার প্রিমিয়াম আজওয়া ও মরিয়ম খেজুর",
-      headline: "পুষ্টিগুণে ভরপুর সেরা খাবার",
-      subtitle: "সৌদি আরব থেকে সরাসরি আমদানিকৃত নরম ও সুস্বাদু অর্গানিক খেজুর।",
-      imageUrl: "https://images.unsplash.com/photo-1596797038530-2c107229654b?q=80&w=1200&auto=format&fit=crop",
-      targetLink: "/products?category=dates-dry-fruits",
-      bgColor: "#291508",
-    },
-  ];
+  const activeBanners = banners && banners.length > 0 ? banners.filter((b) => b.isActive !== false) : [];
 
-  const activeBanners = banners && banners.length > 0 ? banners.filter((b) => b.isActive !== false) : defaultBanners;
-  const slideList = activeBanners.length > 0 ? activeBanners : defaultBanners;
+  // If no banners uploaded by admin, do not render default placeholder banners
+  if (!activeBanners || activeBanners.length === 0) {
+    return null;
+  }
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
@@ -67,13 +40,13 @@ export default function HeroSlider({ banners = [] }: HeroSliderProps) {
   useEffect(() => {
     startAutoPlay();
     return () => stopAutoPlay();
-  }, [currentIndex, slideList.length]);
+  }, [currentIndex, activeBanners.length]);
 
   const startAutoPlay = () => {
     stopAutoPlay();
-    if (slideList.length <= 1) return;
+    if (activeBanners.length <= 1) return;
     autoPlayRef.current = setTimeout(() => {
-      setCurrentIndex((prev) => (prev + 1) % slideList.length);
+      setCurrentIndex((prev) => (prev + 1) % activeBanners.length);
     }, 4500);
   };
 
@@ -83,12 +56,12 @@ export default function HeroSlider({ banners = [] }: HeroSliderProps) {
 
   const nextSlide = () => {
     stopAutoPlay();
-    setCurrentIndex((prev) => (prev + 1) % slideList.length);
+    setCurrentIndex((prev) => (prev + 1) % activeBanners.length);
   };
 
   const prevSlide = () => {
     stopAutoPlay();
-    setCurrentIndex((prev) => (prev - 1 + slideList.length) % slideList.length);
+    setCurrentIndex((prev) => (prev - 1 + activeBanners.length) % activeBanners.length);
   };
 
   // Touch Swipe Handlers for Mobile
@@ -124,9 +97,8 @@ export default function HeroSlider({ banners = [] }: HeroSliderProps) {
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Aspect Ratio: 16:9 on Mobile, 21:9 on Desktop */}
       <div className="relative w-full aspect-[16/9] sm:aspect-[21/9] lg:aspect-[2.4/1] min-h-[190px] sm:min-h-[280px]">
-        {slideList.map((banner, idx) => {
+        {activeBanners.map((banner, idx) => {
           const isActive = idx === currentIndex;
           const target = banner.targetLink || "/products";
 
@@ -147,7 +119,7 @@ export default function HeroSlider({ banners = [] }: HeroSliderProps) {
                   className="object-cover object-center"
                   sizes="(max-width: 768px) 100vw, 1200px"
                 />
-                {/* Dark Gradient Overlay for Text Readability */}
+                {/* Dark Gradient Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t sm:bg-gradient-to-r from-stone-950/90 via-stone-950/60 to-transparent" />
               </div>
 
@@ -186,8 +158,8 @@ export default function HeroSlider({ banners = [] }: HeroSliderProps) {
         })}
       </div>
 
-      {/* Navigation Arrows (Visible on hover on desktop) */}
-      {slideList.length > 1 && (
+      {/* Navigation Arrows */}
+      {activeBanners.length > 1 && (
         <>
           <button
             onClick={prevSlide}
@@ -206,7 +178,7 @@ export default function HeroSlider({ banners = [] }: HeroSliderProps) {
 
           {/* Dots Indicator */}
           <div className="absolute bottom-2.5 sm:bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1.5 bg-black/30 backdrop-blur-xs px-2.5 py-1 rounded-full">
-            {slideList.map((_, idx) => (
+            {activeBanners.map((_, idx) => (
               <button
                 key={idx}
                 onClick={() => {
