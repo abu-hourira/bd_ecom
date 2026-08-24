@@ -1,5 +1,5 @@
-// components/storefront/Header.tsx
 "use client";
+// components/storefront/Header.tsx
 
 import Link from "next/link";
 import { useState, useEffect } from "react";

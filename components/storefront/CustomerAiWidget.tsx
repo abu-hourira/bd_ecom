@@ -1,5 +1,5 @@
-// components/storefront/CustomerAiWidget.tsx
 "use client";
+// components/storefront/CustomerAiWidget.tsx
 
 import { useState } from "react";
 import { Bot, Send, X, Loader2, Sparkles, MessageSquare } from "lucide-react";

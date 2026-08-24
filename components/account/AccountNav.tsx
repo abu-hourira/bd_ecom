@@ -1,5 +1,5 @@
-// components/account/AccountNav.tsx
 "use client";
+// components/account/AccountNav.tsx
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";

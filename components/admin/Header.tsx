@@ -1,5 +1,5 @@
-// components/admin/Header.tsx
 "use client";
+// components/admin/Header.tsx
 
 import { Menu, Search, ShieldCheck, Sparkles } from "lucide-react";
 

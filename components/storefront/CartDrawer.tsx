@@ -1,5 +1,5 @@
-// components/storefront/CartDrawer.tsx
 "use client";
+// components/storefront/CartDrawer.tsx
 
 import Image from "next/image";
 import Link from "next/link";

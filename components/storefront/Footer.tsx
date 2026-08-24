@@ -1,5 +1,5 @@
-// components/storefront/Footer.tsx
 "use client";
+// components/storefront/Footer.tsx
 
 import Link from "next/link";
 import {

@@ -1,5 +1,5 @@
-// components/admin/Sidebar.tsx
 "use client";
+// components/admin/Sidebar.tsx
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";

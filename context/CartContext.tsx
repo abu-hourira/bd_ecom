@@ -1,5 +1,5 @@
-// context/CartContext.tsx
 "use client";
+// context/CartContext.tsx
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 

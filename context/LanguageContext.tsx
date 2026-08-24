@@ -1,5 +1,5 @@
-// context/LanguageContext.tsx
 "use client";
+// context/LanguageContext.tsx
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { Locale, translations as defaultTranslations } from "@/lib/i18n";

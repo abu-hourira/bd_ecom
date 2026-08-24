@@ -1,6 +1,6 @@
+"use client";
 import AlertModal from "@/components/ui/AlertModal";
 // components/admin/ImageUploader.tsx
-"use client";
 
 import { useState, useRef, ChangeEvent } from "react";
 import Image from "next/image";

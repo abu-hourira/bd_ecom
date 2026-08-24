@@ -1,5 +1,5 @@
-// components/storefront/CookieConsent.tsx
 "use client";
+// components/storefront/CookieConsent.tsx
 
 import { useEffect, useState } from "react";
 import { useFeatures } from "@/context/FeatureFlagContext";

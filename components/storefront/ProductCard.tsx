@@ -1,5 +1,5 @@
-// components/storefront/ProductCard.tsx
 "use client";
+// components/storefront/ProductCard.tsx
 
 import { useState } from "react";
 import Image from "next/image";

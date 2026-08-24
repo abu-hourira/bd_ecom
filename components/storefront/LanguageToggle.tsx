@@ -1,5 +1,5 @@
-// components/storefront/LanguageToggle.tsx
 "use client";
+// components/storefront/LanguageToggle.tsx
 
 import { useLanguage } from "@/context/LanguageContext";
 

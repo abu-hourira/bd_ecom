@@ -1,5 +1,5 @@
-// components/storefront/FloatingWhatsApp.tsx
 "use client";
+// components/storefront/FloatingWhatsApp.tsx
 
 import { MessageCircle } from "lucide-react";
 import { useFeatures } from "@/context/FeatureFlagContext";

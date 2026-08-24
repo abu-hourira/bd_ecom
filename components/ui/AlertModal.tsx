@@ -1,5 +1,5 @@
-// components/ui/AlertModal.tsx
 "use client";
+// components/ui/AlertModal.tsx
 
 import React from "react";
 import {
