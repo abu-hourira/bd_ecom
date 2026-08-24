@@ -7,6 +7,8 @@ import Link from "next/link";
 import {
   ArrowLeft,
   Printer,
+  Bike,
+  Radio,
   Truck,
   User,
   MapPin,
@@ -39,6 +41,8 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>("PENDING");
   const [courierPartner, setCourierPartner] = useState("");
   const [courierTrackingId, setCourierTrackingId] = useState("");
+  const [riders, setRiders] = useState<any[]>([]);
+  const [deliveryPersonnelId, setDeliveryPersonnelId] = useState<string>("");
   const [statusNote, setStatusNote] = useState("");
   const [adminNotes, setAdminNotes] = useState("");
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -59,6 +63,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         setCourierPartner(o.courierPartner || "");
         setCourierTrackingId(o.courierTrackingId || "");
         setAdminNotes(o.adminNotes || "");
+        setDeliveryPersonnelId(o.deliveryPersonnelId ? String(o.deliveryPersonnelId) : "");
       }
     } catch (e) {
       console.error(e);
@@ -69,6 +74,12 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
 
   useEffect(() => {
     fetchOrder();
+    fetch("/api/admin/delivery-personnel")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) setRiders(data.riders || []);
+      })
+      .catch(() => {});
   }, [id]);
 
   const handleAdminCancel = async () => {
@@ -159,6 +170,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         body: JSON.stringify({
           orderStatus,
           paymentStatus,
+          deliveryPersonnelId: deliveryPersonnelId || null,
           courierPartner,
           courierTrackingId,
           adminNotes,
@@ -411,6 +423,27 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                   <option value="PAID">Paid</option>
                   <option value="FAILED">Failed</option>
                   <option value="REFUNDED">Refunded</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-semibold text-ink">Assign Delivery Rider</label>
+                  <Link href="/admin/delivery" className="text-[11px] text-forest hover:underline">
+                    Manage Fleet →
+                  </Link>
+                </div>
+                <select
+                  value={deliveryPersonnelId}
+                  onChange={(e) => setDeliveryPersonnelId(e.target.value)}
+                  className="w-full px-4 py-2 rounded-xl bg-bg border border-line text-sm font-medium focus:outline-none focus:ring-2 focus:ring-forest/20"
+                >
+                  <option value="">-- No In-House Rider Assigned --</option>
+                  {riders.map((r: any) => (
+                    <option key={r.id} value={r.id}>
+                      {r.name} ({r.phone}) - {r.vehicleType} {r.isSharingLocation ? "🟢 (Live GPS)" : ""}
+                    </option>
+                  ))}
                 </select>
               </div>
 

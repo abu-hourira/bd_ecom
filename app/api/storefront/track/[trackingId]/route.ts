@@ -20,6 +20,18 @@ export async function GET(
         history: {
           orderBy: { createdAt: "asc" },
         },
+        deliveryPersonnel: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            vehicleType: true,
+            isSharingLocation: true,
+            currentLat: true,
+            currentLng: true,
+            lastLocationUpdate: true,
+          },
+        },
       },
     });
 

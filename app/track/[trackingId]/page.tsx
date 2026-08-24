@@ -2,6 +2,7 @@
 // app/track/[trackingId]/page.tsx
 
 import { useEffect, useState, use, Suspense } from "react";
+import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -25,6 +26,15 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useLiveSync } from "@/lib/useLiveSync";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import AlertModal from "@/components/ui/AlertModal";
+
+const LiveDeliveryMap = dynamic(() => import("@/components/storefront/LiveDeliveryMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="bg-paper p-8 rounded-3xl border border-emerald-300 shadow-card text-center text-xs text-ink-soft animate-pulse">
+      Connecting to delivery rider live GPS feed...
+    </div>
+  ),
+});
 
 function OrderTrackingDetailContent({
   params,
@@ -313,6 +323,26 @@ function OrderTrackingDetailContent({
             </div>
           </div>
         )}
+
+        {/* Live GPS Map (Visible when order is OUT_FOR_DELIVERY and rider has active GPS sharing) */}
+        {!isCancelled &&
+          !isReturned &&
+          order.orderStatus === "OUT_FOR_DELIVERY" &&
+          order.deliveryPersonnel &&
+          order.deliveryPersonnel.isSharingLocation &&
+          order.deliveryPersonnel.currentLat !== null && (
+            <div className="animate-in fade-in duration-300">
+              <LiveDeliveryMap
+                riderName={order.deliveryPersonnel.name}
+                riderPhone={order.deliveryPersonnel.phone}
+                vehicleType={order.deliveryPersonnel.vehicleType || "Motorbike"}
+                currentLat={order.deliveryPersonnel.currentLat}
+                currentLng={order.deliveryPersonnel.currentLng}
+                lastUpdated={order.deliveryPersonnel.lastLocationUpdate}
+                destinationAddress={order.shippingAddress}
+              />
+            </div>
+          )}
 
         {/* Visual 6-Stage Horizontal Stepper */}
         {!isCancelled && !isReturned && (

@@ -27,6 +27,15 @@ export async function GET(req: NextRequest) {
       include: {
         items: true,
         _count: { select: { items: true } },
+        deliveryPersonnel: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            vehicleType: true,
+            isSharingLocation: true,
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
     });

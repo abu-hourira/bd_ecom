@@ -234,6 +234,8 @@ model Order {
 
   courierPartner     String?        // "Pathao", "Steadfast", "RedX", "In-House"
   courierTrackingId  String?
+  deliveryPersonnelId Int?
+  deliveryPersonnel   DeliveryPersonnel? @relation(fields: [deliveryPersonnelId], references: [id], onDelete: SetNull)
   estimatedDelivery  DateTime?
   cancellationReason String?        @db.Text
   refundNeeded       Boolean        @default(false)
@@ -662,4 +664,29 @@ model FeatureFlag {
   updatedAt   DateTime @updatedAt
 
   @@map("feature_flags")
+}
+
+
+// ─────────────────────────────────────────────────────────────
+// 13. DELIVERY PERSONNEL & LIVE LOCATION TRACKING
+// ─────────────────────────────────────────────────────────────
+
+model DeliveryPersonnel {
+  id                 Int       @id @default(autoincrement())
+  name               String
+  phone              String    @unique
+  passwordHash       String
+  vehicleType        String?   @default("Motorbike") // "Bicycle", "Motorbike", "Van"
+  licenseNumber      String?
+  isActive           Boolean   @default(true)
+  isSharingLocation  Boolean   @default(false)
+  currentLat         Float?
+  currentLng         Float?
+  lastLocationUpdate DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  orders             Order[]
+
+  @@map("delivery_personnel")
 }

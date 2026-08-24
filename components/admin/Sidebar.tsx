@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
+  Bike,
   Sliders,
   FileText,
   Package,
@@ -39,6 +40,7 @@ export default function AdminSidebar({ mobileOpen, onCloseMobile }: SidebarProps
     { label: "Products", href: "/admin/products", icon: Package },
     { label: "Categories", href: "/admin/categories", icon: Layers },
     { label: "Orders & Tracking", href: "/admin/orders", icon: ShoppingBag },
+    { label: "Delivery Fleet", href: "/admin/delivery", icon: Bike },
     { label: "Returns & Refunds", href: "/admin/returns", icon: RotateCcw },
     { label: "Customers", href: "/admin/customers", icon: Users },
     { label: "Analytics & Reports", href: "/admin/analytics", icon: BarChart3 },

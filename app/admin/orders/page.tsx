@@ -12,6 +12,7 @@ import {
   Clock,
   CheckCircle2,
   Truck,
+  Bike,
   Eye,
   RefreshCw,
   ExternalLink,
@@ -354,9 +355,25 @@ export default function AdminOrdersPage() {
                       )}
                     </td>
 
-                    {/* Courier Partner */}
+                    {/* Courier / Delivery Rider Partner */}
                     <td className="py-4 px-6">
-                      {o.courierPartner ? (
+                      {o.deliveryPersonnel ? (
+                        <div className="space-y-0.5">
+                          <div className="font-semibold text-xs text-forest flex items-center gap-1">
+                            <Bike className="w-3.5 h-3.5 text-forest" />
+                            <span>{o.deliveryPersonnel.name}</span>
+                          </div>
+                          <div className="text-[10px] text-ink-muted flex items-center gap-1.5">
+                            <span>{o.deliveryPersonnel.vehicleType}</span>
+                            {o.deliveryPersonnel.isSharingLocation && (
+                              <span className="inline-flex items-center gap-1 text-emerald-700 font-bold">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                                Live GPS
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ) : o.courierPartner ? (
                         <div>
                           <div className="font-semibold text-xs text-ink flex items-center gap-1">
                             <Truck className="w-3.5 h-3.5 text-forest" />

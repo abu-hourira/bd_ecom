@@ -28,6 +28,18 @@ export async function GET(
         user: {
           select: { id: true, name: true, email: true, phone: true },
         },
+        deliveryPersonnel: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            vehicleType: true,
+            isSharingLocation: true,
+            currentLat: true,
+            currentLng: true,
+            lastLocationUpdate: true,
+          },
+        },
       },
     });
 
@@ -59,6 +71,7 @@ export async function PUT(
     }
 
     const {
+      deliveryPersonnelId,
       orderStatus,
       paymentStatus,
       courierPartner,
@@ -79,6 +92,9 @@ export async function PUT(
     if (estimatedDelivery !== undefined) dataToUpdate.estimatedDelivery = estimatedDelivery ? new Date(estimatedDelivery) : null;
     if (adminNotes !== undefined) dataToUpdate.adminNotes = adminNotes;
     if (cancellationReason !== undefined) dataToUpdate.cancellationReason = cancellationReason;
+    if (deliveryPersonnelId !== undefined) {
+      dataToUpdate.deliveryPersonnelId = deliveryPersonnelId ? Number(deliveryPersonnelId) : null;
+    }
     if (refundStatus !== undefined) {
       dataToUpdate.refundStatus = refundStatus;
       dataToUpdate.refundNeeded = refundStatus === "REFUND_NEEDED";
