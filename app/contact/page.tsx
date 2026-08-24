@@ -3,22 +3,20 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Phone, Mail, MapPin, Send, MessageCircle, Clock, CheckCircle2, ArrowLeft } from "lucide-react";
+import { Phone, Mail, MapPin, Send, MessageCircle, ArrowLeft } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import AlertModal from "@/components/ui/AlertModal";
 
 export default function ContactPage() {
-  const { locale } = useLanguage();
+  const { t, locale } = useLanguage();
   const isBn = locale === "bn";
 
   const [formData, setFormData] = useState({ name: "", phone: "", email: "", message: "" });
-  const [submitted, setSubmitted] = useState(false);
   const [alertOpen, setAlertOpen] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.phone || !formData.message) return;
-    setSubmitted(true);
     setAlertOpen(true);
     setFormData({ name: "", phone: "", email: "", message: "" });
   };
@@ -37,27 +35,24 @@ export default function ContactPage() {
         <div className="space-y-3 border-b border-line pb-8">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-forest/10 text-forest text-xs font-bold uppercase tracking-wider">
             <MessageCircle className="w-4 h-4" />
-            <span>{isBn ? "যোগাযোগ ও সহায়তা" : "Contact & Support"}</span>
+            <span>{t("contact.badge")}</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold font-display text-ink">
-            {isBn ? "আমাদের সাথে যোগাযোগ করুন" : "Get in Touch with ENMAR"}
+            {t("contact.title")}
           </h1>
           <p className="text-sm text-ink-soft leading-relaxed">
-            {isBn
-              ? "যেকোনো প্রশ্ন, পণ্যের তথ্য বা সাপোর্টের জন্য সরাসরি কল করুন, হোয়াটসঅ্যাপে মেসেজ দিন অথবা নিচের ফর্মটি পূরণ করুন।"
-              : "Have a question about our products or your order? We are here to help you 7 days a week."}
+            {t("contact.subtitle")}
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Left 1 Col: Contact Details */}
           <div className="space-y-4">
             <div className="bg-paper p-5 rounded-3xl border border-line shadow-card space-y-3">
               <div className="w-10 h-10 rounded-2xl bg-forest text-accent flex items-center justify-center font-bold">
                 <Phone className="w-5 h-5" />
               </div>
-              <h4 className="font-bold text-ink text-sm">{isBn ? "হেল্পলাইন ও কল" : "Customer Hotline"}</h4>
-              <p className="text-xs text-ink-soft">+880 1614 113082</p>
+              <h4 className="font-bold text-ink text-sm">{t("contact.hotlineTitle")}</h4>
+              <p className="text-xs text-ink-soft">{t("contact.phone")}</p>
               <a
                 href="tel:+8801614113082"
                 className="inline-block text-xs font-bold text-forest hover:underline"
@@ -86,24 +81,23 @@ export default function ContactPage() {
               <div className="w-10 h-10 rounded-2xl bg-forest text-accent flex items-center justify-center font-bold">
                 <MapPin className="w-5 h-5" />
               </div>
-              <h4 className="font-bold text-ink text-sm">{isBn ? "অফিস ঠিকানা" : "Store Office"}</h4>
+              <h4 className="font-bold text-ink text-sm">{t("contact.officeTitle")}</h4>
               <p className="text-xs text-ink-soft leading-relaxed">
-                House 14, Road 7, Sector 3, Uttara, Dhaka-1230, Bangladesh
+                {t("contact.officeAddress")}
               </p>
             </div>
           </div>
 
-          {/* Right 2 Cols: Message Form */}
           <div className="md:col-span-2 bg-paper p-6 sm:p-8 rounded-3xl border border-line shadow-card space-y-6">
             <h3 className="text-lg font-bold font-display text-ink">
-              {isBn ? "বার্তা পাঠান" : "Send Us a Message"}
+              {t("contact.formTitle")}
             </h3>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-ink uppercase tracking-wider mb-1.5">
-                    {isBn ? "আপনার নাম *" : "Your Name *"}
+                    {t("contact.formName")}
                   </label>
                   <input
                     type="text"
@@ -117,7 +111,7 @@ export default function ContactPage() {
 
                 <div>
                   <label className="block text-xs font-bold text-ink uppercase tracking-wider mb-1.5">
-                    {isBn ? "মোবাইল নম্বর *" : "Mobile Number *"}
+                    {t("contact.formPhone")}
                   </label>
                   <input
                     type="tel"
@@ -132,7 +126,7 @@ export default function ContactPage() {
 
               <div>
                 <label className="block text-xs font-bold text-ink uppercase tracking-wider mb-1.5">
-                  {isBn ? "ইমেইল (ঐচ্ছিক)" : "Email (Optional)"}
+                  {t("contact.formEmail")}
                 </label>
                 <input
                   type="email"
@@ -145,7 +139,7 @@ export default function ContactPage() {
 
               <div>
                 <label className="block text-xs font-bold text-ink uppercase tracking-wider mb-1.5">
-                  {isBn ? "আপনার বার্তা বা অনুসন্ধান *" : "Your Message *"}
+                  {t("contact.formMessage")}
                 </label>
                 <textarea
                   rows={4}
@@ -162,7 +156,7 @@ export default function ContactPage() {
                 className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-forest hover:bg-forest-deep text-white font-bold text-xs shadow-premium transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Send className="w-4 h-4" />
-                <span>{isBn ? "বার্তা পাঠিয়ে দিন" : "Submit Message"}</span>
+                <span>{t("contact.formSubmit")}</span>
               </button>
             </form>
           </div>
