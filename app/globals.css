@@ -16,8 +16,8 @@
     --ink-muted: #9ca3af;
     --line: #e5e7eb;
     
-    --font-display: 'Fraunces', serif;
-    --font-body: 'Work Sans', sans-serif;
+    --font-display: 'Fraunces', 'Baloo Da 2', 'Noto Serif Bengali', serif;
+    --font-body: 'Work Sans', 'Hind Siliguri', sans-serif;
     --font-mono: 'Space Mono', monospace;
   }
 
@@ -25,6 +25,7 @@
     background-color: var(--bg);
     color: var(--ink);
     font-family: var(--font-body);
+    line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -32,10 +33,128 @@
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
     color: var(--ink);
+    line-height: 1.3;
+  }
+
+  /* -----------------------------------------------------------
+     BENGALI (?????) TYPOGRAPHY & OVERLAPPING GLYPH MITIGATION
+     ----------------------------------------------------------- */
+
+  /* Scoped to Bengali mode on root HTML or elements with lang="bn" */
+  html[lang="bn"],
+  html[lang="bn"] body,
+  [lang="bn"],
+  .lang-bn {
+    font-family: 'Hind Siliguri', 'Work Sans', sans-serif;
+    line-height: 1.75;
+    letter-spacing: 0.012em;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Bengali Headings (Display) */
+  html[lang="bn"] h1,
+  html[lang="bn"] h2,
+  html[lang="bn"] h3,
+  html[lang="bn"] h4,
+  html[lang="bn"] h5,
+  html[lang="bn"] h6,
+  html[lang="bn"] .font-display,
+  [lang="bn"] h1,
+  [lang="bn"] h2,
+  [lang="bn"] h3,
+  [lang="bn"] h4,
+  [lang="bn"] h5,
+  [lang="bn"] h6,
+  [lang="bn"] .font-display {
+    font-family: 'Baloo Da 2', 'Noto Serif Bengali', 'Hind Siliguri', serif;
+    line-height: 1.45;
+    letter-spacing: 0.005em;
+    padding-top: 0.08em;
+    padding-bottom: 0.08em;
+  }
+
+  /* Paragraphs and Body Copy */
+  html[lang="bn"] p,
+  [lang="bn"] p {
+    line-height: 1.8;
+  }
+
+  /* Subtitles & Descriptions */
+  html[lang="bn"] .text-xs,
+  [lang="bn"] .text-xs {
+    line-height: 1.65;
+  }
+
+  html[lang="bn"] .text-sm,
+  [lang="bn"] .text-sm {
+    line-height: 1.75;
+  }
+
+  html[lang="bn"] .text-base,
+  [lang="bn"] .text-base {
+    line-height: 1.8;
+  }
+
+  html[lang="bn"] .text-lg,
+  [lang="bn"] .text-lg {
+    line-height: 1.7;
+  }
+
+  html[lang="bn"] .text-xl,
+  html[lang="bn"] .text-2xl,
+  html[lang="bn"] .text-3xl,
+  html[lang="bn"] .text-4xl,
+  html[lang="bn"] .text-5xl,
+  [lang="bn"] .text-xl,
+  [lang="bn"] .text-2xl,
+  [lang="bn"] .text-3xl,
+  [lang="bn"] .text-4xl,
+  [lang="bn"] .text-5xl {
+    line-height: 1.4;
+  }
+
+  /* Override dangerous tight line-height utilities in Bengali contexts */
+  html[lang="bn"] .leading-none,
+  [lang="bn"] .leading-none {
+    line-height: 1.4 !important;
+  }
+
+  html[lang="bn"] .leading-tight,
+  [lang="bn"] .leading-tight {
+    line-height: 1.5 !important;
+  }
+
+  html[lang="bn"] .leading-snug,
+  [lang="bn"] .leading-snug {
+    line-height: 1.62 !important;
+  }
+
+  html[lang="bn"] .leading-normal,
+  [lang="bn"] .leading-normal {
+    line-height: 1.75 !important;
+  }
+
+  html[lang="bn"] .leading-relaxed,
+  [lang="bn"] .leading-relaxed {
+    line-height: 1.85 !important;
+  }
+
+  html[lang="bn"] .leading-loose,
+  [lang="bn"] .leading-loose {
+    line-height: 2 !important;
+  }
+
+  /* Bengali Buttons and Badges */
+  html[lang="bn"] button,
+  html[lang="bn"] .badge,
+  [lang="bn"] button {
+    line-height: 1.5;
+    padding-top: 0.15em;
+    padding-bottom: 0.15em;
   }
 }
 
-/* ── Custom Utilities ── */
+/* -- Custom Utilities -- */
 @layer utilities {
   .text-balance {
     text-wrap: balance;

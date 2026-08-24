@@ -37,6 +37,13 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       const saved = localStorage.getItem("enmar_lang") as Locale;
       if (saved && (saved === "bn" || saved === "en")) {
         setLocaleState(saved);
+        if (typeof document !== "undefined") {
+          document.documentElement.lang = saved;
+        }
+      } else {
+        if (typeof document !== "undefined") {
+          document.documentElement.lang = "bn";
+        }
       }
     } catch (e) {
       console.error("[LanguageContext] Load error:", e);
