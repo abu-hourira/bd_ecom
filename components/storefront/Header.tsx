@@ -45,7 +45,7 @@ export default function StorefrontHeader() {
   });
 
   useEffect(() => {
-    fetch("/api/storefront/categories")
+    fetch("/api/storefront/categories", { cache: "no-store" })
       .then((res) => res.json())
       .then((data) => {
         if (data.success && data.categories) {
@@ -54,7 +54,7 @@ export default function StorefrontHeader() {
       })
       .catch(() => {});
 
-    fetch("/api/storefront/settings")
+    fetch("/api/storefront/settings", { cache: "no-store" })
       .then((res) => res.json())
       .then((data) => {
         if (data.success && data.settings) {

@@ -11,7 +11,7 @@ export default function FloatingWhatsApp() {
   const [waMessage, setWaMessage] = useState("Hello, I would like to order.");
 
   useEffect(() => {
-    fetch("/api/storefront/settings")
+    fetch("/api/storefront/settings", { cache: "no-store" })
       .then((res) => res.json())
       .then((data) => {
         if (data.success && data.settings) {
