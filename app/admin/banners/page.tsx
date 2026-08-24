@@ -1,5 +1,5 @@
 "use client";
-// app/admin/banners/page.tsx - Promotional Banner & Ads Slider Management
+// app/admin/banners/page.tsx - Promotional Banner & Ads Slider Management with Category Selector
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
@@ -14,12 +14,19 @@ import {
   Loader2,
   Power,
   Upload,
-  Link as LinkIcon,
+  Layers,
   Eye,
+  Tag,
 } from "lucide-react";
 import ImageUploader from "@/components/admin/ImageUploader";
 import AlertModal from "@/components/admin/AlertModal";
 import { getSafeImageUrl } from "@/lib/utils";
+
+interface Category {
+  id: number;
+  name: string;
+  slug: string;
+}
 
 interface Banner {
   id: number;
@@ -34,6 +41,7 @@ interface Banner {
 
 export default function AdminBannersPage() {
   const [banners, setBanners] = useState<Banner[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -56,28 +64,46 @@ export default function AdminBannersPage() {
     headline: "স্পেশাল অফার",
     subtitle: "",
     imageUrl: "",
-    targetLink: "/products",
+    targetCategory: "/products",
     displayOrder: 0,
     isActive: true,
   });
 
   useEffect(() => {
-    fetchBanners();
+    fetchBannersAndCategories();
   }, []);
 
-  const fetchBanners = async () => {
+  const fetchBannersAndCategories = async () => {
     try {
       setLoading(true);
-      const res = await fetch("/api/admin/banners");
-      const data = await res.json();
-      if (data.success) {
-        setBanners(data.banners);
-      }
+      const [resBanners, resCats] = await Promise.all([
+        fetch("/api/admin/banners"),
+        fetch("/api/storefront/categories"),
+      ]);
+
+      const dataBanners = await resBanners.json();
+      const dataCats = await resCats.json();
+
+      if (dataBanners.success) setBanners(dataBanners.banners);
+      if (dataCats.success && dataCats.categories) setCategories(dataCats.categories);
     } catch (e) {
-      console.error("Failed to load banners", e);
+      console.error("Failed to load banners and categories", e);
     } finally {
       setLoading(false);
     }
+  };
+
+  const getCategoryNameFromLink = (link?: string | null) => {
+    if (!link || link === "/products") return "সব পণ্য (All Products)";
+    if (link.includes("combo-bundle-deals")) return "ফ্যামিলি কম্বো ও ডিলস";
+
+    if (link.includes("category=")) {
+      const slug = link.split("category=")[1];
+      const match = categories.find((c) => c.slug === slug);
+      if (match) return match.name;
+      return slug;
+    }
+    return link;
   };
 
   const handleToggle = async (banner: Banner) => {
@@ -149,7 +175,15 @@ export default function AdminBannersPage() {
       const res = await fetch("/api/admin/banners", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          title: formData.title,
+          headline: formData.headline,
+          subtitle: formData.subtitle,
+          imageUrl: formData.imageUrl,
+          targetLink: formData.targetCategory,
+          displayOrder: formData.displayOrder,
+          isActive: formData.isActive,
+        }),
       });
       const data = await res.json();
       if (data.success) {
@@ -160,7 +194,7 @@ export default function AdminBannersPage() {
           headline: "স্পেশাল অফার",
           subtitle: "",
           imageUrl: "",
-          targetLink: "/products",
+          targetCategory: "/products",
           displayOrder: 0,
           isActive: true,
         });
@@ -200,7 +234,7 @@ export default function AdminBannersPage() {
             <span>Homepage Promo Ads & Banners</span>
           </h1>
           <p className="text-sm text-ink-soft mt-1">
-            Upload multiple promotional ad images to run automatically in the homepage top slider.
+            Upload promotional ad images and select which category they link to on click.
           </p>
         </div>
 
@@ -256,9 +290,11 @@ export default function AdminBannersPage() {
                 {b.subtitle && (
                   <p className="text-xs text-ink-soft line-clamp-2">{b.subtitle}</p>
                 )}
-                <div className="flex items-center gap-1.5 text-xs text-forest font-mono">
-                  <LinkIcon className="w-3.5 h-3.5" />
-                  <span className="truncate">{b.targetLink || "/products"}</span>
+                
+                {/* Target Category Badge */}
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-forest-soft text-forest text-xs font-bold border border-forest/20">
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>টার্গেট ক্যাটাগরি: {getCategoryNameFromLink(b.targetLink)}</span>
                 </div>
               </div>
 
@@ -318,7 +354,6 @@ export default function AdminBannersPage() {
                 <ImageUploader
                   images={formData.imageUrl ? [formData.imageUrl] : []}
                   onChange={(imgs) => setFormData({ ...formData, imageUrl: imgs[0] || "" })}
-                  
                 />
               </div>
 
@@ -327,34 +362,45 @@ export default function AdminBannersPage() {
                 <input
                   type="text"
                   required
-                  placeholder="e.g. সুন্দরবনের খাঁটি কাঁচা মধু অফার"
+                  placeholder="e.g. স্পেশাল ফ্রোজেন ফুড অফার"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-4 py-2 rounded-xl bg-bg border border-line text-sm focus:outline-none"
+                  className="w-full px-4 py-2.5 rounded-xl bg-bg border border-line text-sm focus:outline-none focus:border-forest"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold text-ink">Badge / Tag</label>
+                  <label className="block text-xs font-semibold text-ink">Badge / Tag (ঐচ্ছিক)</label>
                   <input
                     type="text"
                     placeholder="e.g. স্পেশাল অফার / ৫০% ছাড়"
                     value={formData.headline}
                     onChange={(e) => setFormData({ ...formData, headline: e.target.value })}
-                    className="w-full px-4 py-2 rounded-xl bg-bg border border-line text-sm focus:outline-none"
+                    className="w-full px-4 py-2.5 rounded-xl bg-bg border border-line text-sm focus:outline-none focus:border-forest"
                   />
                 </div>
 
+                {/* Target Category Dropdown */}
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold text-ink">Target Link URL</label>
-                  <input
-                    type="text"
-                    placeholder="/products or link"
-                    value={formData.targetLink}
-                    onChange={(e) => setFormData({ ...formData, targetLink: e.target.value })}
-                    className="w-full px-4 py-2 rounded-xl bg-bg border border-line text-sm focus:outline-none"
-                  />
+                  <label className="block text-xs font-semibold text-ink">
+                    Target Category (টার্গেট ক্যাটাগরি) *
+                  </label>
+                  <select
+                    value={formData.targetCategory}
+                    onChange={(e) => setFormData({ ...formData, targetCategory: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-bg border border-line text-sm font-medium focus:outline-none focus:border-forest cursor-pointer"
+                  >
+                    <option value="/products">সব পণ্য (All Products)</option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={`/products?category=${cat.slug}`}>
+                        {cat.name}
+                      </option>
+                    ))}
+                    <option value="/products?category=combo-bundle-deals">
+                      ফ্যামিলি কম্বো ও ডিলস (Combos)
+                    </option>
+                  </select>
                 </div>
               </div>
 
@@ -365,7 +411,7 @@ export default function AdminBannersPage() {
                   placeholder="সংক্ষিপ্ত অফার বিবরণী..."
                   value={formData.subtitle}
                   onChange={(e) => setFormData({ ...formData, subtitle: e.target.value })}
-                  className="w-full px-4 py-2 rounded-xl bg-bg border border-line text-sm focus:outline-none"
+                  className="w-full px-4 py-2.5 rounded-xl bg-bg border border-line text-sm focus:outline-none focus:border-forest"
                 />
               </div>
 
@@ -373,14 +419,14 @@ export default function AdminBannersPage() {
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="px-4 py-2 rounded-xl border border-line text-ink text-sm hover:bg-bg"
+                  className="px-4 py-2.5 rounded-xl border border-line text-ink text-sm hover:bg-bg cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
-                  className="inline-flex items-center gap-2 px-6 py-2 rounded-xl bg-forest hover:bg-forest-deep text-white font-semibold text-sm shadow-premium disabled:opacity-50"
+                  className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-forest hover:bg-forest-deep text-white font-semibold text-sm shadow-premium disabled:opacity-50 cursor-pointer active:scale-95"
                 >
                   {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                   <span>Save & Publish Ad</span>
