@@ -205,7 +205,36 @@ export async function notifyOrderStatusChanged(
   if (newStatus === "SHIPPED") statusText = `Handed over to ${order.courierPartner || "Courier"} Logistics`;
   if (newStatus === "OUT_FOR_DELIVERY") statusText = "Out for Delivery with Rider";
   if (newStatus === "DELIVERED") statusText = "Delivered Successfully";
+  if (newStatus === "CANCELLED") statusText = "Cancelled";
 
-  const customerMsg = `ENMAR Order #${order.orderNumber} Update: Your parcel status is now [${statusText}]. ${note ? `Note: ${note}. ` : ""}Track live: ${trackingLink}`;
+  const refundNotice = order.refundNeeded || order.refundStatus === "REFUND_NEEDED"
+    ? " Your online payment refund is being processed back to your original payment channel."
+    : "";
+
+  const reasonText = note || order.cancellationReason ? `Reason: ${note || order.cancellationReason}.` : "";
+
+  const customerMsg = newStatus === "CANCELLED"
+    ? `ENMAR Order #${order.orderNumber} Cancelled. ${reasonText}${refundNotice} Tracking: ${trackingLink}`
+    : `ENMAR Order #${order.orderNumber} Update: Your parcel status is now [${statusText}]. ${note ? `Note: ${note}. ` : ""}Track live: ${trackingLink}`;
+
+  if (newStatus === "CANCELLED") {
+    const cancelEmailHtml = `
+      <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 12px;">
+        <h2 style="color: #be123c;">? Order Cancelled</h2>
+        <p>Dear <strong>${order.customerName}</strong>,</p>
+        <p>Your order <strong>#${order.orderNumber}</strong> has been cancelled.</p>
+        <div style="background: #fff1f2; padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid #fecdd3;">
+          <p><strong>Tracking ID:</strong> ${order.trackingId}</p>
+          <p><strong>Cancellation Reason:</strong> ${note || order.cancellationReason || "Cancelled"}</p>
+          <p><strong>Payment Method:</strong> ${order.paymentMethod}</p>
+          ${order.refundNeeded ? '<p style="color: #be123c; font-weight: bold;">Refund Status: Refund Needed / In Process</p>' : ''}
+        </div>
+        <p><a href="${trackingLink}" style="background: #14421a; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; display: inline-block;">View Tracking Details</a></p>
+      </div>
+    `;
+    sendEmail(order.customerEmail, `Order #${order.orderNumber} Cancelled - ENMAR Organic Food`, cancelEmailHtml, order.id).catch(console.error);
+  }
+
+  
   sendSMS(order.customerPhone, customerMsg, "Order Status Update", order.id).catch(console.error);
 }

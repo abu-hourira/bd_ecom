@@ -1,7 +1,7 @@
+"use client";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import AlertModal from "@/components/ui/AlertModal";
 // app/admin/categories/page.tsx
-"use client";
 
 import { useEffect, useState } from "react";
 import Image from "next/image";

@@ -1,5 +1,5 @@
-// app/admin/layout.tsx
 "use client";
+// app/admin/layout.tsx
 
 import { useState } from "react";
 import AdminSidebar from "@/components/admin/Sidebar";

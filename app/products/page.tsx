@@ -1,5 +1,5 @@
-// app/products/page.tsx
 "use client";
+// app/products/page.tsx
 
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";

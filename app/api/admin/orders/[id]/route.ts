@@ -50,7 +50,10 @@ export async function PUT(
     const orderId = Number(id);
     const body = await req.json();
 
-    const existing = await prisma.order.findUnique({ where: { id: orderId } });
+    const existing = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { items: true },
+    });
     if (!existing) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
@@ -65,6 +68,8 @@ export async function PUT(
       actorRole = "ADMIN",
       actorName = "Admin",
       statusNote,
+      cancellationReason,
+      refundStatus,
     } = body;
 
     const dataToUpdate: any = {};
@@ -73,10 +78,28 @@ export async function PUT(
     if (courierTrackingId !== undefined) dataToUpdate.courierTrackingId = courierTrackingId;
     if (estimatedDelivery !== undefined) dataToUpdate.estimatedDelivery = estimatedDelivery ? new Date(estimatedDelivery) : null;
     if (adminNotes !== undefined) dataToUpdate.adminNotes = adminNotes;
+    if (cancellationReason !== undefined) dataToUpdate.cancellationReason = cancellationReason;
+    if (refundStatus !== undefined) {
+      dataToUpdate.refundStatus = refundStatus;
+      dataToUpdate.refundNeeded = refundStatus === "REFUND_NEEDED";
+    }
 
     const isStatusChanged = orderStatus && orderStatus !== existing.orderStatus;
+    const isCancelling = isStatusChanged && orderStatus === "CANCELLED";
+
     if (isStatusChanged) {
       dataToUpdate.orderStatus = orderStatus as OrderStatus;
+    }
+
+    if (isCancelling) {
+      const isPaidOnline = (existing.paymentStatus as any) === "PAID" || (existing.paymentMethod !== "COD" && (existing.paymentStatus as any) === "PAID");
+      if (isPaidOnline) {
+        dataToUpdate.refundNeeded = true;
+        dataToUpdate.refundStatus = "REFUND_NEEDED";
+      }
+      if (cancellationReason) {
+        dataToUpdate.cancellationReason = cancellationReason;
+      }
     }
 
     const updated = await prisma.$transaction(async (tx) => {
@@ -86,22 +109,40 @@ export async function PUT(
       });
 
       if (isStatusChanged) {
+        const note = cancellationReason || statusNote || `Status updated to ${orderStatus} by ${actorName}`;
         await tx.orderHistory.create({
           data: {
             orderId: orderId,
             status: orderStatus as OrderStatus,
-            note: statusNote || `Status updated to ${orderStatus} by ${actorName}`,
+            note,
             actorRole: actorRole,
             actorName: actorName,
           },
         });
       }
 
+      // If cancelling, restore inventory stock for all products in this order
+      if (isCancelling) {
+        for (const item of existing.items) {
+          if (item.productId) {
+            await tx.product.update({
+              where: { id: item.productId },
+              data: {
+                stockQuantity: {
+                  increment: item.quantity,
+                },
+              },
+            });
+          }
+        }
+      }
+
       return order;
     });
 
     if (isStatusChanged) {
-      notifyOrderStatusChanged(updated, orderStatus, statusNote).catch((err) =>
+      const finalNote = cancellationReason || statusNote;
+      notifyOrderStatusChanged(updated, orderStatus, finalNote).catch((err) =>
         console.error("[notifyOrderStatusChanged Exception]:", err)
       );
     }

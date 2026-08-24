@@ -1,5 +1,5 @@
-// app/admin/ai/page.tsx
 "use client";
+// app/admin/ai/page.tsx
 
 import { useEffect, useState } from "react";
 import {

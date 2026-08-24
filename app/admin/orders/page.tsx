@@ -1,7 +1,7 @@
+"use client";
 import { useLiveSync } from "@/lib/useLiveSync";
 import AlertModal from "@/components/ui/AlertModal";
 // app/admin/orders/page.tsx
-"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -29,6 +29,12 @@ export default function AdminOrdersPage() {
   const [activeTab, setActiveTab] = useState<string>("ALL");
 
   const [statusModalOrder, setStatusModalOrder] = useState<any | null>(null);
+  
+  // Admin Cancellation Modal State
+  const [cancelModalOrder, setCancelModalOrder] = useState<any | null>(null);
+  const [cancelPreset, setCancelPreset] = useState<string>("Item out of stock");
+  const [customCancelReason, setCustomCancelReason] = useState<string>("");
+  const [cancellingOrder, setCancellingOrder] = useState<boolean>(false);
   const [newStatus, setNewStatus] = useState<OrderStatus>("PENDING");
   const [courierPartner, setCourierPartner] = useState("");
   const [courierTrackingId, setCourierTrackingId] = useState("");
@@ -71,6 +77,85 @@ export default function AdminOrdersPage() {
     setCourierPartner(order.courierPartner || "Pathao");
     setCourierTrackingId(order.courierTrackingId || "");
     setStatusNote("");
+  };
+
+  const handleAdminCancel = async () => {
+    if (!cancelModalOrder) return;
+    const finalReason = cancelPreset === "CUSTOM" ? customCancelReason.trim() : cancelPreset;
+    if (!finalReason) {
+      setAlertState({
+        isOpen: true,
+        title: "Cancellation Reason Required",
+        message: "Please enter a specific reason for cancelling this order.",
+        type: "warning",
+      });
+      return;
+    }
+
+    setCancellingOrder(true);
+    try {
+      const res = await fetch(`/api/admin/orders/${cancelModalOrder.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderStatus: "CANCELLED",
+          cancellationReason: finalReason,
+          statusNote: finalReason,
+          actorRole: "ADMIN",
+          actorName: "Store Admin",
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || "Failed to cancel order.");
+
+      setCancelModalOrder(null);
+      setCustomCancelReason("");
+      fetchOrders(true);
+      setAlertState({
+        isOpen: true,
+        title: "Order Cancelled & Stock Restored",
+        message: `Order #${cancelModalOrder.orderNumber} has been cancelled. Product stock has been restored to inventory and the customer has been notified via SMS & Email.`,
+        type: "success",
+      });
+    } catch (err: any) {
+      setAlertState({
+        isOpen: true,
+        title: "Cancellation Error",
+        message: err.message || "Failed to cancel order.",
+        type: "error",
+      });
+    } finally {
+      setCancellingOrder(false);
+    }
+  };
+
+  const handleMarkRefunded = async (orderId: number) => {
+    try {
+      const res = await fetch(`/api/admin/orders/${orderId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          refundStatus: "REFUNDED",
+          paymentStatus: "REFUNDED",
+          statusNote: "Refund processed and settled with customer.",
+          actorRole: "ADMIN",
+          actorName: "Store Admin",
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        fetchOrders(true);
+        setAlertState({
+          isOpen: true,
+          title: "Refund Settled",
+          message: "Order marked as refunded successfully.",
+          type: "success",
+        });
+      }
+    } catch (err: any) {
+      console.error(err);
+    }
   };
 
   const handleUpdateStatus = async (e: React.FormEvent) => {
@@ -241,7 +326,24 @@ export default function AdminOrdersPage() {
 
                     {/* Status Badge */}
                     <td className="py-4 px-6">
-                      <StatusBadge status={o.orderStatus} size="sm" />
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <StatusBadge status={o.orderStatus} size="sm" />
+                        {(o.refundNeeded || o.refundStatus === "REFUND_NEEDED") && (
+                          <span className="px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 text-[10px] font-bold border border-rose-300 animate-pulse">
+                            REFUND NEEDED
+                          </span>
+                        )}
+                        {o.refundStatus === "REFUNDED" && (
+                          <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-300">
+                            REFUNDED
+                          </span>
+                        )}
+                      </div>
+                      {o.cancellationReason && (
+                        <div className="text-[11px] text-rose-700 font-medium mt-1 truncate max-w-xs" title={o.cancellationReason}>
+                          Reason: {o.cancellationReason}
+                        </div>
+                      )}
                       {o.estimatedDelivery && (
                         <div className="text-[10px] text-ink-soft mt-1 flex items-center gap-1">
                           <Clock className="w-3 h-3" />
@@ -293,9 +395,33 @@ export default function AdminOrdersPage() {
                     {/* Actions */}
                     <td className="py-4 px-6 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        {o.refundStatus === "REFUND_NEEDED" && (
+                          <button
+                            type="button"
+                            onClick={() => handleMarkRefunded(o.id)}
+                            className="px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-bold transition-colors shadow-xs cursor-pointer"
+                            title="Mark online refund as settled"
+                          >
+                            Mark Refunded
+                          </button>
+                        )}
+                        {o.orderStatus !== "CANCELLED" && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCancelModalOrder(o);
+                              setCancelPreset("Item out of stock");
+                              setCustomCancelReason("");
+                            }}
+                            className="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold transition-colors cursor-pointer"
+                            title="Cancel Order with reason note"
+                          >
+                            Cancel
+                          </button>
+                        )}
                         <button
                           onClick={() => openStatusModal(o)}
-                          className="px-3 py-1.5 rounded-lg bg-forest hover:bg-forest-deep text-white text-xs font-semibold transition-colors shadow-xs"
+                          className="px-3 py-1.5 rounded-lg bg-forest hover:bg-forest-deep text-white text-xs font-semibold transition-colors shadow-xs cursor-pointer"
                         >
                           Update Stage
                         </button>
@@ -408,6 +534,111 @@ export default function AdminOrdersPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Cancel Order Modal with Reason */}
+      {cancelModalOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-paper rounded-3xl border border-line shadow-2xl p-6 sm:p-7 max-w-md w-full space-y-5 animate-in zoom-in-95">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="font-bold font-display text-lg text-ink text-rose-700">
+                  Cancel Order #{cancelModalOrder.orderNumber}
+                </h3>
+                <p className="text-xs text-ink-soft mt-0.5">
+                  Tracking: <strong className="font-mono text-ink">{cancelModalOrder.trackingId}</strong> � Customer: <strong>{cancelModalOrder.customerName}</strong>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCancelModalOrder(null)}
+                className="p-1.5 rounded-xl text-ink-soft hover:text-ink hover:bg-bg"
+              >
+                ?
+              </button>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1">
+              <strong>Impact Summary:</strong>
+              <p>� Order status will be updated to <span className="font-bold text-rose-700">CANCELLED</span>.</p>
+              <p>� {cancelModalOrder.items?.length || "All"} item(s) will be returned to store inventory.</p>
+              {cancelModalOrder.paymentMethod !== "COD" ? (
+                <p className="text-rose-700 font-bold">� Online payment will be flagged as "REFUND NEEDED".</p>
+              ) : (
+                <p>� Cash on Delivery (COD) order � no refund required.</p>
+              )}
+              <p>� Customer will receive an instant SMS/Email with the reason note.</p>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <label className="block font-semibold text-ink">
+                Select Cancellation Reason:
+              </label>
+              <div className="space-y-2">
+                {[
+                  "Item out of stock",
+                  "Unable to verify order details",
+                  "Delivery area not serviceable",
+                  "Customer requested cancellation",
+                  "CUSTOM",
+                ].map((reason) => (
+                  <label
+                    key={reason}
+                    className={`flex items-center gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-all ${
+                      cancelPreset === reason
+                        ? "bg-rose-50 border-rose-300 text-rose-900 font-semibold"
+                        : "bg-bg border-line text-ink hover:border-forest/30"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="cancelReason"
+                      value={reason}
+                      checked={cancelPreset === reason}
+                      onChange={() => setCancelPreset(reason)}
+                      className="text-rose-600 focus:ring-rose-500"
+                    />
+                    <span>{reason === "CUSTOM" ? "Other Custom Reason..." : reason}</span>
+                  </label>
+                ))}
+              </div>
+
+              {cancelPreset === "CUSTOM" && (
+                <div className="space-y-1 pt-1">
+                  <label className="block text-[11px] font-semibold text-ink">
+                    Type Specific Reason:
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={customCancelReason}
+                    onChange={(e) => setCustomCancelReason(e.target.value)}
+                    placeholder="Enter detailed reason to share with customer..."
+                    className="w-full px-3.5 py-2 rounded-xl bg-bg border border-line text-xs focus:outline-none focus:border-rose-500"
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-line">
+              <button
+                type="button"
+                onClick={() => setCancelModalOrder(null)}
+                disabled={cancellingOrder}
+                className="px-4 py-2.5 rounded-xl border border-line text-xs font-semibold text-ink-soft hover:bg-bg"
+              >
+                Keep Order
+              </button>
+              <button
+                type="button"
+                onClick={handleAdminCancel}
+                disabled={cancellingOrder}
+                className="px-6 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {cancellingOrder ? "Processing..." : "Confirm & Cancel Order"}
+              </button>
+            </div>
           </div>
         </div>
       )}

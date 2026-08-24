@@ -1,5 +1,5 @@
-// app/account/wishlist/page.tsx
 "use client";
+// app/account/wishlist/page.tsx
 
 import { useEffect, useState } from "react";
 import Link from "next/link";

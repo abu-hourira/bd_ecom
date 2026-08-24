@@ -1,6 +1,5 @@
-import { useLiveSync } from "@/lib/useLiveSync";
-// app/track/[trackingId]/page.tsx
 "use client";
+// app/track/[trackingId]/page.tsx
 
 import { useEffect, useState, use, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
@@ -16,11 +15,16 @@ import {
   Loader2,
   User,
   Phone,
+  XCircle,
+  AlertTriangle,
 } from "lucide-react";
 import StorefrontHeader from "@/components/storefront/Header";
 import StorefrontFooter from "@/components/storefront/Footer";
 import { formatTaka } from "@/lib/utils";
 import { useLanguage } from "@/context/LanguageContext";
+import { useLiveSync } from "@/lib/useLiveSync";
+import ConfirmModal from "@/components/ui/ConfirmModal";
+import AlertModal from "@/components/ui/AlertModal";
 
 function OrderTrackingDetailContent({
   params,
@@ -46,9 +50,26 @@ function OrderTrackingDetailContent({
   const [error, setError] = useState("");
   const [refreshing, setRefreshing] = useState(false);
 
-  const fetchTracking = async () => {
+  // Self-Service Cancellation State
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
+
+  const [alertState, setAlertState] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: "success" | "error" | "warning" | "info";
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    type: "info",
+  });
+
+  const fetchTracking = async (isBackground = false) => {
+    if (!isBackground) setRefreshing(true);
     try {
-      const res = await fetch(`/api/storefront/track/${trackingId}`);
+      const res = await fetch(`/api/storefront/track/${trackingId}`, { cache: "no-store" });
       const json = await res.json();
       if (!res.ok || !json.success) {
         throw new Error(json.error || "Order not found");
@@ -56,24 +77,63 @@ function OrderTrackingDetailContent({
       setOrder(json.order);
       setError("");
     } catch (err: any) {
-      setError(err.message);
-      setOrder(null);
+      if (!isBackground) {
+        setError(err.message);
+        setOrder(null);
+      }
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (!isBackground) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   };
 
   useEffect(() => {
-    fetchTracking();
+    fetchTracking(false);
   }, [trackingId]);
 
   // Bidirectional real-time sync (polls every 4s to reflect admin status updates live)
-  useLiveSync(fetchTracking, { interval: 4000 });
+  useLiveSync(() => fetchTracking(true), { interval: 4000 });
 
   const handleRefresh = () => {
-    setRefreshing(true);
-    fetchTracking();
+    fetchTracking(false);
+  };
+
+  const handleSelfServiceCancel = async () => {
+    setCancelling(true);
+    try {
+      const res = await fetch(`/api/storefront/orders/${trackingId}/cancel`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reason: "Cancelled by customer (Self-service)",
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        throw new Error(json.error || "Failed to cancel order.");
+      }
+
+      setShowCancelModal(false);
+      await fetchTracking(false);
+      setAlertState({
+        isOpen: true,
+        title: "Order Cancelled Successfully",
+        message: "Your order has been cancelled and the items have been returned to store inventory. A cancellation confirmation has been sent to your phone/email.",
+        type: "success",
+      });
+    } catch (err: any) {
+      setAlertState({
+        isOpen: true,
+        title: "Cancellation Failed",
+        message: err.message || "Failed to cancel order.",
+        type: "error",
+      });
+    } finally {
+      setCancelling(false);
+    }
   };
 
   const getStageIndex = (status: string) => {
@@ -122,6 +182,7 @@ function OrderTrackingDetailContent({
   const currentStageIndex = getStageIndex(order.orderStatus);
   const isCancelled = order.orderStatus === "CANCELLED";
   const isReturned = order.orderStatus === "RETURNED";
+  const isPending = order.orderStatus === "PENDING";
 
   return (
     <div className="min-h-screen bg-bg text-ink flex flex-col justify-between">
@@ -156,7 +217,7 @@ function OrderTrackingDetailContent({
               </span>
               <button
                 onClick={handleRefresh}
-                className="inline-flex items-center gap-1 text-[11px] text-forest hover:underline"
+                className="inline-flex items-center gap-1 text-[11px] text-forest hover:underline cursor-pointer"
                 title="Refresh tracking status"
               >
                 <RotateCcw className={`w-3 h-3 ${refreshing ? "animate-spin" : ""}`} />
@@ -167,28 +228,80 @@ function OrderTrackingDetailContent({
               {order.trackingId}
             </h1>
             <p className="text-xs text-ink-soft">
-              Order No: <strong className="font-mono text-ink">{order.orderNumber}</strong> • Placed on {new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+              Order No: <strong className="font-mono text-ink">{order.orderNumber}</strong> � Placed on {new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
             </p>
           </div>
 
-          <div className="text-right">
-            <span className="text-xs text-ink-soft block">Payable Amount</span>
-            <span className="text-2xl font-bold font-display font-mono text-forest">
-              {formatTaka(order.totalAmount)}
-            </span>
-            <span className="text-[11px] text-ink-soft block mt-0.5">
-              Method: <strong>{order.paymentMethod}</strong> ({order.paymentStatus})
-            </span>
+          <div className="flex flex-col sm:items-end justify-between gap-2">
+            <div className="sm:text-right">
+              <span className="text-xs text-ink-soft block">Payable Amount</span>
+              <span className="text-2xl font-bold font-display font-mono text-forest">
+                {formatTaka(order.totalAmount)}
+              </span>
+              <span className="text-[11px] text-ink-soft block mt-0.5">
+                Method: <strong>{order.paymentMethod}</strong> ({order.paymentStatus})
+              </span>
+            </div>
+
+            {/* Customer Self-Service Cancellation (Visible ONLY when PENDING) */}
+            {isPending && (
+              <button
+                type="button"
+                onClick={() => setShowCancelModal(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold transition-colors cursor-pointer shadow-xs"
+              >
+                <XCircle className="w-4 h-4 text-rose-600" />
+                <span>Cancel Order</span>
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Exception Alert Banner (If Cancelled / Returned) */}
+        {/* Cancelled Alert Banner with Detailed Reason & Refund Status */}
         {isCancelled && (
-          <div className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 shrink-0 text-rose-600" />
-            <div>
-              <strong>Order Cancelled:</strong> This order has been marked as cancelled. If you have questions, please reach out via WhatsApp or call support.
+          <div className="p-6 rounded-3xl bg-rose-50 border border-rose-200 text-rose-900 space-y-3 shadow-xs animate-in fade-in">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0 border border-rose-300">
+                <XCircle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base text-rose-800">
+                  Order Cancelled
+                </h3>
+                <p className="text-xs text-rose-700">
+                  This order is cancelled and will not be dispatched. Product inventory has been restored.
+                </p>
+              </div>
             </div>
+
+            {/* Cancellation Reason Display */}
+            {order.cancellationReason && (
+              <div className="p-3.5 rounded-2xl bg-white/80 border border-rose-200 text-xs text-ink space-y-1">
+                <span className="font-semibold text-rose-800 uppercase tracking-wider text-[10px]">
+                  Reason for Cancellation:
+                </span>
+                <p className="font-medium text-ink/90">{order.cancellationReason}</p>
+              </div>
+            )}
+
+            {/* Refund Status Display */}
+            {(order.refundNeeded || order.refundStatus === "REFUND_NEEDED" || order.paymentStatus === "REFUNDED") && (
+              <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-start gap-2.5">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <strong className="block text-amber-950">
+                    {order.paymentStatus === "REFUNDED" || order.refundStatus === "REFUNDED"
+                      ? "Online Payment Refunded"
+                      : "Refund Processing"}
+                  </strong>
+                  <span className="text-[11px] text-amber-800">
+                    {order.paymentStatus === "REFUNDED" || order.refundStatus === "REFUNDED"
+                      ? "Your refund has been disbursed back to your original payment channel."
+                      : "Our billing team has flagged this order and is processing your refund back to your bKash/Nagad/Card."}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -204,9 +317,14 @@ function OrderTrackingDetailContent({
         {/* Visual 6-Stage Horizontal Stepper */}
         {!isCancelled && !isReturned && (
           <div className="bg-paper p-6 sm:p-8 rounded-3xl border border-line shadow-card space-y-6">
-            <h3 className="text-sm font-bold font-display text-ink uppercase tracking-wider">
-              Delivery Progress
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold font-display text-ink uppercase tracking-wider">
+                Delivery Progress
+              </h3>
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-forest-soft text-forest border border-forest/20">
+                {STAGES[currentStageIndex]?.label || order.orderStatus}
+              </span>
+            </div>
 
             <div className="relative">
               {/* Desktop Stepper */}
@@ -293,7 +411,7 @@ function OrderTrackingDetailContent({
         )}
 
         {/* Courier Partner Card if assigned */}
-        {order.courierPartner && (
+        {order.courierPartner && !isCancelled && (
           <div className="p-6 rounded-3xl bg-forest-soft border border-forest/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-2xl bg-forest text-white flex items-center justify-center shrink-0">
@@ -365,7 +483,7 @@ function OrderTrackingDetailContent({
                   <div>
                     <div className="font-semibold text-ink">{item.productName}</div>
                     <div className="text-ink-soft font-mono">
-                      {item.quantity} × {formatTaka(item.unitPrice)}
+                      {item.quantity} � {formatTaka(item.unitPrice)}
                     </div>
                   </div>
                   <span className="font-bold font-mono text-ink">
@@ -388,15 +506,18 @@ function OrderTrackingDetailContent({
             <div className="space-y-4">
               {order.history.map((h: any) => (
                 <div key={h.id} className="flex items-start gap-3 text-xs">
-                  <div className="w-2 h-2 rounded-full bg-forest mt-1.5 shrink-0" />
+                  <div className={`w-2.5 h-2.5 rounded-full mt-1.5 shrink-0 ${h.status === "CANCELLED" ? "bg-rose-500" : "bg-forest"}`} />
                   <div className="flex-1">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-bold text-ink">{h.status}</span>
+                      <span className={`font-bold ${h.status === "CANCELLED" ? "text-rose-700" : "text-ink"}`}>
+                        {h.status}
+                      </span>
                       <span className="text-[11px] text-ink-soft font-mono">
-                        {new Date(h.createdAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })} • {new Date(h.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                        {new Date(h.createdAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })} � {new Date(h.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
                       </span>
                     </div>
                     {h.note && <p className="text-ink-soft mt-0.5">{h.note}</p>}
+                    <div className="text-[10px] text-ink-soft font-mono mt-0.5">By: {h.actorName || h.actorRole}</div>
                   </div>
                 </div>
               ))}
@@ -404,6 +525,27 @@ function OrderTrackingDetailContent({
           </div>
         )}
       </main>
+
+      {/* Smart Confirmation Modal for Customer Self-Cancellation */}
+      <ConfirmModal
+        isOpen={showCancelModal}
+        onClose={() => setShowCancelModal(false)}
+        onConfirm={handleSelfServiceCancel}
+        title="Cancel This Order?"
+        message={`Are you sure you want to cancel order #${order.orderNumber}?\n\n� Delivery will be stopped immediately.\n� All items will be released back into fresh store inventory.\n${order.paymentMethod !== "COD" ? "� Your online payment refund will be flagged for refund processing.\n" : ""}� You can place a new order at any time.`}
+        confirmText="Yes, Cancel Order"
+        cancelText="Keep My Order"
+        type="danger"
+        isLoading={cancelling}
+      />
+
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={() => setAlertState((prev) => ({ ...prev, isOpen: false }))}
+        title={alertState.title}
+        message={alertState.message}
+        type={alertState.type}
+      />
 
       <StorefrontFooter />
     </div>

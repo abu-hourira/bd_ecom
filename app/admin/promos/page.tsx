@@ -1,6 +1,6 @@
+"use client";
 import AlertModal from "@/components/ui/AlertModal";
 // app/admin/promos/page.tsx
-"use client";
 
 import { useEffect, useState } from "react";
 import {

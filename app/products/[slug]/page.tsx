@@ -1,5 +1,5 @@
-// app/products/[slug]/page.tsx
 "use client";
+// app/products/[slug]/page.tsx
 
 import { useEffect, useState, use } from "react";
 import Image from "next/image";

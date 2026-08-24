@@ -1,6 +1,6 @@
+"use client";
 import AlertModal from "@/components/ui/AlertModal";
 // app/checkout/page.tsx
-"use client";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";

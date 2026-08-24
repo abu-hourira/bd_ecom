@@ -235,6 +235,9 @@ model Order {
   courierPartner     String?        // "Pathao", "Steadfast", "RedX", "In-House"
   courierTrackingId  String?
   estimatedDelivery  DateTime?
+  cancellationReason String?        @db.Text
+  refundNeeded       Boolean        @default(false)
+  refundStatus       String?        @default("NOT_APPLICABLE") // "NOT_APPLICABLE", "REFUND_NEEDED", "REFUNDED"
   customerNotes      String?        @db.Text
   adminNotes         String?        @db.Text
   customerHidden     Boolean        @default(false)

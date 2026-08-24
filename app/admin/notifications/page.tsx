@@ -1,5 +1,5 @@
-// app/admin/notifications/page.tsx
 "use client";
+// app/admin/notifications/page.tsx
 
 import { useEffect, useState } from "react";
 import {

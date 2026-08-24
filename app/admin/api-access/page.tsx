@@ -1,6 +1,6 @@
+"use client";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 // app/admin/api-access/page.tsx
-"use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";

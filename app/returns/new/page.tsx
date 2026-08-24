@@ -1,5 +1,5 @@
-import AlertModal from "@/components/ui/AlertModal";
 "use client";
+import AlertModal from "@/components/ui/AlertModal";
 
 import { useState } from "react";
 import Link from "next/link";

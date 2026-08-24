@@ -1,7 +1,7 @@
+"use client";
 import { useLiveSync } from "@/lib/useLiveSync";
 import AlertModal from "@/components/ui/AlertModal";
 // app/admin/inventory/page.tsx
-"use client";
 
 import { useEffect, useState } from "react";
 import Image from "next/image";

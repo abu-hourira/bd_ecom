@@ -1,5 +1,5 @@
-// app/admin/orders/[id]/invoice/page.tsx
 "use client";
+// app/admin/orders/[id]/invoice/page.tsx
 
 import { useEffect, useState, use } from "react";
 import Link from "next/link";

@@ -1,7 +1,7 @@
+"use client";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import AlertModal from "@/components/ui/AlertModal";
 // app/admin/products/[id]/page.tsx
-"use client";
 
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";

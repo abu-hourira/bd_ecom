@@ -1,5 +1,5 @@
-// app/auth/register/page.tsx
 "use client";
+// app/auth/register/page.tsx
 
 import { useState, Suspense } from "react";
 import Link from "next/link";
