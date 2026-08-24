@@ -1,9 +1,7 @@
 "use client";
-import { useLiveSync } from "@/lib/useLiveSync";
-import AlertModal from "@/components/ui/AlertModal";
 // app/admin/orders/page.tsx
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import {
   Search,
@@ -18,10 +16,18 @@ import {
   ExternalLink,
   MapPin,
   Phone,
+  Trash2,
+  CheckSquare,
+  Square,
+  AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import { formatTaka } from "@/lib/utils";
 import StatusBadge from "@/components/admin/StatusBadge";
 import { OrderStatus } from "@prisma/client";
+import { useLiveSync } from "@/lib/useLiveSync";
+import AlertModal from "@/components/ui/AlertModal";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -29,9 +35,17 @@ export default function AdminOrdersPage() {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<string>("ALL");
 
+  // Selection state for Bulk Delete
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [confirmBulkDelete, setConfirmBulkDelete] = useState(false);
+
+  // Single Delete state
+  const [orderToDelete, setOrderToDelete] = useState<any | null>(null);
+  const [deletingSingle, setDeletingSingle] = useState(false);
+
+  // Modals
   const [statusModalOrder, setStatusModalOrder] = useState<any | null>(null);
-  
-  // Admin Cancellation Modal State
   const [cancelModalOrder, setCancelModalOrder] = useState<any | null>(null);
   const [cancelPreset, setCancelPreset] = useState<string>("Item out of stock");
   const [customCancelReason, setCustomCancelReason] = useState<string>("");
@@ -41,7 +55,13 @@ export default function AdminOrdersPage() {
   const [courierTrackingId, setCourierTrackingId] = useState("");
   const [statusNote, setStatusNote] = useState("");
   const [updating, setUpdating] = useState(false);
-  const [alertState, setAlertState] = useState<{ isOpen: boolean; title: string; message: string; type: "success" | "error" | "warning" | "info" }>({
+
+  const [alertState, setAlertState] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: "success" | "error" | "warning" | "info";
+  }>({
     isOpen: false,
     title: "",
     message: "",
@@ -55,114 +75,127 @@ export default function AdminOrdersPage() {
       if (search) query.set("search", search);
       if (activeTab !== "ALL") query.set("status", activeTab);
 
-      const res = await fetch(`/api/admin/orders?${query.toString()}`);
-      const json = await res.json();
-      if (json.success) setOrders(json.orders);
+      const res = await fetch(`/api/admin/orders?${query.toString()}`, { cache: "no-store" });
+      const data = await res.json();
+      if (data.success) {
+        setOrders(data.orders || []);
+      }
     } catch (e) {
       console.error(e);
     } finally {
-      setLoading(false);
+      if (!isBackground) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchOrders(false);
-  }, [activeTab, search]);
+    fetchOrders();
+    setSelectedIds([]);
+  }, [search, activeTab]);
 
-  // Real-time live sync for orders queue every 5 seconds
   useLiveSync(() => fetchOrders(true), { interval: 5000 });
 
-  const openStatusModal = (order: any) => {
-    setStatusModalOrder(order);
-    setNewStatus(order.orderStatus);
-    setCourierPartner(order.courierPartner || "Pathao");
-    setCourierTrackingId(order.courierTrackingId || "");
-    setStatusNote("");
+  // Filtered orders
+  const filteredOrders = useMemo(() => {
+    return orders;
+  }, [orders]);
+
+  // Toggle selection
+  const toggleSelectOrder = (id: number) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
   };
 
-  const handleAdminCancel = async () => {
-    if (!cancelModalOrder) return;
-    const finalReason = cancelPreset === "CUSTOM" ? customCancelReason.trim() : cancelPreset;
-    if (!finalReason) {
-      setAlertState({
-        isOpen: true,
-        title: "Cancellation Reason Required",
-        message: "Please enter a specific reason for cancelling this order.",
-        type: "warning",
-      });
-      return;
+  // Select all visible
+  const toggleSelectAll = () => {
+    if (selectedIds.length === filteredOrders.length && filteredOrders.length > 0) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredOrders.map((o) => o.id));
     }
+  };
 
-    setCancellingOrder(true);
+  // Quick selectors for Delivered / Cancelled / Returned
+  const selectByStatus = (statusGroup: string[]) => {
+    const matchingIds = filteredOrders
+      .filter((o) => statusGroup.includes(o.orderStatus))
+      .map((o) => o.id);
+    setSelectedIds(matchingIds);
+  };
+
+  // Execute Bulk Delete
+  const handleExecuteBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    setBulkDeleting(true);
     try {
-      const res = await fetch(`/api/admin/orders/${cancelModalOrder.id}`, {
-        method: "PUT",
+      const res = await fetch("/api/admin/orders/bulk", {
+        method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          orderStatus: "CANCELLED",
-          cancellationReason: finalReason,
-          statusNote: finalReason,
-          actorRole: "ADMIN",
-          actorName: "Store Admin",
-        }),
+        body: JSON.stringify({ ids: selectedIds }),
       });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Failed to delete orders");
 
-      const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json.error || "Failed to cancel order.");
+      setConfirmBulkDelete(false);
+      setSelectedIds([]);
+      await fetchOrders(false);
 
-      setCancelModalOrder(null);
-      setCustomCancelReason("");
-      fetchOrders(true);
       setAlertState({
         isOpen: true,
-        title: "Order Cancelled & Stock Restored",
-        message: `Order #${cancelModalOrder.orderNumber} has been cancelled. Product stock has been restored to inventory and the customer has been notified via SMS & Email.`,
+        title: "Orders Deleted Successfully!",
+        message: `${data.count || selectedIds.length} order(s) have been deleted from tracking history.`,
         type: "success",
       });
     } catch (err: any) {
       setAlertState({
         isOpen: true,
-        title: "Cancellation Error",
-        message: err.message || "Failed to cancel order.",
+        title: "Delete Failed",
+        message: err.message,
         type: "error",
       });
     } finally {
-      setCancellingOrder(false);
+      setBulkDeleting(false);
     }
   };
 
-  const handleMarkRefunded = async (orderId: number) => {
+  // Execute Single Delete
+  const handleExecuteSingleDelete = async () => {
+    if (!orderToDelete) return;
+    setDeletingSingle(true);
     try {
-      const res = await fetch(`/api/admin/orders/${orderId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          refundStatus: "REFUNDED",
-          paymentStatus: "REFUNDED",
-          statusNote: "Refund processed and settled with customer.",
-          actorRole: "ADMIN",
-          actorName: "Store Admin",
-        }),
+      const res = await fetch(`/api/admin/orders/${orderToDelete.id}`, {
+        method: "DELETE",
       });
-      const json = await res.json();
-      if (json.success) {
-        fetchOrders(true);
-        setAlertState({
-          isOpen: true,
-          title: "Refund Settled",
-          message: "Order marked as refunded successfully.",
-          type: "success",
-        });
-      }
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || "Failed to delete order");
+
+      const deletedId = orderToDelete.id;
+      setOrderToDelete(null);
+      setSelectedIds((prev) => prev.filter((id) => id !== deletedId));
+      await fetchOrders(false);
+
+      setAlertState({
+        isOpen: true,
+        title: "Order Deleted!",
+        message: `Order #${orderToDelete.orderNumber} has been removed from tracking history.`,
+        type: "success",
+      });
     } catch (err: any) {
-      console.error(err);
+      setAlertState({
+        isOpen: true,
+        title: "Delete Failed",
+        message: err.message,
+        type: "error",
+      });
+    } finally {
+      setDeletingSingle(false);
     }
   };
 
+  // Status update submit
   const handleUpdateStatus = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!statusModalOrder) return;
-
     setUpdating(true);
     try {
       const res = await fetch(`/api/admin/orders/${statusModalOrder.id}`, {
@@ -173,21 +206,24 @@ export default function AdminOrdersPage() {
           courierPartner,
           courierTrackingId,
           statusNote,
-          actorRole: "ADMIN",
-          actorName: "Abu Hourira (Admin)",
         }),
       });
-
       const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json.error || "Update failed");
+      if (!res.ok || !json.success) throw new Error(json.error || "Failed to update status");
 
       setStatusModalOrder(null);
-      fetchOrders();
+      await fetchOrders(false);
+      setAlertState({
+        isOpen: true,
+        title: "Status Updated!",
+        message: `Order #${statusModalOrder.orderNumber} status updated to ${newStatus}.`,
+        type: "success",
+      });
     } catch (err: any) {
       setAlertState({
         isOpen: true,
-        title: "Order Update Error",
-        message: err.message || "Failed to update order status.",
+        title: "Update Failed",
+        message: err.message,
         type: "error",
       });
     } finally {
@@ -195,359 +231,466 @@ export default function AdminOrdersPage() {
     }
   };
 
-  const tabs = [
-    { label: "All Orders", value: "ALL" },
-    { label: "Pending", value: "PENDING" },
-    { label: "Confirmed", value: "CONFIRMED" },
-    { label: "Packed", value: "PACKED" },
-    { label: "Shipped", value: "SHIPPED" },
-    { label: "Out for Delivery", value: "OUT_FOR_DELIVERY" },
-    { label: "Delivered", value: "DELIVERED" },
-    { label: "Cancelled", value: "CANCELLED" },
-  ];
+  // Cancellation submit
+  const handleAdminCancelSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cancelModalOrder) return;
+    setCancellingOrder(true);
+    try {
+      const finalReason = cancelPreset === "Other" ? customCancelReason : cancelPreset;
+      const res = await fetch(`/api/admin/orders/${cancelModalOrder.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderStatus: "CANCELLED",
+          cancellationReason: finalReason || "Cancelled by Admin",
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || "Failed to cancel order");
+
+      setCancelModalOrder(null);
+      await fetchOrders(false);
+      setAlertState({
+        isOpen: true,
+        title: "Order Cancelled!",
+        message: `Order #${cancelModalOrder.orderNumber} has been cancelled and stock restored.`,
+        type: "success",
+      });
+    } catch (err: any) {
+      setAlertState({
+        isOpen: true,
+        title: "Cancellation Failed",
+        message: err.message,
+        type: "error",
+      });
+    } finally {
+      setCancellingOrder(false);
+    }
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="p-4 sm:p-8 space-y-6 max-w-7xl mx-auto">
+      {/* Top Header & Search */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold uppercase tracking-wider border border-emerald-300">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Live Order Queue Active
-            </span>
-          </div>
-          <h2 className="text-2xl font-bold font-display text-ink">Order Operations & Live Tracking</h2>
-          <p className="text-sm text-ink-soft">
-            Manage incoming orders, dispatch couriers, and update real-time tracking stages.
+          <h1 className="text-2xl font-bold font-display text-ink">Order Management</h1>
+          <p className="text-xs text-ink-soft mt-0.5">
+            Monitor real-time live customer orders, courier dispatch, and history purging.
           </p>
         </div>
 
-        <button
-          onClick={() => fetchOrders(false)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-line bg-paper text-ink-soft hover:text-ink hover:bg-bg transition-colors text-sm font-medium"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-          <span>Refresh Orders</span>
-        </button>
-      </div>
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Search className="w-4 h-4 text-ink-soft absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search order #, phone, tracking ID..."
+              className="pl-9 pr-4 py-2 rounded-xl bg-paper border border-line text-xs w-64 focus:outline-none focus:border-forest"
+            />
+          </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-line">
-        {tabs.map((t) => (
           <button
-            key={t.value}
-            onClick={() => setActiveTab(t.value)}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-200 ${
-              activeTab === t.value
-                ? "bg-forest text-white shadow-xs"
-                : "bg-paper text-ink-soft hover:bg-bg hover:text-ink border border-line"
-            }`}
+            onClick={() => fetchOrders(false)}
+            className="p-2 rounded-xl bg-paper border border-line hover:bg-bg text-ink-soft hover:text-ink shadow-xs cursor-pointer"
+            title="Refresh"
           >
-            {t.label}
+            <RefreshCw className="w-4 h-4" />
           </button>
-        ))}
+        </div>
       </div>
 
-      {/* Search Toolbar */}
-      <div className="bg-paper p-4 rounded-2xl border border-line shadow-card flex items-center justify-between">
-        <div className="relative w-full sm:w-96">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-soft" />
-          <input
-            type="text"
-            placeholder="Search by order #, tracking ID, customer name, phone..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-xl bg-bg border border-line text-sm focus:outline-none focus:ring-2 focus:ring-forest/20"
-          />
+      {/* Tabs & Quick Selection Bar */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-paper p-3 rounded-2xl border border-line shadow-card">
+        {/* Status Tabs */}
+        <div className="flex items-center gap-1.5 overflow-x-auto text-xs pb-1 lg:pb-0">
+          {[
+            { key: "ALL", label: "All Orders" },
+            { key: "PENDING", label: "Pending" },
+            { key: "CONFIRMED", label: "Confirmed" },
+            { key: "PACKED", label: "Packed" },
+            { key: "SHIPPED", label: "Shipped" },
+            { key: "OUT_FOR_DELIVERY", label: "Out for Delivery" },
+            { key: "DELIVERED", label: "Delivered" },
+            { key: "CANCELLED", label: "Cancelled" },
+            { key: "RETURNED", label: "Returned" },
+          ].map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer ${
+                activeTab === tab.key
+                  ? "bg-forest text-white shadow-xs"
+                  : "text-ink-soft hover:text-ink hover:bg-bg"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
-        <div className="text-xs text-ink-soft font-mono hidden sm:block">
-          Showing {orders.length} orders
+        {/* Quick Mark Buttons */}
+        <div className="flex items-center gap-2 text-[11px] pt-2 lg:pt-0 border-t lg:border-t-0 border-line">
+          <span className="text-ink-soft font-semibold">Mark:</span>
+          <button
+            onClick={() => selectByStatus(["DELIVERED"])}
+            className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 font-bold transition-colors cursor-pointer"
+          >
+            Delivered
+          </button>
+          <button
+            onClick={() => selectByStatus(["CANCELLED"])}
+            className="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100 font-bold transition-colors cursor-pointer"
+          >
+            Cancelled
+          </button>
+          <button
+            onClick={() => selectByStatus(["RETURNED"])}
+            className="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 font-bold transition-colors cursor-pointer"
+          >
+            Returned
+          </button>
+          <button
+            onClick={() => selectByStatus(["DELIVERED", "CANCELLED", "RETURNED"])}
+            className="px-2.5 py-1 rounded-lg bg-purple-50 text-purple-800 border border-purple-200 hover:bg-purple-100 font-bold transition-colors cursor-pointer"
+          >
+            All Completed (Delivered/Cancel/Return)
+          </button>
         </div>
       </div>
 
       {/* Orders Table */}
       <div className="bg-paper rounded-3xl border border-line shadow-card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-bg text-ink-soft text-xs uppercase tracking-wider border-b border-line">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-bg border-b border-line text-ink-soft font-mono uppercase text-[10px]">
               <tr>
-                <th className="py-4 px-6">Order & Tracking</th>
-                <th className="py-4 px-6">Customer Info</th>
-                <th className="py-4 px-6">Status Stage</th>
-                <th className="py-4 px-6">Courier / Shipping</th>
-                <th className="py-4 px-6">Payment & Total</th>
-                <th className="py-4 px-6 text-right">Actions</th>
+                <th className="py-3 px-4 w-10 text-center">
+                  <button
+                    onClick={toggleSelectAll}
+                    className="cursor-pointer text-forest hover:text-forest-deep"
+                    title="Select All"
+                  >
+                    {selectedIds.length > 0 && selectedIds.length === filteredOrders.length ? (
+                      <CheckSquare className="w-4 h-4" />
+                    ) : (
+                      <Square className="w-4 h-4" />
+                    )}
+                  </button>
+                </th>
+                <th className="py-3 px-4">Order / Tracking</th>
+                <th className="py-3 px-4">Customer & Phone</th>
+                <th className="py-3 px-4">Items & Total</th>
+                <th className="py-3 px-4">Payment</th>
+                <th className="py-3 px-4">Status</th>
+                <th className="py-3 px-4">Courier / Rider</th>
+                <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
+
             <tbody className="divide-y divide-line">
-              {loading ? (
+              {loading && (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-ink-soft">
-                    Loading orders...
+                  <td colSpan={8} className="py-12 text-center text-ink-soft">
+                    <Loader2 className="w-6 h-6 animate-spin mx-auto text-forest mb-2" />
+                    <span>Loading orders...</span>
                   </td>
                 </tr>
-              ) : orders.length === 0 ? (
+              )}
+
+              {!loading && filteredOrders.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-ink-soft">
-                    No orders found matching the filter.
+                  <td colSpan={8} className="py-12 text-center text-ink-soft">
+                    <ShoppingBag className="w-8 h-8 mx-auto text-ink-soft/40 mb-2" />
+                    <span>No orders found matching criteria.</span>
                   </td>
                 </tr>
-              ) : (
-                orders.map((o) => (
-                  <tr key={o.id} className="hover:bg-bg/50 transition-colors">
-                    {/* Order Number & Tracking Token */}
-                    <td className="py-4 px-6">
-                      <div className="font-mono font-bold text-xs text-ink">{o.orderNumber}</div>
-                      <div className="text-[11px] font-mono text-forest bg-forest-soft/70 px-2 py-0.5 rounded-md inline-block mt-1">
-                        {o.trackingId}
-                      </div>
-                      <div className="text-[11px] text-ink-soft mt-1">
-                        {new Date(o.createdAt).toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </div>
-                    </td>
+              )}
 
-                    {/* Customer Info */}
-                    <td className="py-4 px-6">
-                      <div className="font-semibold text-ink">{o.customerName}</div>
-                      <div className="text-xs text-ink-soft flex items-center gap-1 mt-0.5">
-                        <Phone className="w-3 h-3" />
-                        <span>{o.customerPhone}</span>
-                      </div>
-                      <div className="text-xs text-ink-muted truncate max-w-xs mt-0.5">
-                        {o.shippingAddress}
-                      </div>
-                    </td>
+              {!loading &&
+                filteredOrders.map((order) => {
+                  const isSelected = selectedIds.includes(order.id);
+                  const isDeletable = ["DELIVERED", "CANCELLED", "RETURNED"].includes(order.orderStatus);
 
-                    {/* Status Badge */}
-                    <td className="py-4 px-6">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <StatusBadge status={o.orderStatus} size="sm" />
-                        {(o.refundNeeded || o.refundStatus === "REFUND_NEEDED") && (
-                          <span className="px-2 py-0.5 rounded-md bg-rose-100 text-rose-800 text-[10px] font-bold border border-rose-300 animate-pulse">
-                            REFUND NEEDED
-                          </span>
-                        )}
-                        {o.refundStatus === "REFUNDED" && (
-                          <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-300">
-                            REFUNDED
-                          </span>
-                        )}
-                      </div>
-                      {o.cancellationReason && (
-                        <div className="text-[11px] text-rose-700 font-medium mt-1 truncate max-w-xs" title={o.cancellationReason}>
-                          Reason: {o.cancellationReason}
-                        </div>
-                      )}
-                      {o.estimatedDelivery && (
-                        <div className="text-[10px] text-ink-soft mt-1 flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          <span>
-                            Est: {new Date(o.estimatedDelivery).toLocaleDateString()}
-                          </span>
-                        </div>
-                      )}
-                    </td>
-
-                    {/* Courier / Delivery Rider Partner */}
-                    <td className="py-4 px-6">
-                      {o.deliveryPersonnel ? (
-                        <div className="space-y-0.5">
-                          <div className="font-semibold text-xs text-forest flex items-center gap-1">
-                            <Bike className="w-3.5 h-3.5 text-forest" />
-                            <span>{o.deliveryPersonnel.name}</span>
-                          </div>
-                          <div className="text-[10px] text-ink-muted flex items-center gap-1.5">
-                            <span>{o.deliveryPersonnel.vehicleType}</span>
-                            {o.deliveryPersonnel.isSharingLocation && (
-                              <span className="inline-flex items-center gap-1 text-emerald-700 font-bold">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                                Live GPS
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ) : o.courierPartner ? (
-                        <div>
-                          <div className="font-semibold text-xs text-ink flex items-center gap-1">
-                            <Truck className="w-3.5 h-3.5 text-forest" />
-                            <span>{o.courierPartner}</span>
-                          </div>
-                          {o.courierTrackingId && (
-                            <div className="text-[11px] font-mono text-ink-soft">
-                              #{o.courierTrackingId}
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-xs text-ink-muted italic">Not Assigned</span>
-                      )}
-                    </td>
-
-                    {/* Total & Payment */}
-                    <td className="py-4 px-6">
-                      <div className="font-bold text-ink text-sm">
-                        {formatTaka(o.totalAmount)}
-                      </div>
-                      <div className="text-[11px] text-ink-soft flex items-center gap-1 mt-0.5">
-                        <span className="uppercase font-semibold text-[10px] px-1.5 py-0.2 rounded bg-bg border border-line">
-                          {o.paymentMethod}
-                        </span>
-                        <span
-                          className={`text-[10px] font-semibold ${
-                            o.paymentStatus === "PAID" ? "text-emerald-700" : "text-amber-700"
-                          }`}
-                        >
-                          ({o.paymentStatus})
-                        </span>
-                      </div>
-                    </td>
-
-                    {/* Actions */}
-                    <td className="py-4 px-6 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        {o.refundStatus === "REFUND_NEEDED" && (
-                          <button
-                            type="button"
-                            onClick={() => handleMarkRefunded(o.id)}
-                            className="px-2.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-[11px] font-bold transition-colors shadow-xs cursor-pointer"
-                            title="Mark online refund as settled"
-                          >
-                            Mark Refunded
-                          </button>
-                        )}
-                        {o.orderStatus !== "CANCELLED" && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setCancelModalOrder(o);
-                              setCancelPreset("Item out of stock");
-                              setCustomCancelReason("");
-                            }}
-                            className="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold transition-colors cursor-pointer"
-                            title="Cancel Order with reason note"
-                          >
-                            Cancel
-                          </button>
-                        )}
+                  return (
+                    <tr
+                      key={order.id}
+                      className={`hover:bg-bg/60 transition-colors ${
+                        isSelected ? "bg-forest/5" : ""
+                      }`}
+                    >
+                      {/* Checkbox */}
+                      <td className="py-3 px-4 text-center">
                         <button
-                          onClick={() => openStatusModal(o)}
-                          className="px-3 py-1.5 rounded-lg bg-forest hover:bg-forest-deep text-white text-xs font-semibold transition-colors shadow-xs cursor-pointer"
+                          onClick={() => toggleSelectOrder(order.id)}
+                          className="cursor-pointer text-forest hover:text-forest-deep"
                         >
-                          Update Stage
+                          {isSelected ? (
+                            <CheckSquare className="w-4 h-4" />
+                          ) : (
+                            <Square className="w-4 h-4 text-ink-soft" />
+                          )}
                         </button>
+                      </td>
+
+                      {/* Order / Tracking */}
+                      <td className="py-3 px-4">
+                        <div className="space-y-0.5">
+                          <Link
+                            href={`/admin/orders/${order.id}`}
+                            className="font-mono font-bold text-forest hover:underline"
+                          >
+                            #{order.orderNumber}
+                          </Link>
+                          <p className="font-mono text-[10px] text-ink-soft block">
+                            {order.trackingId}
+                          </p>
+                          <span className="text-[10px] text-ink-soft block">
+                            {new Date(order.createdAt).toLocaleDateString("en-GB", {
+                              day: "numeric",
+                              month: "short",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Customer */}
+                      <td className="py-3 px-4">
+                        <div className="space-y-0.5">
+                          <p className="font-bold text-ink">{order.customerName}</p>
+                          <p className="font-mono text-[11px] text-ink-soft">{order.customerPhone}</p>
+                          <p className="text-[10px] text-ink-soft truncate max-w-[140px]" title={order.shippingAddress}>
+                            {order.shippingAddress}
+                          </p>
+                        </div>
+                      </td>
+
+                      {/* Items & Total */}
+                      <td className="py-3 px-4">
+                        <div className="space-y-0.5">
+                          <span className="font-bold font-mono text-ink text-sm">
+                            {formatTaka(order.totalAmount)}
+                          </span>
+                          <span className="text-[10px] text-ink-soft block">
+                            {order.items?.length || order._count?.items || 0} item(s)
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Payment */}
+                      <td className="py-3 px-4">
+                        <div className="space-y-1">
+                          <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold font-mono bg-bg border border-line">
+                            {order.paymentMethod}
+                          </span>
+                          <span
+                            className={`block text-[10px] font-bold ${
+                              order.paymentStatus === "PAID"
+                                ? "text-emerald-700"
+                                : "text-amber-700"
+                            }`}
+                          >
+                            {order.paymentStatus}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Status */}
+                      <td className="py-3 px-4">
+                        <StatusBadge status={order.orderStatus} />
+                      </td>
+
+                      {/* Courier / Rider */}
+                      <td className="py-3 px-4">
+                        {order.deliveryPersonnel ? (
+                          <div className="flex items-center gap-1.5 text-xs font-semibold text-ink">
+                            <Bike className="w-3.5 h-3.5 text-forest" />
+                            <span>{order.deliveryPersonnel.name}</span>
+                          </div>
+                        ) : order.courierPartner ? (
+                          <div className="flex items-center gap-1.5 text-xs text-ink-soft">
+                            <Truck className="w-3.5 h-3.5" />
+                            <span>{order.courierPartner}</span>
+                          </div>
+                        ) : (
+                          <span className="text-ink-soft text-[11px]">—</span>
+                        )}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="py-3 px-4 text-right space-x-1 whitespace-nowrap">
                         <Link
-                          href={`/admin/orders/${o.id}`}
-                          className="p-1.5 rounded-lg bg-bg hover:bg-paper text-ink-soft hover:text-ink border border-line transition-colors"
-                          title="View Invoice & Timeline"
+                          href={`/admin/orders/${order.id}`}
+                          className="p-1.5 inline-block rounded-lg bg-bg hover:bg-forest/10 hover:text-forest text-ink-soft transition-colors"
+                          title="View Details"
                         >
                           <Eye className="w-4 h-4" />
                         </Link>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
+
+                        <button
+                          onClick={() => {
+                            setStatusModalOrder(order);
+                            setNewStatus(order.orderStatus);
+                            setCourierPartner(order.courierPartner || "");
+                            setCourierTrackingId(order.courierTrackingId || "");
+                          }}
+                          className="p-1.5 rounded-lg bg-bg hover:bg-forest/10 hover:text-forest text-ink-soft transition-colors cursor-pointer"
+                          title="Update Status"
+                        >
+                          <RefreshCw className="w-4 h-4" />
+                        </button>
+
+                        <button
+                          onClick={() => setOrderToDelete(order)}
+                          className="p-1.5 rounded-lg bg-bg hover:bg-rose-50 hover:text-rose-600 text-ink-soft transition-colors cursor-pointer"
+                          title="Delete / Purge Order"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Live Status Switcher Modal */}
+      {/* Floating Sticky Bulk Delete Bar */}
+      {selectedIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-stone-900 text-white px-6 py-3.5 rounded-2xl shadow-2xl flex items-center gap-6 animate-in slide-in-from-bottom-5 border border-stone-700">
+          <div className="flex items-center gap-2 text-xs">
+            <span className="w-5 h-5 rounded-full bg-forest text-accent font-bold flex items-center justify-center text-[10px]">
+              {selectedIds.length}
+            </span>
+            <span className="font-bold">orders marked / selected</span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setSelectedIds([])}
+              className="text-xs text-stone-400 hover:text-white transition-colors cursor-pointer"
+            >
+              Clear
+            </button>
+
+            <button
+              onClick={() => setConfirmBulkDelete(true)}
+              className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Delete Selected Orders ({selectedIds.length})</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmBulkDelete}
+        title="Delete Selected Orders?"
+        message={`Are you sure you want to permanently delete ${selectedIds.length} marked order(s) and all their associated tracking history? This action cannot be undone.`}
+        confirmText="Yes, Delete All Selected"
+        cancelText="Cancel"
+        type="danger"
+        onConfirm={handleExecuteBulkDelete}
+        onClose={() => setConfirmBulkDelete(false)}
+      />
+
+      {/* Single Delete Confirm Modal */}
+      <ConfirmModal
+        isOpen={!!orderToDelete}
+        title="Delete Order History?"
+        message={`Are you sure you want to delete Order #${orderToDelete?.orderNumber} (${orderToDelete?.trackingId}) from tracking history?`}
+        confirmText="Yes, Delete Order"
+        cancelText="Cancel"
+        type="danger"
+        onConfirm={handleExecuteSingleDelete}
+        onClose={() => setOrderToDelete(null)}
+      />
+
+      {/* Status Update Modal */}
       {statusModalOrder && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-paper rounded-3xl border border-line shadow-floating max-w-lg w-full p-6 sm:p-8 space-y-6 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between border-b border-line pb-4">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-paper w-full max-w-md p-6 rounded-3xl border border-line shadow-2xl space-y-4 animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-line pb-3">
               <div>
-                <h3 className="text-xl font-bold font-display text-ink">
-                  Update Tracking Stage
-                </h3>
-                <p className="text-xs font-mono text-ink-soft mt-0.5">
-                  Order #{statusModalOrder.orderNumber} ({statusModalOrder.trackingId})
-                </p>
+                <h3 className="font-bold font-display text-ink text-base">Update Order Status</h3>
+                <p className="text-xs font-mono text-ink-soft">#{statusModalOrder.orderNumber}</p>
               </div>
               <button
                 onClick={() => setStatusModalOrder(null)}
-                className="p-1.5 rounded-lg text-ink-soft hover:text-ink hover:bg-bg"
+                className="p-1 rounded-lg hover:bg-bg text-ink-soft"
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleUpdateStatus} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-ink">Select Next Status Stage</label>
+            <form onSubmit={handleUpdateStatus} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-bold text-ink uppercase tracking-wider mb-1.5">
+                  Order Status
+                </label>
                 <select
                   value={newStatus}
                   onChange={(e) => setNewStatus(e.target.value as OrderStatus)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-bg border border-line text-sm font-semibold text-ink focus:outline-none focus:ring-2 focus:ring-forest/20"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-bg border border-line font-bold focus:outline-none focus:border-forest"
                 >
-                  <option value="PENDING">Pending (Initial Checkout)</option>
-                  <option value="CONFIRMED">Confirmed (Customer Verified)</option>
-                  <option value="PACKED">Packed (Sealed in Warehouse)</option>
-                  <option value="SHIPPED">Shipped (Handed to Courier Partner)</option>
-                  <option value="OUT_FOR_DELIVERY">Out for Delivery (Rider on the Way)</option>
-                  <option value="DELIVERED">Delivered (Successfully Received)</option>
-                  <option value="CANCELLED">Cancelled (Voided/Refunded)</option>
-                  <option value="RETURNED">Returned (Product Return)</option>
+                  <option value="PENDING">PENDING (অপেক্ষমান)</option>
+                  <option value="CONFIRMED">CONFIRMED (নিশ্চিত)</option>
+                  <option value="PACKED">PACKED (প্যাকিং সম্পন্ন)</option>
+                  <option value="SHIPPED">SHIPPED (কুরিয়ারে হস্তান্তর)</option>
+                  <option value="OUT_FOR_DELIVERY">OUT_FOR_DELIVERY (ডেলিভারির পথে)</option>
+                  <option value="DELIVERED">DELIVERED (সফল ডেলিভারি)</option>
+                  <option value="CANCELLED">CANCELLED (বাতিল)</option>
+                  <option value="RETURNED">RETURNED (রিটার্ন)</option>
                 </select>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold text-ink">Courier Partner</label>
-                  <input
-                    type="text"
-                    placeholder="Pathao, Steadfast, RedX"
-                    value={courierPartner}
-                    onChange={(e) => setCourierPartner(e.target.value)}
-                    className="w-full px-4 py-2 rounded-xl bg-bg border border-line text-sm focus:outline-none focus:ring-2 focus:ring-forest/20"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold text-ink">Courier Tracking ID</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. PTH-884920"
-                    value={courierTrackingId}
-                    onChange={(e) => setCourierTrackingId(e.target.value)}
-                    className="w-full px-4 py-2 rounded-xl bg-bg border border-line text-sm font-mono focus:outline-none focus:ring-2 focus:ring-forest/20"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="block text-xs font-semibold text-ink">Audit Note / Reason (Optional)</label>
-                <textarea
-                  rows={2}
-                  placeholder="e.g. Verified customer delivery address via phone call."
-                  value={statusNote}
-                  onChange={(e) => setStatusNote(e.target.value)}
-                  className="w-full px-4 py-2 rounded-xl bg-bg border border-line text-sm focus:outline-none focus:ring-2 focus:ring-forest/20"
+              <div>
+                <label className="block font-bold text-ink uppercase tracking-wider mb-1.5">
+                  Courier Partner (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={courierPartner}
+                  onChange={(e) => setCourierPartner(e.target.value)}
+                  placeholder="e.g. Pathao, Steadfast, In-House"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-bg border border-line focus:outline-none focus:border-forest"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-line">
+              <div>
+                <label className="block font-bold text-ink uppercase tracking-wider mb-1.5">
+                  Courier Tracking ID (AWB)
+                </label>
+                <input
+                  type="text"
+                  value={courierTrackingId}
+                  onChange={(e) => setCourierTrackingId(e.target.value)}
+                  placeholder="e.g. PTH-892301"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-bg border border-line font-mono focus:outline-none focus:border-forest"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setStatusModalOrder(null)}
-                  className="px-4 py-2 rounded-xl border border-line text-ink text-sm hover:bg-bg"
+                  className="flex-1 py-2.5 rounded-xl bg-bg border border-line font-bold hover:bg-stone-200"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={updating}
-                  className="px-6 py-2 rounded-xl bg-forest hover:bg-forest-deep text-white font-semibold text-sm shadow-premium disabled:opacity-50"
+                  className="flex-1 py-2.5 rounded-xl bg-forest hover:bg-forest-deep text-white font-bold shadow-xs flex items-center justify-center gap-2"
                 >
-                  {updating ? "Updating..." : "Save & Sync Customer Tracking"}
+                  {updating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Save Status"}
                 </button>
               </div>
             </form>
@@ -555,117 +698,12 @@ export default function AdminOrdersPage() {
         </div>
       )}
 
-      {/* Admin Cancel Order Modal with Reason */}
-      {cancelModalOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-paper rounded-3xl border border-line shadow-2xl p-6 sm:p-7 max-w-md w-full space-y-5 animate-in zoom-in-95">
-            <div className="flex items-start justify-between">
-              <div>
-                <h3 className="font-bold font-display text-lg text-ink text-rose-700">
-                  Cancel Order #{cancelModalOrder.orderNumber}
-                </h3>
-                <p className="text-xs text-ink-soft mt-0.5">
-                  Tracking: <strong className="font-mono text-ink">{cancelModalOrder.trackingId}</strong> � Customer: <strong>{cancelModalOrder.customerName}</strong>
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setCancelModalOrder(null)}
-                className="p-1.5 rounded-xl text-ink-soft hover:text-ink hover:bg-bg"
-              >
-                ?
-              </button>
-            </div>
-
-            <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-900 space-y-1">
-              <strong>Impact Summary:</strong>
-              <p>� Order status will be updated to <span className="font-bold text-rose-700">CANCELLED</span>.</p>
-              <p>� {cancelModalOrder.items?.length || "All"} item(s) will be returned to store inventory.</p>
-              {cancelModalOrder.paymentMethod !== "COD" ? (
-                <p className="text-rose-700 font-bold">� Online payment will be flagged as "REFUND NEEDED".</p>
-              ) : (
-                <p>� Cash on Delivery (COD) order � no refund required.</p>
-              )}
-              <p>� Customer will receive an instant SMS/Email with the reason note.</p>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <label className="block font-semibold text-ink">
-                Select Cancellation Reason:
-              </label>
-              <div className="space-y-2">
-                {[
-                  "Item out of stock",
-                  "Unable to verify order details",
-                  "Delivery area not serviceable",
-                  "Customer requested cancellation",
-                  "CUSTOM",
-                ].map((reason) => (
-                  <label
-                    key={reason}
-                    className={`flex items-center gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-all ${
-                      cancelPreset === reason
-                        ? "bg-rose-50 border-rose-300 text-rose-900 font-semibold"
-                        : "bg-bg border-line text-ink hover:border-forest/30"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="cancelReason"
-                      value={reason}
-                      checked={cancelPreset === reason}
-                      onChange={() => setCancelPreset(reason)}
-                      className="text-rose-600 focus:ring-rose-500"
-                    />
-                    <span>{reason === "CUSTOM" ? "Other Custom Reason..." : reason}</span>
-                  </label>
-                ))}
-              </div>
-
-              {cancelPreset === "CUSTOM" && (
-                <div className="space-y-1 pt-1">
-                  <label className="block text-[11px] font-semibold text-ink">
-                    Type Specific Reason:
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={customCancelReason}
-                    onChange={(e) => setCustomCancelReason(e.target.value)}
-                    placeholder="Enter detailed reason to share with customer..."
-                    className="w-full px-3.5 py-2 rounded-xl bg-bg border border-line text-xs focus:outline-none focus:border-rose-500"
-                  />
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-2 border-t border-line">
-              <button
-                type="button"
-                onClick={() => setCancelModalOrder(null)}
-                disabled={cancellingOrder}
-                className="px-4 py-2.5 rounded-xl border border-line text-xs font-semibold text-ink-soft hover:bg-bg"
-              >
-                Keep Order
-              </button>
-              <button
-                type="button"
-                onClick={handleAdminCancel}
-                disabled={cancellingOrder}
-                className="px-6 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-              >
-                {cancellingOrder ? "Processing..." : "Confirm & Cancel Order"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <AlertModal
         isOpen={alertState.isOpen}
-        onClose={() => setAlertState((prev) => ({ ...prev, isOpen: false }))}
         title={alertState.title}
         message={alertState.message}
         type={alertState.type}
+        onClose={() => setAlertState({ ...alertState, isOpen: false })}
       />
     </div>
   );

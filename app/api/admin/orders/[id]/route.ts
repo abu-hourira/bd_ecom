@@ -171,3 +171,38 @@ export async function PUT(
 }
 
 export const PATCH = PUT;
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const orderId = Number(id);
+
+    const existing = await prisma.order.findUnique({
+      where: { id: orderId },
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
+
+    // Delete related records in a transaction
+    await prisma.$transaction(async (tx) => {
+      await tx.orderHistory.deleteMany({ where: { orderId } });
+      await tx.orderMessage.deleteMany({ where: { orderId } });
+      await tx.returnRequest.deleteMany({ where: { orderId } });
+      await tx.orderItem.deleteMany({ where: { orderId } });
+      await tx.order.delete({ where: { id: orderId } });
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Order deleted successfully from tracking history.",
+    });
+  } catch (error: any) {
+    console.error("[Order DELETE Error]:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
