@@ -1,3 +1,4 @@
+import Image from "next/image";
 "use client";
 // components/storefront/Header.tsx
 
@@ -35,8 +36,23 @@ export default function StorefrontHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [customer, setCustomer] = useState<LoggedInUser | null>(null);
+  const [siteSettings, setSiteSettings] = useState<Record<string, string>>({
+    brandName: "ENMAR",
+    brandTagline: "Pure Organic Food",
+    contactPhone: "+880 1614 113082",
+    siteLogo: "",
+  });
 
   useEffect(() => {
+    fetch("/api/storefront/settings")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.settings) {
+          setSiteSettings(data.settings);
+        }
+      })
+      .catch(() => {});
+
     try {
       const savedUser = localStorage.getItem("enmar_customer");
       if (savedUser) {
@@ -122,12 +138,24 @@ export default function StorefrontHeader() {
           </button>
 
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-xl bg-forest flex items-center justify-center text-accent shadow-xs group-hover:scale-105 transition-transform">
-              <Leaf className="w-5 h-5" />
-            </div>
+            {siteSettings.siteLogo ? (
+              <div className="relative w-9 h-9 rounded-xl overflow-hidden shadow-xs group-hover:scale-105 transition-transform bg-forest-soft border border-forest/20">
+                <Image
+                  src={getSafeImageUrl(siteSettings.siteLogo)}
+                  alt={siteSettings.brandName || "ENMAR"}
+                  fill
+                  className="object-contain p-0.5"
+                  sizes="40px"
+                />
+              </div>
+            ) : (
+              <div className="w-9 h-9 rounded-xl bg-forest flex items-center justify-center text-accent shadow-xs group-hover:scale-105 transition-transform">
+                <Leaf className="w-5 h-5" />
+              </div>
+            )}
             <div className="flex flex-col">
               <span className="font-display font-bold text-xl tracking-tight text-forest leading-none">
-                ENMAR
+                {siteSettings.brandName || "ENMAR"}
               </span>
               <span className="text-[9px] tracking-widest uppercase text-stone-600 font-mono -mt-0.5 font-bold">
                 {t("nav.brandSub")}
