@@ -1,5 +1,5 @@
 "use client";
-// components/storefront/Header.tsx - 100% Dynamic Clean Header
+// components/storefront/Header.tsx - Ultra-Sleek Mobile & Desktop Storefront Header
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -12,7 +12,6 @@ import {
   X,
   Phone,
   User,
-  Heart,
   ShieldCheck,
   LayoutDashboard,
   Store,
@@ -34,6 +33,7 @@ export default function StorefrontHeader() {
   const { cartCount, setIsCartOpen } = useCart();
   const { t, locale } = useLanguage();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchOpenMobile, setSearchOpenMobile] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [customer, setCustomer] = useState<LoggedInUser | null>(null);
   const [navCategories, setNavCategories] = useState<any[]>([]);
@@ -78,6 +78,7 @@ export default function StorefrontHeader() {
     if (searchQuery.trim()) {
       router.push(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
       setMobileMenuOpen(false);
+      setSearchOpenMobile(false);
     }
   };
 
@@ -90,10 +91,10 @@ export default function StorefrontHeader() {
   const brandSub = siteSettings.brandTagline || "";
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/80 shadow-xs overflow-x-hidden w-full">
-      {/* 1. Top Announcement Bar (Only if phone or custom message is configured) */}
+    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/80 shadow-xs w-full">
+      {/* 1. Desktop Top Bar (Hidden on Mobile to save valuable screen space) */}
       {(siteSettings.contactPhone || isStaff) && (
-        <div className="bg-[#143520] text-white text-xs py-1.5 px-4">
+        <div className="hidden sm:block bg-[#143520] text-white text-xs py-1.5 px-4">
           <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
             <div className="flex items-center gap-2 font-medium truncate">
               {brandSub && <span className="truncate text-white/90">{brandSub}</span>}
@@ -124,21 +125,21 @@ export default function StorefrontHeader() {
         </div>
       )}
 
-      {/* 2. Main Navigation Bar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
-        {/* Mobile Menu Trigger & Logo */}
-        <div className="flex items-center gap-3">
+      {/* 2. Main Navigation Bar (Clean & Compact on Mobile) */}
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-2 sm:py-3 flex items-center justify-between gap-2 sm:gap-4">
+        {/* Left: Mobile Menu Drawer Trigger & Logo/Brand */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 rounded-xl text-stone-600 hover:text-stone-900 lg:hidden border border-stone-200 cursor-pointer"
+            className="p-2 rounded-xl text-stone-700 hover:text-stone-950 lg:hidden border border-stone-200 cursor-pointer active:scale-95 bg-stone-50"
             aria-label="Toggle menu"
           >
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            {mobileMenuOpen ? <X className="w-4 h-4 sm:w-5 sm:h-5" /> : <Menu className="w-4 h-4 sm:w-5 sm:h-5" />}
           </button>
 
-          <Link href="/" className="flex items-center gap-2.5 group">
+          <Link href="/" className="flex items-center gap-2 group">
             {siteSettings.siteLogo ? (
-              <div className="relative w-10 h-10 rounded-xl overflow-hidden shadow-xs group-hover:scale-105 transition-transform bg-stone-50 border border-stone-200">
+              <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-xl overflow-hidden shadow-xs shrink-0 bg-stone-50 border border-stone-200">
                 <Image
                   src={getSafeImageUrl(siteSettings.siteLogo)}
                   alt={brandTitle}
@@ -148,16 +149,16 @@ export default function StorefrontHeader() {
                 />
               </div>
             ) : (
-              <div className="w-10 h-10 rounded-xl bg-forest text-white flex items-center justify-center font-bold text-lg shadow-xs group-hover:scale-105 transition-transform">
-                <Store className="w-5 h-5" />
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-forest text-white flex items-center justify-center font-bold shadow-xs shrink-0">
+                <Store className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
             )}
             <div className="flex flex-col">
-              <span className="font-display font-bold text-xl tracking-tight text-forest leading-none">
+              <span className="font-display font-bold text-base sm:text-xl tracking-tight text-forest leading-none truncate max-w-[130px] sm:max-w-xs">
                 {brandTitle}
               </span>
               {brandSub && (
-                <span className="text-[9px] tracking-wider uppercase text-stone-500 font-mono font-semibold mt-0.5">
+                <span className="hidden sm:block text-[9px] tracking-wider uppercase text-stone-500 font-mono font-semibold mt-0.5 truncate max-w-xs">
                   {brandSub}
                 </span>
               )}
@@ -165,7 +166,7 @@ export default function StorefrontHeader() {
           </Link>
         </div>
 
-        {/* Search Bar (Desktop) */}
+        {/* Center: Search Bar (Desktop) */}
         <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-md mx-4 relative">
           <input
             type="text"
@@ -183,49 +184,82 @@ export default function StorefrontHeader() {
           </button>
         </form>
 
-        {/* Action Buttons: Language, Account, Cart */}
-        <div className="flex items-center gap-2 sm:gap-2.5">
+        {/* Right: Actions (Language, Search, Admin Badge, Cart) */}
+        <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+          {/* Mobile Search Toggle Icon */}
+          <button
+            type="button"
+            onClick={() => setSearchOpenMobile(!searchOpenMobile)}
+            className="p-2 rounded-xl text-stone-700 hover:text-stone-900 md:hidden border border-stone-200 bg-stone-50 cursor-pointer active:scale-95"
+            aria-label="Search"
+          >
+            <Search className="w-4 h-4" />
+          </button>
+
           <LanguageToggle />
 
+          {/* Admin badge (if logged in staff) */}
           {isStaff && (
             <Link
               href="/admin"
-              className="px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl bg-amber-100/80 hover:bg-amber-200 border border-amber-300 text-amber-950 flex items-center gap-1.5 text-xs font-bold transition-all shadow-xs hover:scale-105 active:scale-95 cursor-pointer"
+              className="px-2 py-1 sm:px-3 sm:py-2 rounded-xl bg-amber-100/80 hover:bg-amber-200 border border-amber-300 text-amber-950 flex items-center gap-1 text-[11px] sm:text-xs font-bold transition-all shadow-xs active:scale-95 cursor-pointer"
             >
-              <ShieldCheck className="w-4 h-4 text-amber-800" />
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-800" />
               <span className="hidden sm:inline">
                 {locale === "bn" ? "অ্যাডমিন" : "Admin"}
               </span>
             </Link>
           )}
 
-          {/* Account */}
+          {/* Desktop Account Link */}
           <Link
             href={customer ? "/account/profile" : "/auth/login"}
-            className="p-2 sm:px-3 sm:py-2 rounded-xl border border-stone-200 hover:border-forest/40 bg-stone-50 text-stone-800 flex items-center gap-1.5 text-xs font-semibold transition-all cursor-pointer"
+            className="hidden sm:flex p-2 sm:px-3 sm:py-2 rounded-xl border border-stone-200 hover:border-forest/40 bg-stone-50 text-stone-800 items-center gap-1.5 text-xs font-semibold transition-all cursor-pointer"
           >
             <User className="w-4 h-4 text-forest" />
-            <span className="hidden sm:inline">
+            <span>
               {customer ? customer.name.split(" ")[0] : (locale === "bn" ? "লগইন" : "Login")}
             </span>
           </Link>
 
-          {/* Cart Drawer Trigger */}
+          {/* Header Cart Button */}
           <button
             type="button"
             onClick={() => setIsCartOpen(true)}
-            className="relative flex items-center gap-2 bg-forest hover:bg-forest-deep text-white px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl font-semibold text-xs transition-all shadow-xs hover:-translate-y-0.5 cursor-pointer active:scale-95"
+            className="relative flex items-center gap-1.5 bg-forest hover:bg-forest-deep text-white px-2.5 py-1.5 sm:px-4 sm:py-2.5 rounded-xl font-semibold text-xs transition-all shadow-xs cursor-pointer active:scale-95 shrink-0"
           >
             <ShoppingBag className="w-4 h-4 text-amber-400" />
             <span className="hidden sm:inline">{locale === "bn" ? "কার্ট" : "Cart"}</span>
-            <span className="w-5 h-5 rounded-full bg-amber-400 text-stone-950 text-[11px] font-extrabold flex items-center justify-center ml-0.5">
+            <span className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-amber-400 text-stone-950 text-[10px] sm:text-[11px] font-extrabold flex items-center justify-center">
               {cartCount}
             </span>
           </button>
         </div>
       </div>
 
-      {/* 3. Desktop Sub-Navigation Menu (Only Real Database Categories) */}
+      {/* Mobile Inline Search Bar (Expands on Search Icon click) */}
+      {searchOpenMobile && (
+        <div className="md:hidden px-3 pb-2.5 pt-0.5 border-t border-stone-100 animate-in slide-in-from-top-1 duration-150">
+          <form onSubmit={handleSearch} className="relative">
+            <input
+              type="text"
+              autoFocus
+              placeholder={locale === "bn" ? "কী পণ্য খুঁজছেন? লিখুন..." : "Search products..."}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-stone-50 border border-stone-200 rounded-xl py-2 pl-3.5 pr-9 text-xs text-stone-900 focus:outline-none focus:border-forest"
+            />
+            <button
+              type="submit"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 rounded-lg bg-forest text-white"
+            >
+              <Search className="w-3.5 h-3.5" />
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* 3. Desktop Sub-Navigation Menu */}
       <nav className="hidden lg:block border-t border-stone-200/60 bg-stone-50/50">
         <div className="max-w-7xl mx-auto px-8 flex items-center justify-center gap-6 py-2">
           <Link
@@ -257,46 +291,33 @@ export default function StorefrontHeader() {
       {/* 4. Mobile Drawer Menu */}
       {mobileMenuOpen && (
         <div className="lg:hidden border-t border-stone-200 bg-white px-4 py-4 space-y-4 animate-in slide-in-from-top-2">
-          <form onSubmit={handleSearch} className="relative">
-            <input
-              type="text"
-              placeholder={locale === "bn" ? "পণ্য খুঁজুন..." : "Search products..."}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-stone-50 border border-stone-200 rounded-full py-2 pl-4 pr-10 text-xs text-stone-800 focus:outline-none"
-            />
-            <button
-              type="submit"
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1.5 rounded-full bg-forest text-white"
-            >
-              <Search className="w-3.5 h-3.5" />
-            </button>
-          </form>
-
-          <nav className="flex flex-col space-y-2 text-xs font-medium text-stone-700">
+          <nav className="flex flex-col space-y-2.5 text-xs font-medium text-stone-700">
             <Link
               href="/products"
               onClick={() => setMobileMenuOpen(false)}
-              className="py-1.5 border-b border-stone-100"
+              className="py-2 border-b border-stone-100 font-bold text-forest flex items-center justify-between"
             >
-              {locale === "bn" ? "সকল পণ্য" : "All Products"}
+              <span>{locale === "bn" ? "সকল পণ্য" : "All Products"}</span>
+              <span>→</span>
             </Link>
             {navCategories.map((c: any) => (
               <Link
                 key={c.id}
                 href={`/products?category=${c.slug}`}
                 onClick={() => setMobileMenuOpen(false)}
-                className="py-1.5 border-b border-stone-100"
+                className="py-1.5 border-b border-stone-100 flex items-center justify-between"
               >
-                {c.name}
+                <span>{c.name}</span>
+                <span className="text-stone-400">›</span>
               </Link>
             ))}
             <Link
               href="/track"
               onClick={() => setMobileMenuOpen(false)}
-              className="py-1.5"
+              className="py-1.5 flex items-center justify-between"
             >
-              {locale === "bn" ? "অর্ডার ট্র্যাকিং" : "Track Order"}
+              <span>{locale === "bn" ? "অর্ডার ট্র্যাকিং" : "Track Order"}</span>
+              <span className="text-stone-400">›</span>
             </Link>
           </nav>
         </div>
