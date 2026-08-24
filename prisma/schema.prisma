@@ -489,7 +489,7 @@ model PromotionBanner {
   title        String
   headline     String?
   subtitle     String?
-  imageUrl     String   @db.Text
+  imageUrl     String   @db.LongText
   targetLink   String?
   placement    String   @default("HERO_CAROUSEL")
   startDate    DateTime?
