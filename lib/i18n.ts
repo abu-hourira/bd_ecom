@@ -111,6 +111,9 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     // Products & Badges
     "products.sectionBadge": "ফার্ম ফ্রেশ সমাহার",
+    "products.title": "সেরা অর্গানিক পণ্যসমূহ",
+    "products.subtitle": "রাসায়নিকমুক্ত স্বাস্থ্যসম্মত প্রাকৃতিক খাদ্যপণ্য",
+    "products.filterAll": "সকল পণ্য",
     "products.sectionTitle": "সেরা অর্গানিক পণ্যসমূহ",
     "products.allTab": "সকল পণ্য",
     "products.viewFull": "সকল পণ্য দেখুন",
@@ -375,6 +378,9 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     // Products & Badges
     "products.sectionBadge": "Farm Fresh Harvest",
+    "products.title": "Featured Products",
+    "products.subtitle": "100% Pure, Farm-Fresh & Chemical-Free",
+    "products.filterAll": "All Products",
     "products.sectionTitle": "Best Selling Organic Foods",
     "products.allTab": "All Products",
     "products.viewFull": "View Full Catalog",

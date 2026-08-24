@@ -37,6 +37,7 @@ export default function StorefrontHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [customer, setCustomer] = useState<LoggedInUser | null>(null);
+  const [navCategories, setNavCategories] = useState<any[]>([]);
   const [siteSettings, setSiteSettings] = useState<Record<string, string>>({
     brandName: "ENMAR",
     brandTagline: "Pure Organic Food",
@@ -45,6 +46,15 @@ export default function StorefrontHeader() {
   });
 
   useEffect(() => {
+    fetch("/api/storefront/categories")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.categories) {
+          setNavCategories(data.categories);
+        }
+      })
+      .catch(() => {});
+
     fetch("/api/storefront/settings")
       .then((res) => res.json())
       .then((data) => {
@@ -78,13 +88,12 @@ export default function StorefrontHeader() {
   );
 
   const navLinks = [
-    { label: t("nav.allProducts"), href: "/products" },
-    { label: t("nav.honey"), href: "/products?category=honey-sweeteners" },
-    { label: t("nav.oilsGhee"), href: "/products?category=oils-ghee" },
-    { label: t("nav.spices"), href: "/products?category=organic-spices" },
-    { label: t("nav.combos"), href: "/products?category=combo-bundle-deals" },
-    { label: t("nav.login"), href: "/wellness" },
-    { label: t("nav.trackOrder"), href: "/track" },
+    { label: locale === "bn" ? "সকল পণ্য" : "All Products", href: "/products" },
+    ...navCategories.map((c: any) => ({
+      label: c.name,
+      href: `/products?category=${c.slug}`,
+    })),
+    { label: locale === "bn" ? "অর্ডার ট্র্যাকিং" : "Track Order", href: "/track" },
   ];
 
   return (
