@@ -587,6 +587,14 @@ export default function CheckoutPage() {
       </main>
 
       <StorefrontFooter />
+    
+      <AlertModal
+        isOpen={alertState.isOpen}
+        title={alertState.title}
+        message={alertState.message}
+        type={alertState.type}
+        onClose={() => setAlertState((prev) => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 }
