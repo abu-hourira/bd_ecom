@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Bike, MapPin, Phone, Radio, Navigation, Clock, ShieldCheck, Home } from "lucide-react";
+import { Bike, MapPin, Phone, Radio, Navigation, Clock, ShieldCheck, Home, Layers } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -26,14 +26,16 @@ export default function LiveDeliveryMap({
 }: LiveDeliveryMapProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
+  const tileLayerRef = useRef<L.TileLayer | null>(null);
   const riderMarkerRef = useRef<L.Marker | null>(null);
   const customerMarkerRef = useRef<L.Marker | null>(null);
   const routeLineRef = useRef<L.Polyline | null>(null);
 
+  const [mapType, setMapType] = useState<"google_roads" | "google_satellite">("google_roads");
   const [customerCoords, setCustomerCoords] = useState<[number, number] | null>(null);
   const [distanceKm, setDistanceKm] = useState<string | null>(null);
 
-  // 1. Geocode destination address or fallback to near rider coordinates
+  // 1. Geocode destination address
   useEffect(() => {
     let isMounted = true;
 
@@ -53,9 +55,7 @@ export default function LiveDeliveryMap({
           setCustomerCoords([lat, lon]);
           return;
         }
-      } catch (e) {
-        console.warn("Destination geocoding fallback:", e);
-      }
+      } catch (e) {}
 
       // Sensible default offset near rider/Dhaka if geocoding returns nothing
       if (isMounted) {
@@ -72,7 +72,32 @@ export default function LiveDeliveryMap({
     };
   }, [destinationAddress, currentLat, currentLng]);
 
-  // 2. Initialize and Update Leaflet Map
+  // 2. Tile layer source switcher (Google Maps Road View vs Satellite Hybrid)
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+    const map = mapInstanceRef.current;
+
+    if (tileLayerRef.current) {
+      map.removeLayer(tileLayerRef.current);
+    }
+
+    // Google Maps Road View (lyrs=m) or Google Hybrid Satellite (lyrs=y)
+    const tileUrl =
+      mapType === "google_satellite"
+        ? "https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
+        : "https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}";
+
+    const newTileLayer = L.tileLayer(tileUrl, {
+      maxZoom: 20,
+      subdomains: ["mt0", "mt1", "mt2", "mt3"],
+      attribution: "&copy; Google Maps",
+    }).addTo(map);
+
+    tileLayerRef.current = newTileLayer;
+    map.invalidateSize();
+  }, [mapType]);
+
+  // 3. Initialize and Update Leaflet Map with Google Maps
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
@@ -83,40 +108,45 @@ export default function LiveDeliveryMap({
     if (!mapInstanceRef.current) {
       const map = L.map(mapContainerRef.current, {
         center: [riderLat, riderLng],
-        zoom: 14,
+        zoom: 15,
         zoomControl: true,
         scrollWheelZoom: false,
       });
 
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}.png", {
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-        maxZoom: 19,
-      }).addTo(map);
+      // Default to Google Maps Road Tiles
+      const initialTile = L.tileLayer(
+        "https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}",
+        {
+          maxZoom: 20,
+          subdomains: ["mt0", "mt1", "mt2", "mt3"],
+          attribution: "&copy; Google Maps",
+        }
+      ).addTo(map);
 
+      tileLayerRef.current = initialTile;
       mapInstanceRef.current = map;
 
-      // Fix gray tiles by invalidating size immediately and after layout render
-      setTimeout(() => map.invalidateSize(), 200);
-      setTimeout(() => map.invalidateSize(), 800);
+      setTimeout(() => map.invalidateSize(), 150);
+      setTimeout(() => map.invalidateSize(), 500);
+      setTimeout(() => map.invalidateSize(), 1200);
     }
 
     const map = mapInstanceRef.current;
     map.invalidateSize();
 
-    // 3. Custom Rider Icon (Pulsing Green Bike)
+    // 4. Custom Rider Icon (Pulsing Green Bike)
     const riderIcon = L.divIcon({
       className: "custom-rider-icon",
       html: `
-        <div style="position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
-          <div style="position: absolute; width: 44px; height: 44px; border-radius: 50%; background: rgba(16, 185, 129, 0.4); animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
-          <div style="width: 38px; height: 38px; border-radius: 50%; background: #14421a; border: 2.5px solid #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(0,0,0,0.3);">
-            <span style="font-size: 18px;">🛵</span>
+        <div style="position: relative; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
+          <div style="position: absolute; width: 48px; height: 48px; border-radius: 50%; background: rgba(16, 185, 129, 0.45); animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+          <div style="width: 40px; height: 40px; border-radius: 50%; background: #14421a; border: 3px solid #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.35);">
+            <span style="font-size: 20px;">🛵</span>
           </div>
         </div>
       `,
-      iconSize: [44, 44],
-      iconAnchor: [22, 22],
+      iconSize: [48, 48],
+      iconAnchor: [24, 24],
     });
 
     if (riderMarkerRef.current) {
@@ -132,19 +162,19 @@ export default function LiveDeliveryMap({
       riderMarkerRef.current = riderMarker;
     }
 
-    // 4. Custom Customer Destination Icon (Red Home Pin)
+    // 5. Custom Customer Destination Icon (Red Home Pin)
     if (customerCoords) {
       const customerIcon = L.divIcon({
         className: "custom-customer-icon",
         html: `
-          <div style="position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
-            <div style="width: 38px; height: 38px; border-radius: 50%; background: #dc2626; border: 2.5px solid #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.4);">
-              <span style="font-size: 18px;">🏠</span>
+          <div style="position: relative; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
+            <div style="width: 40px; height: 40px; border-radius: 50%; background: #dc2626; border: 3px solid #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(220, 38, 38, 0.45);">
+              <span style="font-size: 20px;">🏠</span>
             </div>
           </div>
         `,
-        iconSize: [44, 44],
-        iconAnchor: [22, 22],
+        iconSize: [48, 48],
+        iconAnchor: [24, 24],
       });
 
       if (customerMarkerRef.current) {
@@ -160,7 +190,7 @@ export default function LiveDeliveryMap({
         customerMarkerRef.current = custMarker;
       }
 
-      // 5. Draw dashed polyline connecting Rider to Customer
+      // 6. Draw glowing polyline connecting Rider to Customer
       const routePoints: [number, number][] = [
         [riderLat, riderLng],
         customerCoords,
@@ -171,9 +201,9 @@ export default function LiveDeliveryMap({
       } else {
         routeLineRef.current = L.polyline(routePoints, {
           color: "#16a34a",
-          weight: 4,
-          dashArray: "8, 8",
-          opacity: 0.85,
+          weight: 5,
+          dashArray: "10, 10",
+          opacity: 0.9,
         }).addTo(map);
       }
 
@@ -196,7 +226,7 @@ export default function LiveDeliveryMap({
         [riderLat, riderLng],
         customerCoords,
       ]);
-      map.fitBounds(bounds, { padding: [60, 60], maxZoom: 16 });
+      map.fitBounds(bounds, { padding: [70, 70], maxZoom: 16 });
     } else {
       map.panTo([riderLat, riderLng], { animate: true });
     }
@@ -223,7 +253,7 @@ export default function LiveDeliveryMap({
           <div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-bold uppercase tracking-wider text-emerald-800">
-                Live Delivery Route
+                Google Maps Live Route
               </span>
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -245,6 +275,16 @@ export default function LiveDeliveryMap({
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-center">
+          {/* Map Layer Switcher */}
+          <button
+            type="button"
+            onClick={() => setMapType(mapType === "google_roads" ? "google_satellite" : "google_roads")}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-stone-50 border border-emerald-200 text-stone-700 text-xs font-semibold shadow-xs transition active:scale-95 cursor-pointer"
+          >
+            <Layers className="w-3.5 h-3.5 text-emerald-600" />
+            <span>{mapType === "google_roads" ? "🛰️ স্যাটেলাইট ভিউ" : "🗺️ রোড ম্যাপ"}</span>
+          </button>
+
           <a
             href={`tel:${riderPhone}`}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-forest hover:bg-forest-deep text-white text-xs font-bold shadow-sm transition active:scale-95 cursor-pointer"
@@ -255,7 +295,7 @@ export default function LiveDeliveryMap({
         </div>
       </div>
 
-      {/* Interactive Leaflet Map Viewport */}
+      {/* Interactive Google Maps Viewport */}
       <div className="relative w-full h-80 sm:h-96 bg-stone-100">
         <div ref={mapContainerRef} className="w-full h-full z-10" />
 
