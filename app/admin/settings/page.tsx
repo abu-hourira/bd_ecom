@@ -35,6 +35,8 @@ export default function AdminSettingsPage() {
     contactPhone: "+880 1614 113082",
     contactEmail: "info@enmar.bd",
     contactAddress: "House 12, Road 4, Dhanmondi, Dhaka - 1205, Bangladesh",
+    whatsappNumber: "8801614113082",
+    whatsappDefaultMessage: "Hello ENMAR, I would like to order organic food.",
     shippingFlat: "70",
     freeShippingThreshold: "1500",
     siteLogo: "/assets/logo/logo.png",
@@ -421,7 +423,44 @@ export default function AdminSettingsPage() {
             </div>
           </div>
         </div>
-      </form>
+      
+              {/* WhatsApp Support Configuration */}
+              <div className="pt-6 border-t border-line space-y-4">
+                <h4 className="text-sm font-bold font-display text-ink flex items-center gap-2 text-emerald-700">
+                  <Phone className="w-4 h-4" />
+                  <span>WhatsApp Floating Button & Customer Support</span>
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-ink uppercase tracking-wider mb-2">
+                      WhatsApp Number (With Country Code)
+                    </label>
+                    <input
+                      type="text"
+                      value={settings.whatsappNumber || ""}
+                      onChange={(e) => setSettings({ ...settings, whatsappNumber: e.target.value })}
+                      placeholder="e.g. 8801614113082"
+                      className="w-full px-4 py-2.5 rounded-xl bg-bg border border-line text-sm font-mono focus:outline-none focus:border-forest"
+                    />
+                    <span className="text-[11px] text-ink-soft mt-1 block">Example: 8801614113082 (no spaces or dashes)</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-ink uppercase tracking-wider mb-2">
+                      WhatsApp Default Pre-filled Message
+                    </label>
+                    <input
+                      type="text"
+                      value={settings.whatsappDefaultMessage || ""}
+                      onChange={(e) => setSettings({ ...settings, whatsappDefaultMessage: e.target.value })}
+                      placeholder="Hello ENMAR, I want to order..."
+                      className="w-full px-4 py-2.5 rounded-xl bg-bg border border-line text-sm focus:outline-none focus:border-forest"
+                    />
+                  </div>
+                </div>
+              </div>
+
+            </form>
 
       <AlertModal
         isOpen={alertState.isOpen}
