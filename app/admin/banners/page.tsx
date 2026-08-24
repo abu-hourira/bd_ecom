@@ -318,7 +318,7 @@ export default function AdminBannersPage() {
                 <ImageUploader
                   images={formData.imageUrl ? [formData.imageUrl] : []}
                   onChange={(imgs) => setFormData({ ...formData, imageUrl: imgs[0] || "" })}
-                  maxImages={1}
+                  
                 />
               </div>
 
