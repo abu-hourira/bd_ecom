@@ -677,13 +677,13 @@ ALTER TABLE `community_comments` ADD CONSTRAINT `community_comments_userId_fkey`
 -- Dumping data for table `users` (Super Admin)
 -- --------------------------------------------------------
 INSERT INTO `users` (`id`, `name`, `email`, `phone`, `passwordHash`, `role`, `city`, `isPhoneVerified`, `isEmailVerified`, `createdAt`, `updatedAt`) VALUES
-(1, 'Abu Hourira (Superadmin)', 'admin@enmar.bd', '01614113082', '$2b$10$4yyycP.0fJfZC5aOB31atOXNHOZo6Xe5pzn4OIrVutYriGxzwGALi', 'SUPER_ADMIN', 'Dhaka', 1, 1, NOW(), NOW());
+(1, 'Abu Hourira (Superadmin)', 'admin@enmar.bd', '01614113082', '$2b$10$DDAsXVJe9Jgk9vNDR8/T1efW.SSJmulX4m8lLD26ynRX8aUPGNBEm', 'SUPER_ADMIN', 'Dhaka', 1, 1, NOW(), NOW());
 
 -- --------------------------------------------------------
 -- Dumping data for table `delivery_personnel` (Rider)
 -- --------------------------------------------------------
 INSERT INTO `delivery_personnel` (`id`, `name`, `phone`, `passwordHash`, `vehicleType`, `isActive`, `isSharingLocation`, `currentLat`, `currentLng`, `createdAt`, `updatedAt`) VALUES
-(1, 'Kamal Hossain (Rider)', '01711000111', '$2b$10$Z38p0QFuVifSqMEXrmBiMeOT2wJhHUsJG9ov8yXRBvgiOZ.anqORO', 'Motorbike', 1, 1, 23.8699, 90.3987, NOW(), NOW());
+(1, 'Kamal Hossain (Rider)', '01711000111', '$2b$10$HXEBKuIF6qhHQWNbaaRsBujqdaMWQ5K4qsMxaAIT9NhPKsLfEyGEW', 'Motorbike', 1, 1, 23.8699, 90.3987, NOW(), NOW());
 
 -- --------------------------------------------------------
 -- Dumping data for table `categories`
@@ -713,8 +713,8 @@ INSERT INTO `products` (`id`, `name`, `slug`, `categoryId`, `price`, `discountPr
 -- --------------------------------------------------------
 -- Dumping data for table `theme_settings`
 -- --------------------------------------------------------
-INSERT INTO `theme_settings` (`id`, `primaryColor`, `secondaryColor`, `accentColor`, `backgroundColor`, `textColor`, `fontHeading`, `fontBody`, `buttonRadius`, `isPublished`, `updatedAt`) VALUES
-(1, '#14421a', '#5c3a21', '#f5a623', '#fdfbf7', '#1f2937', 'Fraunces', 'Work Sans', 'rounded-xl', 1, NOW());
+INSERT INTO `theme_settings` (`id`, `primaryColor`, `secondaryColor`, `accentColor`, `backgroundColor`, `textColor`, `fontHeading`, `fontBody`, `buttonRadius`, `isPublished`, `createdAt`, `updatedAt`) VALUES
+(1, '#14421a', '#5c3a21', '#f5a623', '#fdfbf7', '#1f2937', 'Fraunces', 'Work Sans', 'rounded-xl', 1, NOW(), NOW());
 
 -- --------------------------------------------------------
 -- Dumping data for table `site_settings`
@@ -738,7 +738,7 @@ INSERT INTO `site_settings` (`key`, `value`, `group`, `isSecret`, `updatedAt`) V
 -- --------------------------------------------------------
 -- Dumping data for table `promo_codes`
 -- --------------------------------------------------------
-INSERT INTO `promo_codes` (`id`, `code`, `discountType`, `discountAmount`, `minOrderValue`, `maxDiscountAmount`, `isActive`, `createdAt`, `updatedAt`) VALUES
+INSERT INTO `promo_codes` (`id`, `code`, `discountType`, `discountValue`, `minOrderAmount`, `maxDiscountAmount`, `isActive`, `createdAt`, `updatedAt`) VALUES
 (1, 'ENMAR10', 'PERCENTAGE', 10.00, 500.00, 200.00, 1, NOW(), NOW()),
 (2, 'SAVE100', 'FIXED', 100.00, 1000.00, 100.00, 1, NOW(), NOW());
 
