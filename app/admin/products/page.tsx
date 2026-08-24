@@ -17,6 +17,9 @@ import {
   CheckCircle,
   AlertCircle,
   Package,
+  CheckSquare,
+  Square,
+  Loader2,
 } from "lucide-react";
 import { formatTaka } from "@/lib/utils";
 
@@ -26,6 +29,8 @@ export default function AdminProductsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false);
   const [deleteModalState, setDeleteModalState] = useState<{ isOpen: boolean; product: any | null }>({
     isOpen: false,
     product: null,
@@ -71,7 +76,64 @@ export default function AdminProductsPage() {
 
   useEffect(() => {
     fetchProducts();
+    setSelectedIds([]);
   }, [search, selectedCategory]);
+
+  
+  const handleSelectAll = () => {
+    if (selectedIds.length === products.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(products.map((p) => p.id));
+    }
+  };
+
+  const handleToggleSelect = (id: number) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const confirmBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    setDeleting(true);
+
+    try {
+      const res = await fetch("/api/admin/products/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete", ids: selectedIds }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setProducts((prev) => prev.filter((p) => !selectedIds.includes(p.id)));
+        setAlertState({
+          isOpen: true,
+          title: "Batch Deleted",
+          message: json.message || `${selectedIds.length} products moved to Recycle Bin.`,
+          type: "success",
+        });
+        setSelectedIds([]);
+        setBulkDeleteModalOpen(false);
+      } else {
+        setAlertState({
+          isOpen: true,
+          title: "Bulk Delete Failed",
+          message: json.error || "Could not delete selected products.",
+          type: "error",
+        });
+      }
+    } catch (e: any) {
+      setAlertState({
+        isOpen: true,
+        title: "Error",
+        message: e.message || "An unexpected error occurred.",
+        type: "error",
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const confirmDeleteProduct = async () => {
     if (!deleteModalState.product) return;
@@ -120,13 +182,22 @@ export default function AdminProductsPage() {
             Manage your certified organic food items, inventory stock, and pricing.
           </p>
         </div>
-        <Link
+        <div className="flex items-center gap-3">
+          <Link
+            href="/admin/bin"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold text-xs transition-colors"
+          >
+            <Trash2 className="w-4 h-4 text-stone-500" />
+            <span>Recycle Bin</span>
+          </Link>
+          <Link
           href="/admin/products/new"
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-forest hover:bg-forest-deep text-white font-semibold text-sm shadow-premium transition-all hover:-translate-y-0.5"
         >
           <Plus className="w-4 h-4" />
           <span>Add Product</span>
         </Link>
+        </div>
       </div>
 
       {/* Filters Toolbar */}
@@ -162,30 +233,77 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
+      
+      {/* Bulk Action Sticky Bar */}
+      {selectedIds.length > 0 && (
+        <div className="bg-forest-deep text-white px-5 py-3.5 rounded-2xl shadow-xl flex items-center justify-between animate-fadeIn sticky top-20 z-20 border border-white/20">
+          <div className="flex items-center gap-3">
+            <div className="w-7 h-7 rounded-lg bg-accent text-forest-deep flex items-center justify-center font-bold text-xs">
+              {selectedIds.length}
+            </div>
+            <span className="text-xs sm:text-sm font-semibold">
+              {selectedIds.length} Products Selected
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => setSelectedIds([])}
+              className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-medium transition-colors cursor-pointer"
+            >
+              Deselect All
+            </button>
+            <button
+              type="button"
+              onClick={() => setBulkDeleteModalOpen(true)}
+              className="px-4 py-1.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Delete Selected</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Products Table */}
       <div className="bg-paper rounded-3xl border border-line shadow-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-bg text-ink-soft text-xs uppercase tracking-wider border-b border-line">
               <tr>
-                <th className="py-4 px-6">Product</th>
-                <th className="py-4 px-6">Category</th>
-                <th className="py-4 px-6">Price</th>
-                <th className="py-4 px-6">Stock Status</th>
-                <th className="py-4 px-6">Badge / Deal</th>
-                <th className="py-4 px-6 text-right">Actions</th>
+                <th className="py-4 px-4 pl-5 w-10">
+                  <button
+                    type="button"
+                    onClick={handleSelectAll}
+                    className="flex items-center justify-center text-ink-soft hover:text-forest cursor-pointer"
+                    title={selectedIds.length === products.length ? "Deselect All" : "Select All"}
+                  >
+                    {products.length > 0 && selectedIds.length === products.length ? (
+                      <CheckSquare className="w-4 h-4 text-forest" />
+                    ) : (
+                      <Square className="w-4 h-4 text-ink-soft" />
+                    )}
+                  </button>
+                </th>
+                <th className="py-4 px-4">Product</th>
+                <th className="py-4 px-4">Category</th>
+                <th className="py-4 px-4">Price</th>
+                <th className="py-4 px-4">Stock Status</th>
+                <th className="py-4 px-4">Badge / Deal</th>
+                <th className="py-4 px-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-ink-soft">
+                  <td colSpan={7} className="py-12 text-center text-ink-soft">
                     Loading catalog...
                   </td>
                 </tr>
               ) : products.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-ink-soft">
+                  <td colSpan={7} className="py-12 text-center text-ink-soft">
                     No products found matching your search.
                   </td>
                 </tr>
@@ -200,9 +318,25 @@ export default function AdminProductsPage() {
                   const isOutOfStock = p.stockQuantity === 0;
 
                   return (
-                    <tr key={p.id} className="hover:bg-bg/50 transition-colors">
+                    <tr key={p.id} className={"transition-colors " + (selectedIds.includes(p.id) ? "bg-forest/5 hover:bg-forest/10" : "hover:bg-bg/50")}>
+
+                      {/* Checkbox */}
+                      <td className="py-4 px-4 pl-5">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleSelect(p.id)}
+                          className="flex items-center justify-center cursor-pointer"
+                        >
+                          {selectedIds.includes(p.id) ? (
+                            <CheckSquare className="w-4 h-4 text-forest" />
+                          ) : (
+                            <Square className="w-4 h-4 text-ink-soft hover:text-stone-700" />
+                          )}
+                        </button>
+                      </td>
+
                       {/* Product Name + Image */}
-                      <td className="py-4 px-6">
+                      <td className="py-4 px-4">
                         <div className="flex items-center gap-3">
                           <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-bg border border-line shrink-0">
                             <Image
@@ -231,12 +365,12 @@ export default function AdminProductsPage() {
                       </td>
 
                       {/* Category */}
-                      <td className="py-4 px-6 text-ink-soft text-xs">
+                      <td className="py-4 px-4 text-ink-soft text-xs">
                         {p.category?.name || "Uncategorized"}
                       </td>
 
                       {/* Price */}
-                      <td className="py-4 px-6">
+                      <td className="py-4 px-4">
                         <div className="font-semibold text-ink">{formatTaka(p.price)}</div>
                         {p.discountPrice && (
                           <div className="text-xs text-ink-muted line-through">
@@ -246,7 +380,7 @@ export default function AdminProductsPage() {
                       </td>
 
                       {/* Stock */}
-                      <td className="py-4 px-6">
+                      <td className="py-4 px-4">
                         {isOutOfStock ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
                             <AlertCircle className="w-3.5 h-3.5" />
@@ -266,7 +400,7 @@ export default function AdminProductsPage() {
                       </td>
 
                       {/* Badge / Deal */}
-                      <td className="py-4 px-6">
+                      <td className="py-4 px-4">
                         {p.badge ? (
                           <span className="px-2.5 py-1 rounded-md bg-forest-soft text-forest text-xs font-bold">
                             {p.badge}
@@ -281,7 +415,7 @@ export default function AdminProductsPage() {
                       </td>
 
                       {/* Actions */}
-                      <td className="py-4 px-6 text-right">
+                      <td className="py-4 px-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <Link
                             href={`/admin/products/${p.id}`}

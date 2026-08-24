@@ -1,6 +1,7 @@
 // app/api/admin/bin/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
 
 export async function GET(req: NextRequest) {
   try {
@@ -42,17 +43,99 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { action, id } = body;
+    const { action, id, ids } = body;
 
     // 1. Empty entire bin
     if (action === "empty_all") {
       const deleted = await prisma.binItem.deleteMany({});
       return NextResponse.json({
         success: true,
-        message: `Successfully purged ${deleted.count} items permanently.`,
+        message: `Successfully purged all ${deleted.count} items permanently.`,
       });
     }
 
+    // 2. Bulk Restore
+    if (action === "bulk_restore") {
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return NextResponse.json({ error: "No item IDs selected." }, { status: 400 });
+      }
+
+      const numericIds = ids.map(Number).filter((n) => !isNaN(n));
+      const binItems = await prisma.binItem.findMany({
+        where: { id: { in: numericIds } },
+      });
+
+      for (const item of binItems) {
+        const payload: any = item.payload || {};
+        if (item.entityType.toUpperCase() === "PRODUCT") {
+          const slug = payload.slug || `restored-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+          await prisma.product.upsert({
+            where: { id: item.entityId },
+            update: {
+              isActive: true,
+              name: payload.name || item.title,
+              price: payload.price || 0,
+              discountPrice: payload.discountPrice || null,
+              stockQuantity: payload.stockQuantity || 10,
+              unit: payload.unit || "piece",
+              description: payload.description || "",
+              images: payload.images || [],
+              categoryId: payload.categoryId || 1,
+            },
+            create: {
+              id: item.entityId,
+              name: payload.name || item.title,
+              slug,
+              price: payload.price || 0,
+              discountPrice: payload.discountPrice || null,
+              stockQuantity: payload.stockQuantity || 10,
+              unit: payload.unit || "piece",
+              description: payload.description || "",
+              images: payload.images || [],
+              categoryId: payload.categoryId || 1,
+              isActive: true,
+            },
+          });
+        } else if (item.entityType.toUpperCase() === "CATEGORY") {
+          const slug = payload.slug || `cat-${Date.now()}`;
+          await prisma.category.upsert({
+            where: { id: item.entityId },
+            update: { isActive: true, name: payload.name || item.title },
+            create: { id: item.entityId, name: payload.name || item.title, slug, isActive: true },
+          });
+        }
+      }
+
+      await prisma.binItem.deleteMany({
+        where: { id: { in: numericIds } },
+      });
+
+      revalidatePath("/", "layout");
+      revalidatePath("/products");
+
+      return NextResponse.json({
+        success: true,
+        message: `Successfully restored ${binItems.length} items back to active store.`,
+      });
+    }
+
+    // 3. Bulk Purge
+    if (action === "bulk_purge") {
+      if (!Array.isArray(ids) || ids.length === 0) {
+        return NextResponse.json({ error: "No item IDs selected." }, { status: 400 });
+      }
+      const numericIds = ids.map(Number).filter((n) => !isNaN(n));
+      const purged = await prisma.binItem.deleteMany({
+        where: { id: { in: numericIds } },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: `Permanently deleted ${purged.count} items.`,
+      });
+    }
+
+    // 4. Single item actions
     if (!id) {
       return NextResponse.json({ error: "Item ID is required." }, { status: 400 });
     }
@@ -65,7 +148,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Item not found in bin." }, { status: 404 });
     }
 
-    // 2. Permanently delete single item
     if (action === "purge") {
       await prisma.binItem.delete({ where: { id: binItem.id } });
       return NextResponse.json({
@@ -74,11 +156,9 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 3. Restore item
     if (action === "restore") {
       const payload: any = binItem.payload || {};
-
-      if (binItem.entityType === "PRODUCT") {
+      if (binItem.entityType.toUpperCase() === "PRODUCT") {
         const slug = payload.slug || `restored-${Date.now()}`;
         await prisma.product.upsert({
           where: { id: binItem.entityId },
@@ -107,42 +187,11 @@ export async function POST(req: NextRequest) {
             isActive: true,
           },
         });
-      } else if (binItem.entityType === "CATEGORY") {
-        const slug = payload.slug || `cat-${Date.now()}`;
-        await prisma.category.upsert({
-          where: { id: binItem.entityId },
-          update: {
-            isActive: true,
-            name: payload.name || binItem.title,
-          },
-          create: {
-            id: binItem.entityId,
-            name: payload.name || binItem.title,
-            slug,
-            description: payload.description || "",
-            isActive: true,
-          },
-        });
-      } else if (binItem.entityType === "PROMO") {
-        const code = payload.code || `PROMO${Date.now()}`;
-        await prisma.promoCode.upsert({
-          where: { id: binItem.entityId },
-          update: {
-            isActive: true,
-            code: code,
-          },
-          create: {
-            id: binItem.entityId,
-            code: code,
-            discountType: payload.discountType || "PERCENTAGE",
-            discountValue: payload.discountValue || 10,
-            minOrderAmount: payload.minOrderAmount || 0,
-            isActive: true,
-          },
-        });
       }
 
       await prisma.binItem.delete({ where: { id: binItem.id } });
+      revalidatePath("/", "layout");
+      revalidatePath("/products");
 
       return NextResponse.json({
         success: true,
