@@ -1,3 +1,4 @@
+import BrandLoader from "@/components/ui/BrandLoader";
 "use client";
 // app/page.tsx - 100% Database-Driven Dynamic Storefront (Zero Hardcoded Data)
 
@@ -126,18 +127,8 @@ export default function HomePage() {
 
           {/* 2-Columns on Mobile, 4-Columns on Desktop */}
           {loading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-6">
-              {[...Array(4)].map((_, i) => (
-                <div
-                  key={i}
-                  className="bg-white rounded-2xl border border-stone-200 p-3 sm:p-4 space-y-3 animate-pulse"
-                >
-                  <div className="w-full aspect-square bg-stone-100 rounded-xl" />
-                  <div className="h-4 bg-stone-100 rounded w-3/4" />
-                  <div className="h-3 bg-stone-100 rounded w-1/2" />
-                  <div className="h-8 bg-stone-100 rounded-xl w-full" />
-                </div>
-              ))}
+            <div className="py-12 flex items-center justify-center">
+              <BrandLoader message="পণ্যসমূহ লোড হচ্ছে..." />
             </div>
           ) : filteredProducts.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-2xl border border-stone-200 p-6 space-y-2">

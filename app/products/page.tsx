@@ -1,3 +1,4 @@
+import BrandLoader from "@/components/ui/BrandLoader";
 "use client";
 // app/products/page.tsx
 
