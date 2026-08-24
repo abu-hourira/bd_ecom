@@ -1,6 +1,7 @@
 // app/api/admin/stats/route.ts
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { getAiQuotaStatus } from "@/lib/ai-provider";
 
 export async function GET() {
   try {
@@ -11,6 +12,7 @@ export async function GET() {
       recentOrders,
       deliveredOrders,
       pendingOrders,
+      aiQuota,
     ] = await Promise.all([
       prisma.product.count(),
       prisma.order.count(),
@@ -31,6 +33,7 @@ export async function GET() {
       prisma.order.count({
         where: { orderStatus: "PENDING" },
       }),
+      getAiQuotaStatus(),
     ]);
 
     const totalRevenue = Number(deliveredOrders._sum.totalAmount || 0);
@@ -45,6 +48,7 @@ export async function GET() {
         lowStockCount: lowStockProducts.length,
         lowStockProducts,
         recentOrders,
+        aiQuota,
       },
     });
   } catch (error: any) {

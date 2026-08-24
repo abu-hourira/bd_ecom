@@ -46,6 +46,32 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="space-y-8">
+      
+      {/* AI Quota Exhaustion Alert Banner */}
+      {data?.aiQuota?.isExhausted && (
+        <div className="bg-amber-50 border border-amber-300 rounded-3xl p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fadeIn">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center font-bold shrink-0 shadow-xs">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-bold text-amber-900 text-sm">
+                AI Agent Quota / Request Limit Exhausted (এআই লিমিট শেষ)
+              </h4>
+              <p className="text-xs text-amber-800 mt-0.5">
+                {data.aiQuota.errorMsg || "The AI API key quota or monthly request limit has been exhausted. Customer AI is in graceful offline mode."}
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/admin/ai"
+            className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold whitespace-nowrap shadow-xs transition-colors"
+          >
+            Manage AI & Update Key →
+          </Link>
+        </div>
+      )}
+
       {/* Top Banner / Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-paper p-6 rounded-3xl border border-line shadow-card">
         <div>

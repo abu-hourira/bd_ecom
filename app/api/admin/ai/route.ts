@@ -1,13 +1,15 @@
 // app/api/admin/ai/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { encryptAES, decryptAES } from "@/lib/crypto";
+import { encryptAES } from "@/lib/crypto";
+import { getAiQuotaStatus, resetAiQuotaStatus } from "@/lib/ai-provider";
 
 export async function GET() {
   try {
-    const setting = await prisma.aISetting.findFirst({
-      orderBy: { id: "desc" },
-    });
+    const [setting, quotaStatus] = await Promise.all([
+      prisma.aISetting.findFirst({ orderBy: { id: "desc" } }),
+      getAiQuotaStatus(),
+    ]);
 
     if (!setting) {
       return NextResponse.json({
@@ -15,11 +17,12 @@ export async function GET() {
         setting: {
           provider: "openai",
           modelName: "gpt-4o",
-          systemPrompt: "You are the helpful, polite customer support assistant for ENMAR Organic Food in Bangladesh. Only assist with organic product questions, ingredients, and order tracking.",
-          adminPrompt: "You are the internal operations assistant for ENMAR store admins. Help draft product copy, analyze sales velocity, and write marketing slogans.",
+          systemPrompt: "You are the helpful, polite customer support assistant for ENMAR Organic Food in Bangladesh.",
+          adminPrompt: "You are the internal operations assistant for ENMAR store admins.",
           isActive: false,
           hasApiKey: false,
         },
+        quotaStatus,
       });
     }
 
@@ -35,6 +38,7 @@ export async function GET() {
         rateLimitPerMin: setting.rateLimitPerMin,
         hasApiKey: Boolean(setting.apiKeyEncrypted),
       },
+      quotaStatus,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -44,11 +48,31 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { provider, apiKey, modelName, systemPrompt, adminPrompt, isActive } = body;
+    const { provider, apiKey, modelName, systemPrompt, adminPrompt, isActive, action, monthlyLimit } = body;
+
+    // Action: Reset Quota status
+    if (action === "reset_quota") {
+      await resetAiQuotaStatus();
+      return NextResponse.json({
+        success: true,
+        message: "AI Quota status reset successfully. AI Agent is back to active status.",
+      });
+    }
+
+    // Action: Update Monthly Limit
+    if (monthlyLimit !== undefined) {
+      await prisma.siteSetting.upsert({
+        where: { key: "ai_monthly_request_limit" },
+        update: { value: String(monthlyLimit) },
+        create: { key: "ai_monthly_request_limit", value: String(monthlyLimit), group: "ai" },
+      });
+    }
 
     let encryptedKey: string | undefined = undefined;
     if (apiKey && apiKey.trim()) {
       encryptedKey = encryptAES(apiKey.trim());
+      // When new API key is provided, also reset quota status
+      await resetAiQuotaStatus();
     }
 
     const existing = await prisma.aISetting.findFirst({ orderBy: { id: "desc" } });
@@ -79,7 +103,9 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({ success: true, setting: updated });
+    const quotaStatus = await getAiQuotaStatus();
+
+    return NextResponse.json({ success: true, setting: updated, quotaStatus });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

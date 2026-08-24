@@ -16,8 +16,12 @@ import {
   Loader2,
   RefreshCw,
   Zap,
+  AlertTriangle,
+  Activity,
+  RotateCcw,
 } from "lucide-react";
 import AdminSidebar from "@/components/admin/Sidebar";
+import AlertModal from "@/components/ui/AlertModal";
 
 export default function AdminAiPage() {
   const [activeTab, setActiveTab] = useState<"assistant" | "settings">("assistant");
@@ -43,10 +47,37 @@ export default function AdminAiPage() {
   const [adminPrompt, setAdminPrompt] = useState("");
   const [isActive, setIsActive] = useState(false);
   const [hasApiKey, setHasApiKey] = useState(false);
+  const [monthlyLimit, setMonthlyLimit] = useState(1000);
   const [savingSettings, setSavingSettings] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
-  useEffect(() => {
+  // Quota status state
+  const [quotaStatus, setQuotaStatus] = useState<{
+    isExhausted: boolean;
+    errorMsg: string;
+    requestsCount: number;
+    limit: number;
+    percentage: number;
+  }>({
+    isExhausted: false,
+    errorMsg: "",
+    requestsCount: 0,
+    limit: 1000,
+    percentage: 0,
+  });
+
+  const [alertState, setAlertState] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type?: "success" | "error" | "warning" | "info";
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+  });
+
+  const fetchAiData = () => {
     fetch("/api/admin/ai")
       .then((res) => res.json())
       .then((json) => {
@@ -59,7 +90,15 @@ export default function AdminAiPage() {
           setIsActive(Boolean(s.isActive));
           setHasApiKey(Boolean(s.hasApiKey));
         }
+        if (json.quotaStatus) {
+          setQuotaStatus(json.quotaStatus);
+          if (json.quotaStatus.limit) setMonthlyLimit(json.quotaStatus.limit);
+        }
       });
+  };
+
+  useEffect(() => {
+    fetchAiData();
   }, []);
 
   const handleSendMessage = async (customText?: string) => {
@@ -99,6 +138,16 @@ export default function AdminAiPage() {
             time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
           },
         ]);
+        fetchAiData();
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          {
+            sender: "ai" as const,
+            text: json.reply || "⚠️ AI Assistant is currently in fallback mode.",
+            time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          },
+        ]);
       }
     } catch (e) {
       console.error(e);
@@ -123,6 +172,7 @@ export default function AdminAiPage() {
           systemPrompt,
           adminPrompt,
           isActive,
+          monthlyLimit,
         }),
       });
 
@@ -131,6 +181,7 @@ export default function AdminAiPage() {
         setSaveSuccess(true);
         if (apiKey) setHasApiKey(true);
         setApiKey("");
+        fetchAiData();
         setTimeout(() => setSaveSuccess(false), 3000);
       }
     } catch (e) {
@@ -140,11 +191,33 @@ export default function AdminAiPage() {
     }
   };
 
+  const handleResetQuota = async () => {
+    try {
+      const res = await fetch("/api/admin/ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reset_quota" }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setAlertState({
+          isOpen: true,
+          title: "Quota Alert Cleared",
+          message: "AI Quota status has been reset. The AI Agent is back to active status.",
+          type: "success",
+        });
+        fetchAiData();
+      }
+    } catch (e: any) {
+      setAlertState({ isOpen: true, title: "Error", message: e.message, type: "error" });
+    }
+  };
+
   return (
     <div className="flex min-h-screen bg-bg text-ink">
       <AdminSidebar />
 
-      <main className="flex-1 p-6 sm:p-10 max-w-7xl mx-auto space-y-8">
+      <main className="flex-1 p-6 sm:p-10 max-w-7xl mx-auto space-y-8 lg:ml-64">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line pb-6">
           <div>
@@ -180,228 +253,342 @@ export default function AdminAiPage() {
                   : "text-ink-soft hover:text-ink"
               }`}
             >
-              AI Gateway Settings
+              AI Gateway & Quota Settings
             </button>
           </div>
         </div>
+
+        {/* Quota Exhaustion Alert Banner */}
+        {quotaStatus.isExhausted && (
+          <div className="bg-rose-50 border border-rose-300 rounded-3xl p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fadeIn">
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-2xl bg-rose-600 text-white flex items-center justify-center font-bold shrink-0 shadow-xs">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-bold text-rose-900 text-sm flex items-center gap-2">
+                  <span>AI Agent Limit / Quota Exhausted (এআই লিমিট শেষ)</span>
+                  <span className="px-2 py-0.5 rounded text-[10px] bg-rose-200 text-rose-800 font-mono">Status: Offline</span>
+                </h4>
+                <p className="text-xs text-rose-800 mt-0.5">
+                  {quotaStatus.errorMsg || "Your API provider quota or monthly request limit has been reached. Update your API Key or reset below."}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleResetQuota}
+              className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold whitespace-nowrap shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Reset & Clear Alert</span>
+            </button>
+          </div>
+        )}
 
         {/* Tab 1: Operations Assistant */}
         {activeTab === "assistant" && (
           <div className="space-y-6">
             {/* Quick Action Prompt Pills */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1">
+            <div className="flex items-center gap-2 overflow-x-auto pb-2">
               <button
-                onClick={() =>
-                  handleSendMessage("Check current low stock inventory and recommend restock quantities.")
-                }
-                className="px-3.5 py-1.5 rounded-full bg-paper hover:bg-forest-soft hover:text-forest border border-line text-xs font-semibold text-ink whitespace-nowrap shadow-xs transition-all"
+                onClick={() => handleSendMessage("Analyze my low stock products and suggest restock priority.")}
+                className="px-3.5 py-2 rounded-xl bg-paper border border-line hover:border-forest text-xs font-medium text-ink transition-all shrink-0 hover:shadow-xs flex items-center gap-1.5 cursor-pointer"
               >
-                📦 Check Low-Stock Alerts
+                <Sparkles className="w-3.5 h-3.5 text-accent" />
+                <span>Restock Velocity Check</span>
               </button>
               <button
-                onClick={() =>
-                  handleSendMessage("Draft an organic SEO product description and benefit highlights for Sundarban Raw Honey.")
-                }
-                className="px-3.5 py-1.5 rounded-full bg-paper hover:bg-forest-soft hover:text-forest border border-line text-xs font-semibold text-ink whitespace-nowrap shadow-xs transition-all"
+                onClick={() => handleSendMessage("Write an exciting 2-sentence marketing slogan for an Eid Organic Honey sale in Bengali.")}
+                className="px-3.5 py-2 rounded-xl bg-paper border border-line hover:border-forest text-xs font-medium text-ink transition-all shrink-0 hover:shadow-xs flex items-center gap-1.5 cursor-pointer"
               >
-                ✨ Draft Honey Description
+                <Sparkles className="w-3.5 h-3.5 text-accent" />
+                <span>Eid Sale Copy (Bengali)</span>
               </button>
               <button
-                onClick={() =>
-                  handleSendMessage("Propose 3 promotional campaign slogans and announcement bar copy for an upcoming Eid sale.")
-                }
-                className="px-3.5 py-1.5 rounded-full bg-paper hover:bg-forest-soft hover:text-forest border border-line text-xs font-semibold text-ink whitespace-nowrap shadow-xs transition-all"
+                onClick={() => handleSendMessage("Summarize today's order statistics and customer breakdown.")}
+                className="px-3.5 py-2 rounded-xl bg-paper border border-line hover:border-forest text-xs font-medium text-ink transition-all shrink-0 hover:shadow-xs flex items-center gap-1.5 cursor-pointer"
               >
-                🎉 Generate Eid Sale Slogans
+                <Sparkles className="w-3.5 h-3.5 text-accent" />
+                <span>Store Orders Summary</span>
               </button>
             </div>
 
-            {/* Chat Console */}
-            <div className="bg-paper rounded-3xl border border-line shadow-card flex flex-col h-[560px] overflow-hidden">
-              <div className="p-4 border-b border-line bg-forest-deep text-white flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-accent text-forest-deep font-bold flex items-center justify-center">
-                    <Bot className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-xs">ENMAR Store Intelligence Assistant</h3>
-                    <span className="text-[10px] text-white/70 block">
-                      Read/Suggest Mode • Writes require admin confirmation
-                    </span>
-                  </div>
-                </div>
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              </div>
-
-              {/* Message History */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-bg/50">
+            {/* Chat Box Container */}
+            <div className="bg-paper rounded-3xl border border-line shadow-card flex flex-col h-[520px] overflow-hidden">
+              <div className="flex-1 p-6 overflow-y-auto space-y-4">
                 {messages.map((m, idx) => (
                   <div
                     key={idx}
-                    className={`flex flex-col ${
-                      m.sender === "user" ? "items-end" : "items-start"
+                    className={`flex gap-3 ${
+                      m.sender === "user" ? "justify-end" : "justify-start"
                     }`}
                   >
+                    {m.sender === "ai" && (
+                      <div className="w-8 h-8 rounded-xl bg-forest text-white flex items-center justify-center shrink-0 text-xs font-bold">
+                        AI
+                      </div>
+                    )}
                     <div
-                      className={`max-w-2xl p-4 rounded-2xl text-xs leading-relaxed ${
+                      className={`max-w-xl rounded-2xl p-4 text-xs sm:text-sm leading-relaxed ${
                         m.sender === "user"
-                          ? "bg-forest text-white rounded-br-none shadow-xs"
-                          : "bg-paper border border-line text-ink rounded-bl-none shadow-card whitespace-pre-line"
+                          ? "bg-forest text-white rounded-br-none"
+                          : "bg-bg border border-line text-ink rounded-bl-none shadow-xs whitespace-pre-line"
                       }`}
                     >
                       {m.text}
+                      <span
+                        className={`block text-[10px] mt-1.5 ${
+                          m.sender === "user" ? "text-white/60 text-right" : "text-ink-soft"
+                        }`}
+                      >
+                        {m.time}
+                      </span>
                     </div>
-                    <span className="text-[10px] text-ink-soft mt-1 px-1">{m.time}</span>
                   </div>
                 ))}
                 {sending && (
-                  <div className="flex items-center gap-2 text-xs text-forest font-semibold p-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Analyzing store metrics & generating draft...</span>
+                  <div className="flex items-center gap-2 text-ink-soft text-xs italic">
+                    <Loader2 className="w-4 h-4 animate-spin text-forest" />
+                    <span>ENMAR AI is analyzing store data and drafting response...</span>
                   </div>
                 )}
               </div>
 
-              {/* Input Box */}
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleSendMessage();
-                }}
-                className="p-4 border-t border-line bg-paper flex items-center gap-3"
-              >
-                <input
-                  type="text"
-                  placeholder="Ask to draft product descriptions, analyze sales trends, or write promo copy..."
-                  value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
-                  className="flex-1 px-4 py-3 rounded-2xl bg-bg border border-line text-xs focus:outline-none focus:ring-2 focus:ring-forest/20"
-                />
-                <button
-                  type="submit"
-                  disabled={sending || !inputMessage.trim()}
-                  className="px-6 py-3 rounded-2xl bg-forest hover:bg-forest-deep text-white text-xs font-bold shadow-premium transition-all disabled:opacity-50 flex items-center gap-2"
+              {/* Chat Input Bar */}
+              <div className="p-4 bg-bg border-t border-line">
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleSendMessage();
+                  }}
+                  className="flex items-center gap-2"
                 >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Ask AI</span>
-                </button>
-              </form>
+                  <input
+                    type="text"
+                    value={inputMessage}
+                    onChange={(e) => setInputMessage(e.target.value)}
+                    placeholder="Ask the AI agent to draft descriptions, summarize orders, or write copy..."
+                    className="flex-1 px-4 py-3 rounded-2xl bg-paper border border-line text-sm focus:outline-none focus:border-forest"
+                  />
+                  <button
+                    type="submit"
+                    disabled={sending || !inputMessage.trim()}
+                    className="px-5 py-3 rounded-2xl bg-forest hover:bg-forest-deep text-white font-bold text-sm shadow-premium transition-all disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+                  >
+                    <Send className="w-4 h-4" />
+                    <span>Send</span>
+                  </button>
+                </form>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Tab 2: Settings */}
+        {/* Tab 2: AI Gateway & Quota Settings */}
         {activeTab === "settings" && (
-          <form onSubmit={handleSaveSettings} className="space-y-6">
-            <div className="bg-paper p-6 sm:p-8 rounded-3xl border border-line shadow-card space-y-6">
-              <div className="flex items-center justify-between border-b border-line pb-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left 2 Cols: Form */}
+            <form onSubmit={handleSaveSettings} className="lg:col-span-2 space-y-6">
+              <div className="bg-paper p-6 sm:p-8 rounded-3xl border border-line shadow-card space-y-6">
+                <h3 className="text-lg font-bold font-display text-ink flex items-center gap-2">
+                  <Sliders className="w-5 h-5 text-forest" />
+                  <span>AI Model & Credentials</span>
+                </h3>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-ink uppercase tracking-wider mb-2">
+                      AI Provider
+                    </label>
+                    <select
+                      value={provider}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setProvider(val);
+                        if (val === "openai") setModelName("gpt-4o");
+                        else if (val === "gemini") setModelName("gemini-1.5-flash");
+                        else if (val === "anthropic") setModelName("claude-3-5-sonnet-20241022");
+                      }}
+                      className="w-full px-4 py-3 rounded-2xl bg-bg border border-line text-xs font-semibold text-ink focus:outline-none focus:border-forest"
+                    >
+                      <option value="openai">OpenAI (ChatGPT / GPT-4o)</option>
+                      <option value="gemini">Google Gemini (Gemini 1.5 Flash/Pro)</option>
+                      <option value="anthropic">Anthropic Claude (Claude 3.5 Sonnet)</option>
+                      <option value="groq">Groq (Ultra-Fast Llama 3)</option>
+                      <option value="openrouter">OpenRouter (Multi-Model Gateway)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-ink uppercase tracking-wider mb-2">
+                      Model Name
+                    </label>
+                    <input
+                      type="text"
+                      value={modelName}
+                      onChange={(e) => setModelName(e.target.value)}
+                      placeholder="e.g. gpt-4o, gemini-1.5-flash"
+                      className="w-full px-4 py-3 rounded-2xl bg-bg border border-line text-xs font-mono text-ink focus:outline-none focus:border-forest"
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <h3 className="font-bold font-display text-lg text-ink flex items-center gap-2">
-                    <Sliders className="w-5 h-5 text-forest" />
-                    <span>AI Provider Credentials</span>
-                  </h3>
-                  <p className="text-xs text-ink-soft mt-0.5">
-                    Credentials are AES-256 encrypted at rest and never exposed to client browsers.
-                  </p>
-                </div>
-
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <span className="text-xs font-bold text-ink">Enable Storefront Bot</span>
-                  <input
-                    type="checkbox"
-                    checked={isActive}
-                    onChange={(e) => setIsActive(e.target.checked)}
-                    className="w-5 h-5 text-forest rounded"
-                  />
-                </label>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold text-ink">AI Provider</label>
-                  <select
-                    value={provider}
-                    onChange={(e) => setProvider(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-bg border border-line text-xs font-semibold"
-                  >
-                    <option value="openai">OpenAI (GPT-4o / GPT-4o-mini)</option>
-                    <option value="anthropic">Anthropic (Claude 3.5 Sonnet)</option>
-                    <option value="gemini">Google Gemini (Gemini 1.5 Pro / Flash)</option>
-                    <option value="deepseek">DeepSeek (DeepSeek V3 / R1)</option>
-                    <option value="groq">Groq Llama 3 (Ultra-Fast)</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold text-ink">Model Name</label>
-                  <input
-                    type="text"
-                    value={modelName}
-                    onChange={(e) => setModelName(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-bg border border-line text-xs font-mono"
-                    placeholder="e.g. gpt-4o"
-                  />
-                </div>
-
-                <div className="sm:col-span-2 space-y-1.5">
-                  <label className="block text-xs font-semibold text-ink">
-                    API Key {hasApiKey && <span className="text-emerald-600 font-bold ml-1">✓ (Key Configured & Encrypted)</span>}
+                  <label className="block text-xs font-bold text-ink uppercase tracking-wider mb-2 flex items-center justify-between">
+                    <span>API Key (Stored with AES-256 Encryption at Rest)</span>
+                    {hasApiKey && (
+                      <span className="text-emerald-700 font-normal text-[11px] flex items-center gap-1">
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Key is configured & active
+                      </span>
+                    )}
                   </label>
                   <input
                     type="password"
-                    placeholder={hasApiKey ? "•••••••••••••••• (Leave blank to keep existing key)" : "sk-..."}
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-bg border border-line text-xs font-mono"
+                    placeholder={hasApiKey ? "•••••••••••••••••••••••• (Leave blank to keep existing key)" : "Enter API Key (sk-... or AIza...)"}
+                    className="w-full px-4 py-3 rounded-2xl bg-bg border border-line text-xs font-mono text-ink focus:outline-none focus:border-forest"
                   />
                 </div>
 
-                <div className="sm:col-span-2 space-y-1.5">
-                  <label className="block text-xs font-semibold text-ink">
-                    Customer Support System Prompt (Storefront)
+                <div>
+                  <label className="block text-xs font-bold text-ink uppercase tracking-wider mb-2">
+                    Monthly Request Safety Limit
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="number"
+                      value={monthlyLimit}
+                      onChange={(e) => setMonthlyLimit(Number(e.target.value))}
+                      placeholder="1000"
+                      className="w-48 px-4 py-3 rounded-2xl bg-bg border border-line text-xs font-mono text-ink focus:outline-none focus:border-forest"
+                    />
+                    <span className="text-xs text-ink-soft">requests/month (0 for unlimited)</span>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-ink uppercase tracking-wider mb-2">
+                    Customer Storefront AI System Prompt
                   </label>
                   <textarea
                     rows={3}
                     value={systemPrompt}
                     onChange={(e) => setSystemPrompt(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-bg border border-line text-xs leading-relaxed"
+                    placeholder="Instructions for the customer-facing chat assistant..."
+                    className="w-full px-4 py-3 rounded-2xl bg-bg border border-line text-xs text-ink focus:outline-none focus:border-forest"
                   />
                 </div>
 
-                <div className="sm:col-span-2 space-y-1.5">
-                  <label className="block text-xs font-semibold text-ink">
-                    Admin Assistant System Prompt (Internal Operations)
+                <div className="flex items-center justify-between p-4 rounded-2xl bg-bg border border-line">
+                  <div>
+                    <span className="font-bold text-xs text-ink block">Enable Storefront Customer AI</span>
+                    <span className="text-[11px] text-ink-soft">
+                      Allow customers to chat with the AI assistant on the website for product questions.
+                    </span>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isActive}
+                      onChange={(e) => setIsActive(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-line peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-line after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-forest"></div>
                   </label>
-                  <textarea
-                    rows={3}
-                    value={adminPrompt}
-                    onChange={(e) => setAdminPrompt(e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-xl bg-bg border border-line text-xs leading-relaxed"
-                  />
+                </div>
+
+                <div className="flex items-center justify-between pt-4 border-t border-line">
+                  {saveSuccess && (
+                    <span className="text-xs text-emerald-700 font-bold flex items-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4" />
+                      Settings saved & verified successfully!
+                    </span>
+                  )}
+                  <button
+                    type="submit"
+                    disabled={savingSettings}
+                    className="ml-auto px-6 py-3 rounded-2xl bg-forest hover:bg-forest-deep text-white font-bold text-xs shadow-premium transition-all disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+                  >
+                    {savingSettings ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                    <span>Save AI Configuration</span>
+                  </button>
                 </div>
               </div>
+            </form>
 
-              {saveSuccess && (
-                <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>AI Configuration saved securely with AES-256 encryption!</span>
+            {/* Right 1 Col: Live Quota & Usage Monitor Card */}
+            <div className="space-y-6">
+              <div className="bg-paper p-6 rounded-3xl border border-line shadow-card space-y-5">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-bold font-display text-ink text-sm flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-forest" />
+                    <span>AI Quota & Usage</span>
+                  </h4>
+                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                    quotaStatus.isExhausted
+                      ? "bg-rose-100 text-rose-800 border border-rose-300"
+                      : "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                  }`}>
+                    {quotaStatus.isExhausted ? "Quota Exhausted" : "Active & Healthy"}
+                  </span>
                 </div>
-              )}
 
-              <div className="flex justify-end pt-4 border-t border-line">
+                {/* Progress Meter */}
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs font-semibold">
+                    <span className="text-ink-soft">Monthly Requests Used</span>
+                    <span className="text-ink font-mono">{quotaStatus.requestsCount} / {quotaStatus.limit}</span>
+                  </div>
+                  <div className="w-full h-3 bg-bg rounded-full overflow-hidden border border-line">
+                    <div
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        quotaStatus.percentage >= 100
+                          ? "bg-rose-600"
+                          : quotaStatus.percentage >= 80
+                          ? "bg-amber-500"
+                          : "bg-forest"
+                      }`}
+                      style={{ width: `${quotaStatus.percentage}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-[11px] text-ink-soft">
+                    <span>{quotaStatus.percentage}% Consumed</span>
+                    <span>{Math.max(0, quotaStatus.limit - quotaStatus.requestsCount)} remaining</span>
+                  </div>
+                </div>
+
+                {/* Quota details */}
+                <div className="p-3.5 rounded-2xl bg-bg border border-line text-xs space-y-1.5">
+                  <span className="font-bold text-ink block text-[11px] uppercase tracking-wider">Quota Guardrails</span>
+                  <p className="text-ink-soft text-[11px] leading-relaxed">
+                    When the quota limit is reached or the API provider returns 429 Insufficient Credits, an alert is automatically flagged in the admin panel and the customer chat switches to offline contact mode.
+                  </p>
+                </div>
+
+                {/* Reset button */}
                 <button
-                  type="submit"
-                  disabled={savingSettings}
-                  className="px-8 py-3 rounded-2xl bg-forest hover:bg-forest-deep text-white text-xs font-bold shadow-premium flex items-center gap-2 disabled:opacity-50"
+                  type="button"
+                  onClick={handleResetQuota}
+                  className="w-full py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                 >
-                  {savingSettings && <Loader2 className="w-4 h-4 animate-spin" />}
-                  <span>Save AI Configuration</span>
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Reset Quota Alert Status</span>
                 </button>
               </div>
             </div>
-          </form>
+          </div>
         )}
       </main>
+
+      <AlertModal
+        isOpen={alertState.isOpen}
+        title={alertState.title}
+        message={alertState.message}
+        type={alertState.type || "info"}
+        onClose={() => setAlertState((prev) => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 }
