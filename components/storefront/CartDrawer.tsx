@@ -107,17 +107,15 @@ export default function CartDrawer() {
               </div>
             ) : (
               cart.map((item) => {
-                const imageSrc = item.product.images
-                  ? getSafeImageUrl(item.product.images[0])
-                  : "/placeholder.png";
-                const price = Number(item.product.discountPrice || item.product.price);
+                const imageSrc = item.image ? getSafeImageUrl(item.image) : "/placeholder.png";
+                const price = Number(item.discountPrice || item.price);
 
                 return (
-                  <div key={item.product.id} className="pt-3 first:pt-0 flex items-center gap-3">
+                  <div key={item.id} className="pt-3 first:pt-0 flex items-center gap-3">
                     <div className="relative w-14 h-14 sm:w-16 sm:h-16 rounded-xl bg-stone-50 border border-stone-200 overflow-hidden shrink-0">
                       <Image
                         src={imageSrc}
-                        alt={item.product.name}
+                        alt={item.name}
                         fill
                         className="object-cover p-1"
                         sizes="64px"
@@ -126,10 +124,10 @@ export default function CartDrawer() {
 
                     <div className="flex-1 min-w-0">
                       <h4 className="font-display font-bold text-xs sm:text-sm text-stone-900 truncate">
-                        {item.product.name}
+                        {item.name}
                       </h4>
                       <span className="text-[10px] text-stone-400 font-mono block">
-                        {item.product.unit || ""}
+                        {item.unit || ""}
                       </span>
                       <span className="font-mono font-bold text-xs text-forest">
                         {formatTaka(price)}
@@ -139,7 +137,7 @@ export default function CartDrawer() {
                     {/* Stepper & Remove */}
                     <div className="flex flex-col items-end gap-1.5 shrink-0">
                       <button
-                        onClick={() => removeFromCart(item.product.id)}
+                        onClick={() => removeFromCart(item.id)}
                         className="text-stone-400 hover:text-red-500 transition-colors p-1 cursor-pointer"
                         aria-label="Remove item"
                       >
@@ -148,7 +146,7 @@ export default function CartDrawer() {
 
                       <div className="flex items-center gap-1 border border-stone-200 rounded-lg p-0.5 bg-stone-50">
                         <button
-                          onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
                           className="w-5 h-5 flex items-center justify-center text-stone-600 hover:bg-stone-200 rounded cursor-pointer"
                         >
                           <Minus className="w-2.5 h-2.5" />
@@ -157,7 +155,7 @@ export default function CartDrawer() {
                           {item.quantity}
                         </span>
                         <button
-                          onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
                           className="w-5 h-5 flex items-center justify-center text-stone-600 hover:bg-stone-200 rounded cursor-pointer"
                         >
                           <Plus className="w-2.5 h-2.5" />
