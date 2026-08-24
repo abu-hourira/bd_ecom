@@ -32,7 +32,7 @@ export default function WellnessPage() {
 
   const calculateBMI = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!heightCm || !weightKg) return;
+    if (!heightCm || !weightKg || Number(heightCm) <= 0 || Number(weightKg) <= 0) return;
 
     const heightM = Number(heightCm) / 100;
     const bmi = Number((Number(weightKg) / (heightM * heightM)).toFixed(1));
@@ -56,7 +56,7 @@ export default function WellnessPage() {
 
   const calculateCalories = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!age || !heightCm || !weightKg) return;
+    if (!age || !heightCm || !weightKg || Number(age) <= 0 || Number(heightCm) <= 0 || Number(weightKg) <= 0) return;
 
     // Mifflin-St Jeor Formula
     let bmr = 10 * Number(weightKg) + 6.25 * Number(heightCm) - 5 * Number(age);

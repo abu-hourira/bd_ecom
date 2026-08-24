@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
       userId,
     } = body;
 
-    if (!customerName || !customerPhone || !shippingAddress || items.length === 0) {
+    if (!customerName?.trim() || !customerPhone?.trim() || !shippingAddress?.trim() || items.length === 0) {
       return NextResponse.json(
         { error: "Please fill in your name, phone number, delivery address, and cart items." },
         { status: 400 }
@@ -45,8 +45,19 @@ export async function POST(req: NextRequest) {
       }
 
       if (product) {
-        const unitPrice = Number(product.discountPrice || product.price);
         const qty = Math.max(1, Number(item.quantity || 1));
+
+        // Bug Fix 2: Prevent overselling / negative stock
+        if (product.stockQuantity < qty) {
+          return NextResponse.json(
+            {
+              error: `দুঃখিত, "${product.name}" এর পর্যাপ্ত স্টক নেই। বর্তমানে মাত্র ${product.stockQuantity} ${product.unit || "টি"} উপলব্ধ আছে।`,
+            },
+            { status: 400 }
+          );
+        }
+
+        const unitPrice = Number(product.discountPrice || product.price);
         const itemTotal = unitPrice * qty;
         subtotal += itemTotal;
 
@@ -71,7 +82,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No valid products in order." }, { status: 400 });
     }
 
-    const shippingFee = deliveryZone === "Outside Dhaka" ? 130 : 70;
+    // Bug Fix 1: Check dynamic free shipping threshold from database setting
+    let freeShippingThreshold = 1500;
+    try {
+      const thresholdSetting = await prisma.siteSetting.findUnique({
+        where: { key: "freeShippingThreshold" },
+      });
+      if (thresholdSetting && Number(thresholdSetting.value) > 0) {
+        freeShippingThreshold = Number(thresholdSetting.value);
+      }
+    } catch (e) {
+      // fallback to 1500
+    }
+
+    let shippingFee = 0;
+    if (subtotal >= freeShippingThreshold) {
+      shippingFee = 0; // Free delivery qualified
+    } else {
+      shippingFee = deliveryZone === "Outside Dhaka" ? 130 : 70;
+    }
 
     let discountAmount = 0;
     if (promoCodeId) {
@@ -101,10 +130,10 @@ export async function POST(req: NextRequest) {
         data: {
           orderNumber,
           trackingId,
-          customerName,
-          customerEmail: customerEmail || "guest@enmar.bd",
-          customerPhone,
-          shippingAddress,
+          customerName: customerName.trim(),
+          customerEmail: customerEmail?.trim() || "guest@enmar.bd",
+          customerPhone: customerPhone.trim(),
+          shippingAddress: shippingAddress.trim(),
           deliveryZone,
           subtotal,
           discountAmount,
