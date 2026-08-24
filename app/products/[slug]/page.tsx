@@ -402,6 +402,39 @@ export default function ProductDetailPage({
             </div>
           </div>
         )}
+      
+        {/* Mobile Sticky Bottom Action Bar */}
+        <div className="md:hidden fixed bottom-14 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-stone-200 px-4 py-2.5 flex items-center justify-between gap-3 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+          <div className="flex flex-col">
+            <span className="text-[10px] text-stone-500 font-medium">{t("product.price")}</span>
+            <span className="font-display font-bold text-lg text-forest leading-none">
+              {formatTaka(effectivePrice * quantity)}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 flex-1 justify-end max-w-[240px]">
+            <button
+              type="button"
+              disabled={isOutOfStock}
+              onClick={handleAddToCart}
+              className="p-2.5 rounded-xl border border-forest text-forest hover:bg-forest/10 active:scale-95 transition-all cursor-pointer disabled:opacity-40 shrink-0"
+              title={t("product.addToCart")}
+            >
+              <ShoppingBag className="w-4 h-4" />
+            </button>
+
+            <button
+              type="button"
+              disabled={isOutOfStock}
+              onClick={handleBuyNow}
+              className="flex-1 py-2.5 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow-xs active:scale-95 transition-all cursor-pointer disabled:opacity-40 whitespace-nowrap"
+            >
+              <span>{t("product.buyNow")}</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
       </main>
 
       <StorefrontFooter />

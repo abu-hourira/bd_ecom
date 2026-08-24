@@ -7,6 +7,7 @@ import CartDrawer from "@/components/storefront/CartDrawer";
 import FloatingWhatsApp from "@/components/storefront/FloatingWhatsApp";
 import CustomerAiWidget from "@/components/storefront/CustomerAiWidget";
 import CookieConsent from "@/components/storefront/CookieConsent";
+import MobileBottomNav from "@/components/storefront/MobileBottomNav";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -37,7 +38,10 @@ export default function RootLayout({
         <FeatureFlagProvider>
           <LanguageProvider>
             <CartProvider>
-              {children}
+              <div className="pb-16 md:pb-0 min-h-screen flex flex-col justify-between">
+                {children}
+              </div>
+              <MobileBottomNav />
               <CartDrawer />
               <CustomerAiWidget />
               <FloatingWhatsApp />

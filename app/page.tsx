@@ -180,12 +180,12 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 gap-3 sm:gap-3.5">
+          <div className="flex sm:grid sm:grid-cols-5 lg:grid-cols-10 gap-3 sm:gap-3.5 overflow-x-auto sm:overflow-visible pb-2 sm:pb-0 scrollbar-none snap-x">
             {categories.map((cat: any) => (
               <Link
                 key={cat.id}
                 href={`/products?category=${cat.slug}`}
-                className="group flex flex-col items-center text-center p-3 rounded-2xl bg-white border border-stone-200 hover:border-forest shadow-xs hover:shadow-md transition-all duration-200 hover:-translate-y-1 cursor-pointer"
+                className="group flex flex-col items-center text-center p-3 rounded-2xl bg-white border border-stone-200 hover:border-forest shadow-xs hover:shadow-md transition-all duration-200 hover:-translate-y-1 cursor-pointer min-w-[90px] sm:min-w-0 snap-start shrink-0 sm:shrink"
               >
                 <div className="relative w-12 h-12 rounded-xl bg-emerald-50 group-hover:ring-2 group-hover:ring-forest overflow-hidden flex items-center justify-center transition-all duration-200 mb-2 border border-stone-200">
                   {cat.image ? (
