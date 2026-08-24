@@ -1,6 +1,8 @@
-// lib/notifications.ts
+// lib/notifications.ts - Full Real-time Multi-Gateway Notification Engine with Nodemailer SMTP
+
 import prisma from "@/lib/prisma";
-import { encrypt, decrypt } from "@/lib/crypto";
+import { decrypt } from "@/lib/crypto";
+import nodemailer from "nodemailer";
 
 export interface NotificationResult {
   success: boolean;
@@ -14,29 +16,27 @@ export interface NotificationResult {
 export async function sendSMS(
   recipientPhone: string,
   messageText: string,
-  subject: string = "SMS Notification",
+  subject: string = "ENMAR Notification",
   orderId?: number
 ): Promise<NotificationResult> {
   try {
+    let status = "FAILED";
+    let errorMessage = "";
+
     const gateway = await prisma.notificationGateway.findFirst({
       where: { channel: "SMS", isActive: true },
     });
 
-    let status = "FAILED";
-    let errorMessage: string | null = null;
-
     if (!gateway) {
-      errorMessage = "No active SMS gateway configured in Admin Settings.";
-      console.log(`[SMS Simulation] To: ${recipientPhone} | Msg: ${messageText}`);
-      // Record simulated log
+      console.log(`[SMS Simulation] To: ${recipientPhone} | Message: ${messageText}`);
       await prisma.notificationLog.create({
         data: {
           channel: "SMS",
           recipient: recipientPhone,
           subject,
           content: messageText,
-          status: "SENT", // Marked sent in simulation mode
-          errorReason: "Simulation mode (No SMS Gateway API Key configured)",
+          status: "SENT",
+          errorReason: "Simulation mode (No SMS gateway active)",
         },
       });
       return { success: true, messageId: "SIMULATED-SMS" };
@@ -46,7 +46,7 @@ export async function sendSMS(
     if (gateway.credentialsEncrypted) {
       try {
         const decrypted = decrypt(gateway.credentialsEncrypted);
-        creds = JSON.parse(decrypted || "{}");
+        if (decrypted) creds = JSON.parse(decrypted);
       } catch (e) {
         console.error("Error decrypting SMS credentials:", e);
       }
@@ -90,7 +90,7 @@ export async function sendSMS(
         subject,
         content: messageText,
         status: status === "SENT" ? "SENT" : "FAILED",
-        errorReason: errorMessage,
+        errorReason: errorMessage || null,
       },
     });
 
@@ -105,7 +105,7 @@ export async function sendSMS(
 }
 
 /**
- * Send Email notification via configured Email gateway with fallback logging
+ * Send Real Email notification via configured SMTP / Gmail Gateway
  */
 export async function sendEmail(
   recipientEmail: string,
@@ -127,13 +127,59 @@ export async function sendEmail(
           subject,
           content: contentHtml,
           status: "SENT",
-          errorReason: "Simulation mode (No SMTP configured)",
+          errorReason: "Simulation mode (No active EMAIL gateway in DB)",
         },
       });
       return { success: true, messageId: "SIMULATED-EMAIL" };
     }
 
-    // Record log
+    let creds: any = {};
+    if (gateway.credentialsEncrypted) {
+      try {
+        const decrypted = decrypt(gateway.credentialsEncrypted);
+        if (decrypted) creds = JSON.parse(decrypted);
+      } catch (e) {
+        console.error("Error decrypting email credentials:", e);
+      }
+    }
+
+    const host = (creds.smtpHost || "smtp.gmail.com").trim();
+    const port = Number(creds.smtpPort) || 587;
+    const user = (creds.smtpUser || "").trim();
+    const pass = (creds.smtpPass || "").replace(/\s+/g, "").trim();
+
+    if (!user || !pass) {
+      throw new Error("Gmail Username and 16-character Google App Password are required. Please configure and save them in Notification Settings.");
+    }
+
+    const isSecure = port === 465;
+
+    // Create Nodemailer Transporter
+    const transporter = nodemailer.createTransport({
+      host,
+      port,
+      secure: isSecure,
+      auth: {
+        user,
+        pass,
+      },
+      tls: {
+        rejectUnauthorized: false,
+      },
+    });
+
+    // Send real email via Google SMTP
+    const senderName = gateway.senderId || "ENMAR Organic Food";
+    const mailOptions = {
+      from: `"${senderName}" <${user}>`,
+      to: recipientEmail,
+      subject,
+      html: contentHtml,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+
+    // Record success log in database
     await prisma.notificationLog.create({
       data: {
         gatewayId: gateway.id,
@@ -142,61 +188,93 @@ export async function sendEmail(
         subject,
         content: contentHtml,
         status: "SENT",
+        errorReason: null,
       },
     });
 
-    return { success: true };
+    return { success: true, messageId: info.messageId };
   } catch (error: any) {
     console.error("[sendEmail Error]:", error);
+
+    // Record failure log in database for admin visibility
+    try {
+      const gateway = await prisma.notificationGateway.findFirst({
+        where: { channel: "EMAIL" },
+      });
+      await prisma.notificationLog.create({
+        data: {
+          gatewayId: gateway?.id,
+          channel: "EMAIL",
+          recipient: recipientEmail,
+          subject,
+          content: contentHtml,
+          status: "FAILED",
+          errorReason: error.message || "Failed to send email via SMTP",
+        },
+      });
+    } catch (logErr) {}
+
     return { success: false, error: error.message };
   }
 }
 
 /**
- * High-level automated event notifications
+ * Automated Event: Order Placed Notification
  */
 export async function notifyOrderPlaced(order: any) {
   const appUrl =
     process.env.NEXT_PUBLIC_APP_URL ||
     process.env.NEXTAUTH_URL ||
-    "http://localhost:3000";
+    "https://www.enmar.shop";
 
   const trackingLink = `${appUrl}/track/${order.trackingId}`;
 
   // 1. Customer SMS
-  const customerMsg = `Dear ${order.customerName}, your ENMAR organic food order (${order.orderNumber}) of ৳${order.totalAmount} is confirmed! Track live parcel: ${trackingLink}`;
+  const customerMsg = `Dear ${order.customerName}, your order (${order.orderNumber}) of ৳${order.totalAmount} is confirmed! Track live parcel: ${trackingLink}`;
   sendSMS(order.customerPhone, customerMsg, "Order Confirmation", order.id).catch(console.error);
 
   // 2. Customer Email
   const emailHtml = `
-    <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 12px;">
-      <h2 style="color: #14421a;">🌱 ENMAR Pure Organic Food</h2>
-      <p>Dear <strong>${order.customerName}</strong>,</p>
-      <p>Thank you for choosing certified organic food. We have received your order <strong>#${order.orderNumber}</strong>.</p>
-      <div style="background: #fdfbf7; padding: 15px; border-radius: 8px; margin: 15px 0;">
-        <p><strong>Tracking ID:</strong> ${order.trackingId}</p>
-        <p><strong>Total Amount:</strong> ৳${order.totalAmount}</p>
-        <p><strong>Payment Method:</strong> ${order.paymentMethod}</p>
-        <p><strong>Delivery Address:</strong> ${order.shippingAddress} (${order.deliveryZone})</p>
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 16px; background-color: #ffffff;">
+      <h2 style="color: #14421a; margin-top: 0;">🌱 Order Confirmed!</h2>
+      <p style="font-size: 14px; color: #374151;">Dear <strong>${order.customerName}</strong>,</p>
+      <p style="font-size: 14px; color: #374151;">Thank you for your order <strong>#${order.orderNumber}</strong>. We are preparing your fresh organic items for delivery.</p>
+      
+      <div style="background: #fdfbf7; padding: 18px; border-radius: 12px; margin: 20px 0; border: 1px solid #f3eedf;">
+        <p style="margin: 4px 0; font-size: 13px;"><strong>Tracking ID:</strong> ${order.trackingId}</p>
+        <p style="margin: 4px 0; font-size: 13px;"><strong>Total Amount:</strong> ৳${order.totalAmount}</p>
+        <p style="margin: 4px 0; font-size: 13px;"><strong>Payment Method:</strong> ${order.paymentMethod}</p>
+        <p style="margin: 4px 0; font-size: 13px;"><strong>Delivery Address:</strong> ${order.shippingAddress} (${order.deliveryZone})</p>
       </div>
-      <p><a href="${trackingLink}" style="background: #14421a; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; display: inline-block;">Track Your Parcel Live</a></p>
-      <p style="color: #777; font-size: 12px; margin-top: 20px;">If you have any questions, reply to this email or call +880 1614 113082.</p>
+
+      <div style="text-align: center; margin: 24px 0;">
+        <a href="${trackingLink}" style="background: #14421a; color: #ffffff; padding: 12px 28px; border-radius: 10px; text-decoration: none; font-weight: bold; font-size: 14px; display: inline-block;">
+          Track Parcel Live
+        </a>
+      </div>
+
+      <p style="color: #6b7280; font-size: 12px; text-align: center; border-top: 1px solid #f3f4f6; padding-top: 16px; margin-bottom: 0;">
+        Have questions? Reply directly to this email or call our hotline.
+      </p>
     </div>
   `;
-  sendEmail(order.customerEmail, `Order Received #${order.orderNumber} - ENMAR Organic Food`, emailHtml, order.id).catch(console.error);
+  sendEmail(order.customerEmail, `Order Received #${order.orderNumber}`, emailHtml, order.id).catch(console.error);
 
   // 3. Admin Alert SMS
-  const adminMsg = `[ENMAR ALERT] New Order received! No: ${order.orderNumber}, Amount: ৳${order.totalAmount}, Customer: ${order.customerName} (${order.customerPhone}).`;
+  const adminMsg = `[ALERT] New Order received! No: ${order.orderNumber}, Amount: ৳${order.totalAmount}, Customer: ${order.customerName} (${order.customerPhone}).`;
   const adminPhone = process.env.ADMIN_ALERT_PHONE || "01614113082";
   sendSMS(adminPhone, adminMsg, "Admin New Order Alert", order.id).catch(console.error);
 }
 
+/**
+ * Automated Event: Order Status Changed Notification
+ */
 export async function notifyOrderStatusChanged(
   order: any,
   newStatus: string,
   note?: string
 ) {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://www.enmar.shop";
   const trackingLink = `${appUrl}/track/${order.trackingId}`;
 
   let statusText = newStatus;
@@ -207,34 +285,25 @@ export async function notifyOrderStatusChanged(
   if (newStatus === "DELIVERED") statusText = "Delivered Successfully";
   if (newStatus === "CANCELLED") statusText = "Cancelled";
 
-  const refundNotice = order.refundNeeded || order.refundStatus === "REFUND_NEEDED"
-    ? " Your online payment refund is being processed back to your original payment channel."
-    : "";
-
-  const reasonText = note || order.cancellationReason ? `Reason: ${note || order.cancellationReason}.` : "";
-
   const customerMsg = newStatus === "CANCELLED"
-    ? `ENMAR Order #${order.orderNumber} Cancelled. ${reasonText}${refundNotice} Tracking: ${trackingLink}`
-    : `ENMAR Order #${order.orderNumber} Update: Your parcel status is now [${statusText}]. ${note ? `Note: ${note}. ` : ""}Track live: ${trackingLink}`;
+    ? `Order #${order.orderNumber} Cancelled. ${note || ""}. Tracking: ${trackingLink}`
+    : `Order #${order.orderNumber} Update: Your parcel status is now [${statusText}]. Track: ${trackingLink}`;
 
   if (newStatus === "CANCELLED") {
     const cancelEmailHtml = `
-      <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 12px;">
-        <h2 style="color: #be123c;">? Order Cancelled</h2>
-        <p>Dear <strong>${order.customerName}</strong>,</p>
-        <p>Your order <strong>#${order.orderNumber}</strong> has been cancelled.</p>
-        <div style="background: #fff1f2; padding: 15px; border-radius: 8px; margin: 15px 0; border: 1px solid #fecdd3;">
-          <p><strong>Tracking ID:</strong> ${order.trackingId}</p>
-          <p><strong>Cancellation Reason:</strong> ${note || order.cancellationReason || "Cancelled"}</p>
-          <p><strong>Payment Method:</strong> ${order.paymentMethod}</p>
-          ${order.refundNeeded ? '<p style="color: #be123c; font-weight: bold;">Refund Status: Refund Needed / In Process</p>' : ''}
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 16px; background-color: #ffffff;">
+        <h2 style="color: #dc2626; margin-top: 0;">Order Cancelled</h2>
+        <p style="font-size: 14px; color: #374151;">Dear <strong>${order.customerName}</strong>,</p>
+        <p style="font-size: 14px; color: #374151;">Your order <strong>#${order.orderNumber}</strong> has been cancelled.</p>
+        <div style="background: #fef2f2; padding: 16px; border-radius: 12px; margin: 20px 0; border: 1px solid #fee2e2;">
+          <p style="margin: 4px 0; font-size: 13px;"><strong>Tracking ID:</strong> ${order.trackingId}</p>
+          <p style="margin: 4px 0; font-size: 13px;"><strong>Cancellation Reason:</strong> ${note || order.cancellationReason || "Cancelled by admin/customer"}</p>
         </div>
         <p><a href="${trackingLink}" style="background: #14421a; color: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; display: inline-block;">View Tracking Details</a></p>
       </div>
     `;
-    sendEmail(order.customerEmail, `Order #${order.orderNumber} Cancelled - ENMAR Organic Food`, cancelEmailHtml, order.id).catch(console.error);
+    sendEmail(order.customerEmail, `Order #${order.orderNumber} Cancelled`, cancelEmailHtml, order.id).catch(console.error);
   }
 
-  
   sendSMS(order.customerPhone, customerMsg, "Order Status Update", order.id).catch(console.error);
 }
