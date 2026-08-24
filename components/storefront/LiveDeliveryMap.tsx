@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Bike, MapPin, Phone, Radio, Navigation, Clock, ShieldCheck, Home, Layers } from "lucide-react";
+import { Bike, MapPin, Phone, Radio, Navigation, Clock, ShieldCheck, Home, Layers, Gauge, Timer } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -33,7 +33,8 @@ export default function LiveDeliveryMap({
 
   const [mapType, setMapType] = useState<"google_roads" | "google_satellite">("google_roads");
   const [customerCoords, setCustomerCoords] = useState<[number, number] | null>(null);
-  const [distanceKm, setDistanceKm] = useState<string | null>(null);
+  const [distanceText, setDistanceText] = useState<string>("হিসাব করা হচ্ছে...");
+  const [etaText, setEtaText] = useState<string>("~১০-১৫ মিনিট");
 
   // 1. Geocode destination address
   useEffect(() => {
@@ -81,7 +82,6 @@ export default function LiveDeliveryMap({
       map.removeLayer(tileLayerRef.current);
     }
 
-    // Google Maps Road View (lyrs=m) or Google Hybrid Satellite (lyrs=y)
     const tileUrl =
       mapType === "google_satellite"
         ? "https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
@@ -113,7 +113,6 @@ export default function LiveDeliveryMap({
         scrollWheelZoom: false,
       });
 
-      // Default to Google Maps Road Tiles
       const initialTile = L.tileLayer(
         "https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}",
         {
@@ -218,8 +217,17 @@ export default function LiveDeliveryMap({
           Math.sin(dLon / 2) *
           Math.sin(dLon / 2);
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      const d = 6371 * c; // Earth radius in KM
-      setDistanceKm(d.toFixed(1));
+      const distKm = 6371 * c; // Earth radius in KM
+
+      if (distKm < 1) {
+        const meters = Math.round(distKm * 1000);
+        setDistanceText(`${meters} মিটার`);
+        setEtaText(`~৩-৫ মিনিট`);
+      } else {
+        setDistanceText(`${distKm.toFixed(1)} কি.মি.`);
+        const estMinutes = Math.max(5, Math.round((distKm / 20) * 60)); // Avg 20 km/h city speed
+        setEtaText(`~${estMinutes}-${estMinutes + 5} মিনিট`);
+      }
 
       // Auto-fit bounds to show both Rider and Customer in view!
       const bounds = L.latLngBounds([
@@ -265,11 +273,6 @@ export default function LiveDeliveryMap({
               <span className="text-xs font-normal text-emerald-700 bg-white/80 px-2 py-0.5 rounded-full border border-emerald-200">
                 {vehicleType}
               </span>
-              {distanceKm && (
-                <span className="text-xs font-semibold text-emerald-800 bg-emerald-100/90 px-2 py-0.5 rounded-full">
-                  ~{distanceKm} কি.মি. দূরত্বে
-                </span>
-              )}
             </div>
           </div>
         </div>
@@ -282,7 +285,7 @@ export default function LiveDeliveryMap({
             className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white hover:bg-stone-50 border border-emerald-200 text-stone-700 text-xs font-semibold shadow-xs transition active:scale-95 cursor-pointer"
           >
             <Layers className="w-3.5 h-3.5 text-emerald-600" />
-            <span>{mapType === "google_roads" ? "🛰️ স্যাটেলাইট ভিউ" : "🗺️ রোড ম্যাপ"}</span>
+            <span>{mapType === "google_roads" ? "🛰️ স্যাটেলাইট" : "🗺️ রোড ম্যাপ"}</span>
           </button>
 
           <a
@@ -292,6 +295,25 @@ export default function LiveDeliveryMap({
             <Phone className="w-3.5 h-3.5" />
             <span>Call Rider</span>
           </a>
+        </div>
+      </div>
+
+      {/* Prominent Distance & ETA Live Stats Bar */}
+      <div className="grid grid-cols-2 bg-emerald-900 text-white p-3 divide-x divide-emerald-800 text-center">
+        <div className="flex items-center justify-center gap-2">
+          <Gauge className="w-4 h-4 text-emerald-300 animate-pulse" />
+          <div className="text-left">
+            <div className="text-[10px] uppercase text-emerald-300 font-semibold tracking-wider">বর্তমান দূরত্ব</div>
+            <div className="text-sm font-bold text-white font-mono">{distanceText}</div>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-center gap-2">
+          <Timer className="w-4 h-4 text-amber-300 animate-spin" style={{ animationDuration: '6s' }} />
+          <div className="text-left">
+            <div className="text-[10px] uppercase text-amber-300 font-semibold tracking-wider">পৌঁছানোর আনুমানিক সময়</div>
+            <div className="text-sm font-bold text-amber-200 font-mono">{etaText}</div>
+          </div>
         </div>
       </div>
 
