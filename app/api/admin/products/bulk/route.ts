@@ -23,34 +23,38 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "No matching products found." }, { status: 404 });
       }
 
-      await prisma.$transaction(async (tx) => {
-        // 1. Archive to Recycle Bin
-        for (const p of products) {
-          await tx.binItem.create({
-            data: {
+      await prisma.$transaction(
+        async (tx) => {
+          // 1. Archive all selected products to Recycle Bin in a single batch insert
+          await tx.binItem.createMany({
+            data: products.map((p) => ({
               entityType: "PRODUCT",
               entityId: p.id,
               title: p.name,
               subtitle: `৳${p.price} | Stock: ${p.stockQuantity}`,
               payload: p as any,
               deletedBy: "Admin",
-            },
+            })),
           });
+
+          // 2. Unlink foreign keys safely
+          await tx.wishlistItem.deleteMany({ where: { productId: { in: numericIds } } });
+          await tx.review.deleteMany({ where: { productId: { in: numericIds } } });
+          await tx.orderItem.updateMany({
+            where: { productId: { in: numericIds } },
+            data: { productId: null },
+          });
+
+          // 3. Delete from Product table
+          await tx.product.deleteMany({
+            where: { id: { in: numericIds } },
+          });
+        },
+        {
+          maxWait: 15000,
+          timeout: 30000,
         }
-
-        // 2. Unlink foreign keys safely
-        await tx.wishlistItem.deleteMany({ where: { productId: { in: numericIds } } });
-        await tx.review.deleteMany({ where: { productId: { in: numericIds } } });
-        await tx.orderItem.updateMany({
-          where: { productId: { in: numericIds } },
-          data: { productId: null },
-        });
-
-        // 3. Delete from Product table
-        await tx.product.deleteMany({
-          where: { id: { in: numericIds } },
-        });
-      });
+      );
 
       revalidatePath("/", "layout");
       revalidatePath("/products");

@@ -119,30 +119,36 @@ export async function DELETE(
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
-    await prisma.$transaction(async (tx) => {
-      // 1. Archive into recycle bin
-      await tx.binItem.create({
-        data: {
-          entityType: "PRODUCT",
-          entityId: productId,
-          title: product.name,
-          subtitle: `৳${product.price} | Stock: ${product.stockQuantity}`,
-          payload: product as any,
-          deletedBy: "Admin",
-        },
-      });
+    await prisma.$transaction(
+      async (tx) => {
+        // 1. Archive into recycle bin
+        await tx.binItem.create({
+          data: {
+            entityType: "PRODUCT",
+            entityId: productId,
+            title: product.name,
+            subtitle: `৳${product.price} | Stock: ${product.stockQuantity}`,
+            payload: product as any,
+            deletedBy: "Admin",
+          },
+        });
 
-      // 2. Unlink foreign keys safely so delete never fails
-      await tx.wishlistItem.deleteMany({ where: { productId } });
-      await tx.review.deleteMany({ where: { productId } });
-      await tx.orderItem.updateMany({
-        where: { productId },
-        data: { productId: null },
-      });
+        // 2. Unlink foreign keys safely so delete never fails
+        await tx.wishlistItem.deleteMany({ where: { productId } });
+        await tx.review.deleteMany({ where: { productId } });
+        await tx.orderItem.updateMany({
+          where: { productId },
+          data: { productId: null },
+        });
 
-      // 3. Delete product
-      await tx.product.delete({ where: { id: productId } });
-    });
+        // 3. Delete product
+        await tx.product.delete({ where: { id: productId } });
+      },
+      {
+        maxWait: 10000,
+        timeout: 20000,
+      }
+    );
 
     revalidatePath("/", "layout");
     revalidatePath("/products");
