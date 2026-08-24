@@ -156,16 +156,6 @@ export default function CheckoutPage() {
   };
 
   const handleSubmitOrder = async (e: React.FormEvent) => {
-    if (!customer) {
-      setAlertState({
-        isOpen: true,
-        title: t("checkout.loginRequiredTitle"),
-        message: t("checkout.loginRequiredDesc"),
-        type: "warning",
-        onConfirm: () => router.push("/auth/login?callbackUrl=/checkout"),
-      });
-      return;
-    }
     e.preventDefault();
     if (cart.length === 0) return;
 
@@ -270,7 +260,7 @@ export default function CheckoutPage() {
     <div className="min-h-screen bg-[#FAF8F5] text-stone-900 flex flex-col justify-between">
       <StorefrontHeader />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 flex-1 w-full space-y-8">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 flex-1 w-full space-y-6 pb-28 md:pb-16">
         <div className="flex items-center gap-2 text-xs text-stone-500">
           <Link href="/products" className="hover:text-forest">
             {t("checkout.title")}

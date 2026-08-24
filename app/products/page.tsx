@@ -1,5 +1,6 @@
-import BrandLoader from "@/components/ui/BrandLoader";
 "use client";
+
+import BrandLoader from "@/components/ui/BrandLoader";
 // app/products/page.tsx
 
 import { useEffect, useState, Suspense } from "react";

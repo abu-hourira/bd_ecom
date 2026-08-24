@@ -1,11 +1,11 @@
 "use client";
-// components/storefront/ProductCard.tsx
+// components/storefront/ProductCard.tsx - Ultra-Polished Mobile & Desktop Product Card
 
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Plus, Leaf, Star, Check } from "lucide-react";
-import { formatTaka, getProductImages } from "@/lib/utils";
+import { Plus, Leaf, Check, Sparkles } from "lucide-react";
+import { formatTaka, getProductImages, getSafeImageUrl } from "@/lib/utils";
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
 
@@ -19,7 +19,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   const [added, setAdded] = useState(false);
 
   const images = getProductImages(product.images);
-  const imageSrc = images[0];
+  const imageSrc = images[0] ? getSafeImageUrl(images[0]) : "/placeholder.png";
 
   const effectivePrice = Number(product.discountPrice || product.price);
   const hasDiscount =
@@ -37,107 +37,103 @@ export default function ProductCard({ product }: ProductCardProps) {
     e.stopPropagation();
     addToCart(product, 1);
     setAdded(true);
-    setTimeout(() => setAdded(false), 1500);
+    setTimeout(() => setAdded(false), 1400);
   };
 
   return (
-    <div className="group bg-white rounded-2xl border border-stone-200 p-3 sm:p-4 flex flex-col justify-between hover:border-forest/50 hover:shadow-md transition-all duration-300">
-      {/* Top Image & Badges */}
-      <div className="space-y-3">
-        <Link
-          href={`/products/${product.slug}`}
-          className="relative aspect-square w-full rounded-xl overflow-hidden bg-stone-50 border border-stone-100 block"
-        >
+    <div className="group bg-white rounded-2xl sm:rounded-3xl border border-stone-200/90 hover:border-forest/40 p-2.5 sm:p-4 flex flex-col justify-between shadow-xs hover:shadow-md transition-all duration-300 relative overflow-hidden active:scale-[0.99]">
+      {/* 1. Product Image & Badges */}
+      <Link href={`/products/${product.slug}`} className="block">
+        <div className="relative w-full aspect-square rounded-xl sm:rounded-2xl overflow-hidden bg-[#FAF8F5] border border-stone-100 mb-2.5 sm:mb-3 group-hover:scale-[1.02] transition-transform duration-300">
           <Image
             src={imageSrc}
             alt={product.name}
             fill
+            className="object-cover object-center p-1 sm:p-2"
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-            className="object-cover group-hover:scale-105 transition-transform duration-500"
-            unoptimized={true}
           />
 
-          {/* Badges */}
-          <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
-            {product.organicCertified && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-forest text-white text-[10px] font-bold uppercase tracking-wider shadow-xs">
-                <Leaf className="w-2.5 h-2.5 text-accent" />
-                <span>{t("products.organicBadge")}</span>
-              </span>
-            )}
-            {hasDiscount && (
-              <span className="inline-block px-2 py-0.5 rounded-md bg-amber-500 text-stone-950 text-[10px] font-extrabold uppercase tracking-wider shadow-xs">
-                {discountPercent}% {t("products.save")}
+          {/* Badges: Organic & Discount */}
+          <div className="absolute top-1.5 left-1.5 sm:top-2 sm:left-2 flex flex-col gap-1 z-10">
+            {product.isOrganic && (
+              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 sm:px-2 sm:py-0.5 rounded-full bg-[#143520]/90 backdrop-blur-xs text-amber-300 text-[8px] sm:text-[9px] font-extrabold tracking-wider uppercase shadow-xs">
+                <Leaf className="w-2.5 h-2.5 text-amber-400" />
+                <span>{locale === "bn" ? "অর্গানিক" : "Organic"}</span>
               </span>
             )}
           </div>
-        </Link>
 
-        {/* Details */}
-        <div className="space-y-1 px-0.5">
-          {product.category && (
-            <span className="text-[10px] font-semibold text-stone-500 uppercase tracking-wider block">
+          {hasDiscount && (
+            <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 z-10">
+              <span className="px-1.5 py-0.5 rounded-md bg-amber-500 text-stone-950 text-[9px] sm:text-[10px] font-black tracking-tight shadow-xs">
+                -{discountPercent}%
+              </span>
+            </div>
+          )}
+
+          {product.isCombo && (
+            <div className="absolute bottom-1.5 left-1.5 z-10">
+              <span className="px-1.5 py-0.5 rounded-md bg-forest text-white text-[8px] sm:text-[9px] font-bold shadow-xs">
+                {locale === "bn" ? "কম্বো অফার" : "Combo"}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* 2. Category & Title */}
+        <div className="space-y-1">
+          {product.category?.name && (
+            <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-stone-400 block truncate">
               {product.category.name}
             </span>
           )}
 
-          <Link
-            href={`/products/${product.slug}`}
-            className="font-semibold text-xs sm:text-sm text-stone-900 group-hover:text-forest transition-colors line-clamp-2 leading-snug"
-          >
+          <h3 className="font-display font-bold text-xs sm:text-sm text-stone-900 group-hover:text-forest line-clamp-2 leading-snug min-h-[32px] sm:min-h-[38px] transition-colors">
             {product.name}
-          </Link>
+          </h3>
 
-          {/* Rating */}
-          <div className="flex items-center gap-1 text-amber-500 text-xs pt-0.5">
-            <Star className="w-3 h-3 fill-amber-500" />
-            <span className="font-bold text-stone-800 text-[11px]">4.9</span>
-            <span className="text-stone-400 text-[10px]">
-              ({t("products.verified")})
+          {product.unit && (
+            <span className="text-[10px] sm:text-xs text-stone-500 font-medium block">
+              {product.unit}
             </span>
-          </div>
+          )}
         </div>
-      </div>
+      </Link>
 
-      {/* Pricing & Add to Cart */}
-      <div className="pt-3 mt-3 border-t border-stone-100 flex items-center justify-between gap-2 px-0.5">
-        <div>
-          <div className="flex items-baseline gap-1.5">
-            <span className="font-display font-bold text-base sm:text-lg text-stone-900">
+      {/* 3. Price & Add to Cart Button */}
+      <div className="pt-2.5 sm:pt-3 mt-1 sm:mt-2 border-t border-stone-100 flex items-center justify-between gap-1.5">
+        <div className="flex flex-col">
+          <div className="flex items-baseline gap-1">
+            <span className="text-xs sm:text-base font-extrabold font-mono text-forest leading-none">
               {formatTaka(effectivePrice)}
             </span>
             {hasDiscount && (
-              <span className="text-xs text-stone-400 line-through font-mono">
-                {formatTaka(product.price)}
+              <span className="text-[9px] sm:text-[11px] font-mono text-stone-400 line-through leading-none">
+                {formatTaka(Number(product.price))}
               </span>
             )}
           </div>
-          <span className="text-[10px] text-stone-500 block font-mono">
-            {t("products.per")} {product.unit || "পিস"}
-          </span>
         </div>
 
+        {/* Quick Add Button */}
         <button
-          type="button"
           onClick={handleAdd}
-          className={`inline-flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-semibold shadow-xs transition-all duration-200 cursor-pointer active:scale-95 ${
+          className={`p-1.5 sm:px-3 sm:py-1.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1 transition-all duration-200 cursor-pointer active:scale-90 shrink-0 shadow-xs ${
             added
-              ? "bg-emerald-700 text-white"
-              : "bg-forest hover:bg-forest-deep text-white hover:scale-105"
+              ? "bg-emerald-600 text-white scale-95"
+              : "bg-forest hover:bg-forest-deep text-white"
           }`}
-          title={t("products.add")}
+          aria-label="Add to cart"
         >
           {added ? (
             <>
               <Check className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">
-                {t("products.verified")}
-              </span>
+              <span className="hidden sm:inline text-[11px]">{locale === "bn" ? "যোগ হয়েছে" : "Added"}</span>
             </>
           ) : (
             <>
-              <Plus className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">{t("products.add")}</span>
+              <Plus className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline text-[11px]">{locale === "bn" ? "কিনুন" : "Add"}</span>
             </>
           )}
         </button>
