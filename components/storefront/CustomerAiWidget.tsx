@@ -86,7 +86,7 @@ export default function CustomerAiWidget() {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="fixed bottom-[84px] right-6 z-40 flex items-center gap-2 px-3.5 py-3 rounded-full bg-[#143520] hover:bg-[#0d2315] text-white shadow-floating border-2 border-amber-400/40 transition-all duration-300 hover:scale-105 active:scale-95 group cursor-pointer"
+          className="fixed bottom-36 md:bottom-22 right-4 sm:right-6 z-40 flex items-center gap-2 px-3.5 py-3 rounded-full bg-[#143520] hover:bg-[#0d2315] text-white shadow-xl border-2 border-amber-400/50 transition-all duration-300 hover:scale-105 active:scale-95 group cursor-pointer"
           aria-label="Open Organic AI Chat"
           title={locale === "bn" ? "অর্গানিক এআই অ্যাসিস্ট্যান্টের সাথে চ্যাট করুন" : "Chat with ENMAR AI Assistant"}
         >
@@ -102,7 +102,7 @@ export default function CustomerAiWidget() {
 
       {/* Expanded Chat Window */}
       {open && (
-        <div className="fixed bottom-6 right-4 sm:right-6 z-50 w-[92vw] sm:w-[380px] h-[520px] max-h-[82vh] bg-white rounded-3xl border border-stone-200 shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 duration-300">
+        <div className="fixed bottom-20 md:bottom-6 right-3 sm:right-6 left-3 sm:left-auto z-50 sm:w-[380px] w-auto h-[520px] max-h-[82vh] bg-white rounded-3xl border border-stone-200 shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 duration-300">
           {/* Top Header */}
           <div className="p-4 bg-[#143520] text-white flex items-center justify-between shadow-xs border-b border-amber-400/20">
             <div className="flex items-center gap-3">
