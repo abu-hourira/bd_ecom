@@ -13,17 +13,17 @@ export async function GET() {
     ]);
 
     const settings: Record<string, string> = {
-      brandName: "ENMAR",
-      brandTagline: "100% Pure Organic Food",
-      contactPhone: "+880 1614 113082",
-      contactEmail: "support@enmar.shop",
-      contactAddress: "House 14, Road 7, Sector 3, Uttara, Dhaka-1230",
-      whatsappNumber: "8801614113082",
-      whatsappDefaultMessage: "Hello ENMAR, I would like to know more about your organic products.",
+      brandName: "",
+      brandTagline: "",
+      contactPhone: "",
+      contactEmail: "",
+      contactAddress: "",
+      whatsappNumber: "",
+      whatsappDefaultMessage: "",
       siteLogo: "",
       siteFavicon: "",
-      freeShippingThreshold: "1500",
-      shippingFlat: "70",
+      freeShippingThreshold: "",
+      shippingFlat: "",
     };
 
     settingsList.forEach((s) => {
