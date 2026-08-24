@@ -16,7 +16,7 @@ export default function OrderInvoicePrintPage({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`/api/admin/orders/${id}`)
+    fetch('/api/admin/orders/' + id)
       .then((res) => res.json())
       .then((json) => {
         if (json.success) setOrder(json.order);
@@ -50,11 +50,45 @@ export default function OrderInvoicePrintPage({
   }
 
   return (
-    <div className="min-h-screen bg-neutral-100 p-4 sm:p-8 print:p-0 print:bg-white text-neutral-900 font-sans">
+    <div className="min-h-screen bg-neutral-100 p-4 sm:p-6 print:p-0 print:m-0 print:bg-white text-neutral-900 font-sans">
+      {/* Strict 1-Page Print Styles */}
+      <style jsx global>{`
+        @media print {
+          @page {
+            size: A4 portrait;
+            margin: 6mm 10mm 6mm 10mm;
+          }
+          html, body {
+            height: auto !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #ffffff !important;
+            color: #111827 !important;
+            font-size: 11px !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          .invoice-sheet {
+            box-shadow: none !important;
+            border: none !important;
+            padding: 0 !important;
+            margin: 0 auto !important;
+            max-width: 100% !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            page-break-after: avoid !important;
+            page-break-before: avoid !important;
+          }
+          .no-print {
+            display: none !important;
+          }
+        }
+      `}</style>
+
       {/* Top Action Bar (Hidden on Print) */}
-      <div className="max-w-4xl mx-auto mb-6 flex items-center justify-between print:hidden">
+      <div className="max-w-3xl mx-auto mb-4 flex items-center justify-between no-print print:hidden">
         <Link
-          href={`/admin/orders/${order.id}`}
+          href={'/admin/orders/' + order.id}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-neutral-300 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 shadow-xs"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -63,116 +97,116 @@ export default function OrderInvoicePrintPage({
 
         <button
           onClick={handlePrint}
-          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-forest hover:bg-forest-deep text-white text-xs font-bold shadow-md transition-all hover:scale-105"
+          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-forest hover:bg-forest-deep text-white text-xs font-bold shadow-md transition-all hover:scale-105 cursor-pointer"
         >
           <Printer className="w-4 h-4" />
-          <span>Print / Save as PDF</span>
+          <span>Print / Save as 1-Page PDF</span>
         </button>
       </div>
 
-      {/* Invoice Document Sheet */}
-      <div className="max-w-4xl mx-auto bg-white p-8 sm:p-12 rounded-3xl shadow-xl print:shadow-none print:p-8 border border-neutral-200 print:border-none space-y-8">
+      {/* Invoice Document Sheet (1-Page Fitted) */}
+      <div className="invoice-sheet max-w-3xl mx-auto bg-white p-6 sm:p-8 rounded-3xl shadow-xl print:shadow-none border border-neutral-200 print:border-none space-y-4">
         {/* Header: Logo & Invoice Details */}
-        <div className="flex items-start justify-between border-b-2 border-neutral-900 pb-6">
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-forest text-accent font-bold flex items-center justify-center text-xl font-display">
+        <div className="flex items-start justify-between border-b-2 border-neutral-900 pb-3">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-forest text-accent font-bold flex items-center justify-center text-lg font-display">
                 E
               </div>
               <div>
-                <h1 className="text-2xl font-bold font-display tracking-wide text-forest leading-tight">
+                <h1 className="text-xl font-bold font-display tracking-wide text-forest leading-tight">
                   ENMAR
                 </h1>
-                <span className="text-[10px] uppercase font-mono tracking-widest text-neutral-500 block">
+                <span className="text-[9px] uppercase font-mono tracking-widest text-neutral-500 block leading-none">
                   Pure Organic Food
                 </span>
               </div>
             </div>
-            <p className="text-xs text-neutral-600 max-w-xs leading-tight">
-              House 12, Road 4, Dhanmondi, Dhaka - 1205, Bangladesh <br />
-              Hotline: +880 1614 113082 • Web: enmar.bd
+            <p className="text-[10px] text-neutral-600 leading-tight pt-1">
+              House 14, Road 7, Sector 3, Uttara, Dhaka-1230, Bangladesh <br />
+              Hotline: +880 1614 113082 &bull; Email: support@enmar.bd &bull; Web: enmar.bd
             </p>
           </div>
 
-          <div className="text-right space-y-1">
-            <span className="inline-block px-3 py-1 bg-forest-soft text-forest text-xs font-bold font-mono rounded-lg">
+          <div className="text-right space-y-0.5">
+            <span className="inline-block px-2.5 py-0.5 bg-forest-soft text-forest text-[10px] font-bold font-mono rounded">
               INVOICE / PACKING SLIP
             </span>
-            <h2 className="text-lg font-bold font-mono text-neutral-900 mt-1">
+            <h2 className="text-base font-bold font-mono text-neutral-900">
               #{order.orderNumber}
             </h2>
-            <p className="text-xs text-neutral-500 font-mono">
+            <p className="text-[10px] text-neutral-500 font-mono">
               Date: {new Date(order.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
             </p>
-            <p className="text-xs text-neutral-500 font-mono">
-              Tracking ID: <strong>{order.trackingId}</strong>
+            <p className="text-[10px] text-neutral-500 font-mono">
+              Tracking: <strong>{order.trackingId}</strong>
             </p>
           </div>
         </div>
 
         {/* 2-Column Addresses */}
-        <div className="grid grid-cols-2 gap-8 py-2">
+        <div className="grid grid-cols-2 gap-6 py-1 text-xs">
           {/* Bill & Ship To */}
-          <div className="space-y-1.5">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 block">
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 block">
               Deliver To (Customer)
             </span>
-            <h3 className="font-bold text-base text-neutral-900">{order.customerName}</h3>
+            <h3 className="font-bold text-sm text-neutral-900 leading-tight">{order.customerName}</h3>
             <p className="text-xs text-neutral-700 font-mono">{order.customerPhone}</p>
-            <p className="text-xs text-neutral-600 leading-relaxed mt-1">
+            <p className="text-[11px] text-neutral-600 leading-snug">
               {order.shippingAddress}
             </p>
-            <span className="inline-block text-[11px] font-semibold text-forest bg-forest-soft px-2 py-0.5 rounded mt-1">
+            <span className="inline-block text-[10px] font-semibold text-forest bg-forest-soft px-1.5 py-0.5 rounded">
               {order.deliveryZone}
             </span>
           </div>
 
           {/* Logistics & Payment */}
-          <div className="space-y-1.5 text-right">
-            <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-500 block">
+          <div className="space-y-1 text-right">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500 block">
               Payment & Logistics
             </span>
-            <p className="text-xs text-neutral-800">
+            <p className="text-[11px] text-neutral-800">
               Payment Method: <strong>{order.paymentMethod}</strong>
             </p>
-            <p className="text-xs text-neutral-800">
+            <p className="text-[11px] text-neutral-800">
               Payment Status: <strong>{order.paymentStatus}</strong>
             </p>
             {order.courierPartner && (
-              <p className="text-xs text-neutral-800">
-                Courier: <strong>{order.courierPartner} Logistics</strong>
+              <p className="text-[11px] text-neutral-800">
+                Courier: <strong>{order.courierPartner}</strong>
               </p>
             )}
             {order.courierTrackingId && (
-              <p className="text-xs text-neutral-800 font-mono">
-                Courier AWB: <strong>{order.courierTrackingId}</strong>
+              <p className="text-[11px] text-neutral-800 font-mono">
+                AWB: <strong>{order.courierTrackingId}</strong>
               </p>
             )}
           </div>
         </div>
 
         {/* Line Items Table */}
-        <div className="border border-neutral-300 rounded-2xl overflow-hidden">
+        <div className="border border-neutral-300 rounded-xl overflow-hidden">
           <table className="w-full text-left text-xs">
-            <thead className="bg-neutral-100 uppercase font-mono text-[10px] text-neutral-700 border-b border-neutral-300">
+            <thead className="bg-neutral-100 uppercase font-mono text-[9px] text-neutral-700 border-b border-neutral-300">
               <tr>
-                <th className="py-3 px-4">#</th>
-                <th className="py-3 px-4">Item Description</th>
-                <th className="py-3 px-4 text-center">Unit</th>
-                <th className="py-3 px-4 text-center">Qty</th>
-                <th className="py-3 px-4 text-right">Unit Price</th>
-                <th className="py-3 px-4 text-right">Total</th>
+                <th className="py-2 px-3">#</th>
+                <th className="py-2 px-3">Item Description</th>
+                <th className="py-2 px-3 text-center">Unit</th>
+                <th className="py-2 px-3 text-center">Qty</th>
+                <th className="py-2 px-3 text-right">Unit Price</th>
+                <th className="py-2 px-3 text-right">Total</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-200">
               {order.items?.map((item: any, idx: number) => (
                 <tr key={item.id}>
-                  <td className="py-3 px-4 font-mono text-neutral-500">{idx + 1}</td>
-                  <td className="py-3 px-4 font-bold text-neutral-900">{item.productName}</td>
-                  <td className="py-3 px-4 text-center text-neutral-600">{item.unit || "piece"}</td>
-                  <td className="py-3 px-4 text-center font-mono font-bold text-neutral-900">{item.quantity}</td>
-                  <td className="py-3 px-4 text-right font-mono">{formatTaka(item.unitPrice)}</td>
-                  <td className="py-3 px-4 text-right font-mono font-bold text-neutral-900">
+                  <td className="py-1.5 px-3 font-mono text-neutral-500 text-[11px]">{idx + 1}</td>
+                  <td className="py-1.5 px-3 font-bold text-neutral-900 text-[11px]">{item.productName}</td>
+                  <td className="py-1.5 px-3 text-center text-neutral-600 text-[10px]">{item.unit || "piece"}</td>
+                  <td className="py-1.5 px-3 text-center font-mono font-bold text-neutral-900 text-[11px]">{item.quantity}</td>
+                  <td className="py-1.5 px-3 text-right font-mono text-[11px]">{formatTaka(item.unitPrice)}</td>
+                  <td className="py-1.5 px-3 text-right font-mono font-bold text-neutral-900 text-[11px]">
                     {formatTaka(item.totalPrice)}
                   </td>
                 </tr>
@@ -182,9 +216,9 @@ export default function OrderInvoicePrintPage({
         </div>
 
         {/* Calculation Summary Breakdown */}
-        <div className="flex justify-end">
-          <div className="w-64 space-y-2 text-xs">
-            <div className="flex justify-between text-neutral-600">
+        <div className="flex justify-end pt-1">
+          <div className="w-60 space-y-1 text-xs">
+            <div className="flex justify-between text-neutral-600 text-[11px]">
               <span>Subtotal:</span>
               <span className="font-mono text-neutral-900 font-semibold">
                 {formatTaka(order.subtotal)}
@@ -192,20 +226,20 @@ export default function OrderInvoicePrintPage({
             </div>
 
             {order.discountAmount > 0 && (
-              <div className="flex justify-between text-emerald-700">
+              <div className="flex justify-between text-emerald-700 text-[11px]">
                 <span>Discount ({order.promoCodeText || "Coupon"}):</span>
                 <span className="font-mono">-{formatTaka(order.discountAmount)}</span>
               </div>
             )}
 
-            <div className="flex justify-between text-neutral-600">
+            <div className="flex justify-between text-neutral-600 text-[11px]">
               <span>Delivery Fee ({order.deliveryZone}):</span>
               <span className="font-mono text-neutral-900">
                 {order.shippingFee === 0 ? "FREE" : formatTaka(order.shippingFee)}
               </span>
             </div>
 
-            <div className="flex justify-between text-base font-bold text-neutral-900 pt-2 border-t-2 border-neutral-900">
+            <div className="flex justify-between text-sm font-bold text-neutral-900 pt-1.5 border-t-2 border-neutral-900">
               <span>Total Amount:</span>
               <span className="font-mono text-forest">{formatTaka(order.totalAmount)}</span>
             </div>
@@ -213,13 +247,13 @@ export default function OrderInvoicePrintPage({
         </div>
 
         {/* Footer Notes & Guarantee */}
-        <div className="border-t border-neutral-200 pt-6 flex items-center justify-between text-xs text-neutral-500">
-          <div className="flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-forest" />
+        <div className="border-t border-neutral-200 pt-3 flex items-center justify-between text-[10px] text-neutral-500">
+          <div className="flex items-center gap-1.5">
+            <ShieldCheck className="w-3.5 h-3.5 text-forest" />
             <span>100% Certified Organic & Unadulterated Food Guarantee.</span>
           </div>
-          <div className="font-mono text-[11px]">
-            Thank you for shopping with ENMAR!
+          <div className="font-mono text-[10px] font-semibold">
+            Thank you for choosing ENMAR!
           </div>
         </div>
       </div>
