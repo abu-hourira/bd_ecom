@@ -106,9 +106,101 @@ export async function POST(request: NextRequest) {
           .join("\n")
       : "No active discount codes right now.";
 
-    // 3. Check for Order Tracking Intent in message
+    // 3. In-Chat Real Database Order Processor & Tracking Intent
     let orderTrackingContext = "";
-    const trackingMatch = message.match(/ENM-[A-Z0-9]{5,12}/i) || message.match(/ENM\d{4,10}/i);
+    let inChatOrderCreatedContext = "";
+
+    // A. Detect if customer is trying to place an in-chat order with full details
+    const phoneMatch = message.match(/(?:\+?88)?01[3-9]\d{8}/);
+    const orderIntentWords = /(অর্ডার|order|কিনব|চাই|need|buy|পাঠিয়ে দিন|পাঠান|পৌছে দিন)/i;
+    
+    if (phoneMatch && orderIntentWords.test(message) && products.length > 0) {
+      const detectedPhone = phoneMatch[0].replace(/^\+?88/, "");
+      // Attempt to match a product from the live catalog
+      const matchedProduct: any = (products as any[]).find((p: any) =>
+        message.toLowerCase().includes(String(p.name || "").toLowerCase()) ||
+        (p.category?.name && message.toLowerCase().includes(String(p.category.name).toLowerCase()))
+      ) || (products as any[])[0]; // fallback to most popular/first active product
+
+      if (matchedProduct && Number(matchedProduct.stockQuantity) > 0) {
+        try {
+          const rawPrice = Number(matchedProduct.discountPrice || matchedProduct.price || 0);
+          const isOutside = /(বাইরে|outside|chittagong|sylhet|rajshahi|khulna|barishal|rangpur|mymensingh|গ্রাম|থানা|জেলা)/i.test(message);
+          const zone = isOutside ? "Outside Dhaka" : "Inside Dhaka";
+          const shippingFeeNum = isOutside ? Number(outsideDhakaFee) : Number(insideDhakaFee);
+          const subtotalNum = rawPrice;
+          const totalNum = subtotalNum >= Number(freeDeliveryMin) ? subtotalNum : subtotalNum + shippingFeeNum;
+          const appliedShipping = subtotalNum >= Number(freeDeliveryMin) ? 0 : shippingFeeNum;
+
+          const ordNumber = `ORD-${new Date().toISOString().slice(2, 10).replace(/-/g, "")}-${Math.floor(1000 + Math.random() * 9000)}`;
+          const trkId = `ENM-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
+
+          // Extract potential customer name or fallback
+          const nameLines = message.split(/[\n,]/).map((s: string) => s.trim());
+          const customerNameStr = nameLines.find((l: string) => l.length >= 3 && l.length <= 30 && !l.includes(detectedPhone)) || "Valued Customer";
+
+          const createdOrder = await prisma.$transaction(async (tx) => {
+            const ord = await tx.order.create({
+              data: {
+                orderNumber: ordNumber,
+                trackingId: trkId,
+                customerName: customerNameStr,
+                customerEmail: "guest@enmar.bd",
+                customerPhone: detectedPhone,
+                shippingAddress: message.slice(0, 300),
+                deliveryZone: zone,
+                subtotal: subtotalNum,
+                discountAmount: 0,
+                shippingFee: appliedShipping,
+                totalAmount: totalNum,
+                paymentMethod: "COD",
+                paymentStatus: "PENDING",
+                orderStatus: "PENDING",
+                customerNotes: "Created via ENMAR AI Customer Assistant in chat",
+                items: {
+                  create: [
+                    {
+                      productId: Number(matchedProduct.id),
+                      productName: String(matchedProduct.name),
+                      unitPrice: rawPrice,
+                      quantity: 1,
+                      unit: String(matchedProduct.unit || "piece"),
+                      itemImage: Array.isArray(matchedProduct.images) ? String(matchedProduct.images[0]) : null,
+                      totalPrice: rawPrice,
+                    },
+                  ],
+                },
+              },
+            });
+
+            // Decrement Stock
+            await tx.product.update({
+              where: { id: Number(matchedProduct.id) },
+              data: { stockQuantity: { decrement: 1 } },
+            });
+
+            await tx.orderHistory.create({
+              data: {
+                orderId: ord.id,
+                status: "PENDING",
+                note: "Order created directly via ENMAR AI Customer Assistant.",
+                actorRole: "AI_ASSISTANT",
+                actorName: "ENMAR AI Assistant",
+              },
+            });
+
+            return ord;
+          });
+
+          inChatOrderCreatedContext = `\n[SUCCESSFULLY CREATED REAL DATABASE ORDER]: Order #${createdOrder.orderNumber} (Tracking ID: ${createdOrder.trackingId}) has been successfully created in the store database! Product: '${matchedProduct.name}' | Total Amount: ৳${createdOrder.totalAmount} (COD) | Delivery Phone: ${detectedPhone} | Delivery Zone: ${zone}.`;
+        } catch (orderErr) {
+          console.error("[In-Chat Order Creation Error]:", orderErr);
+        }
+      }
+    }
+
+    // B. Check for Order Tracking Intent in message
+    const trackingMatch = message.match(/ENM-[A-Z0-9]{5,12}/i) || message.match(/ENM\d{4,10}/i) || message.match(/ORD-\d{6,12}-\d{3,5}/i);
     if (trackingMatch) {
       const trackingQuery = trackingMatch[0].toUpperCase();
       const order = await prisma.order.findFirst({
@@ -153,13 +245,19 @@ ${productCatalogSummary}
 ACTIVE PROMO CODES / OFFERS:
 ${promosSummary}
 ${orderTrackingContext}
+${inChatOrderCreatedContext}
 
-CRITICAL OPERATIONAL RULES:
-1. Always base product availability, exact weight/measurement units, and prices ONLY on the LIVE PRODUCT CATALOG above. If a customer asks about a product, refer to its exact price, weight, and in-stock status from the catalog.
-2. If a customer asks in Bengali, reply naturally and politely in Bengali. If they ask in English, reply in English.
-3. If they ask about orders, use the verified live order details provided.
-4. NEVER disclose internal supplier costs, profit margins, database configurations, admin credentials, or API keys.
-5. Be concise, polite, and warmly guide customers to checkout or reach out via WhatsApp (${contactPhone}) if needed.`;
+CRITICAL OPERATIONAL & ORDERING RULES:
+1. ORDER PLACEMENT POLICY:
+   - If [SUCCESSFULLY CREATED REAL DATABASE ORDER] is present above, confirm the order enthusiastically in Bengali/English with the exact Order Number, Tracking ID, Total Amount, and tell them: "আমাদের প্রতিনিধি খুব শীঘ্রই কল করে ডেলিভারি নিশ্চিত করবেন।"
+   - If a customer wants to place an order but HAS NOT provided their phone number or address yet, kindly tell them:
+     "অর্ডার কনফার্ম করতে অনুগ্রহ করে আপনার: ১. নাম, ২. মোবাইল নম্বর, এবং ৩. সম্পূর্ণ ডেলিভারি ঠিকানা এখানে লিখুন। অথবা সরাসরি আমাদের [চেকআউট পেজ](/checkout)-এ গিয়ে কার্ট থেকে অর্ডার সম্পন্ন করতে পারেন।"
+   - NEVER tell a customer "আপনার অর্ডার সম্পন্ন হয়েছে" without having an actual verified Order Number and Tracking ID from the database!
+2. Always base product availability, exact weight/measurement units, and prices ONLY on the LIVE PRODUCT CATALOG above.
+3. If a customer asks in Bengali, reply naturally and politely in Bengali. If they ask in English, reply in English.
+4. If they ask about order status, use the verified live order details provided.
+5. NEVER disclose internal supplier costs, profit margins, database configurations, admin credentials, or API keys.
+6. Be concise, polite, and warmly guide customers to checkout or reach out via WhatsApp (${contactPhone}) if needed.`;
 
     // 5. Build Multi-Turn Message Array
     const messages: ChatMessage[] = [{ role: "system", content: systemPrompt }];
