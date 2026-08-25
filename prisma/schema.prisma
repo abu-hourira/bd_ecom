@@ -156,6 +156,7 @@ model Product {
   price             Decimal     @db.Decimal(10, 2)
   discountPrice     Decimal?    @db.Decimal(10, 2)
   stockQuantity     Int         @default(0)
+  unitQuantity      Decimal?    @map("unit_quantity") @db.Decimal(10, 3)
   unit              String      @default("kg") // kg, g, ml, L, piece, bundle
   images            Json        // Array of image URLs
   description       String      @db.LongText

@@ -49,6 +49,7 @@ export async function GET(
         price: true,
         discountPrice: true,
         stockQuantity: true,
+        unitQuantity: true,
         unit: true,
         images: true,
         description: true,

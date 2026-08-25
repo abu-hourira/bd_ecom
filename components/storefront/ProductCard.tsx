@@ -5,7 +5,7 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Plus, Leaf, Check, Sparkles } from "lucide-react";
-import { formatTaka, getProductImages, getSafeImageUrl } from "@/lib/utils";
+import { formatTaka, getProductImages, getSafeImageUrl, formatProductUnit } from "@/lib/utils";
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
 
@@ -20,6 +20,8 @@ export default function ProductCard({ product }: ProductCardProps) {
 
   const images = getProductImages(product.images);
   const imageSrc = images[0] ? getSafeImageUrl(images[0]) : "/placeholder.png";
+
+  const formattedUnit = formatProductUnit(product.unitQuantity, product.unit);
 
   const effectivePrice = Number(product.discountPrice || product.price);
   const hasDiscount =
@@ -92,9 +94,9 @@ export default function ProductCard({ product }: ProductCardProps) {
             {product.name}
           </h3>
 
-          {product.unit && (
+          {formattedUnit && (
             <span className="text-[10px] sm:text-xs text-stone-500 font-medium block">
-              {product.unit}
+              {formattedUnit}
             </span>
           )}
         </div>

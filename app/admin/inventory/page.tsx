@@ -17,7 +17,7 @@ import {
   Minus,
   RefreshCw,
 } from "lucide-react";
-import { formatTaka } from "@/lib/utils";
+import { formatTaka, formatProductUnit } from "@/lib/utils";
 
 export default function AdminInventoryPage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -221,7 +221,7 @@ export default function AdminInventoryPage() {
                           </div>
                           <div>
                             <div className="font-semibold text-ink text-sm">{p.name}</div>
-                            <div className="text-xs text-ink-soft">Unit: {p.unit}</div>
+                            <div className="text-xs text-ink-soft">Unit: {formatProductUnit(p.unitQuantity, p.unit)}</div>
                           </div>
                         </div>
                       </td>

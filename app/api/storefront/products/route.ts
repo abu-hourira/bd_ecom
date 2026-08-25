@@ -89,6 +89,7 @@ export async function GET(req: NextRequest) {
           price: true,
           discountPrice: true,
           stockQuantity: true,
+          unitQuantity: true,
           unit: true,
           images: true,
           shortDescription: true,

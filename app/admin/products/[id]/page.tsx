@@ -31,6 +31,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     price: "",
     discountPrice: "",
     stockQuantity: "0",
+    unitQuantity: "",
     unit: "piece",
     images: [] as string[],
     description: "",
@@ -59,6 +60,12 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             price: String(p.price || ""),
             discountPrice: p.discountPrice ? String(p.discountPrice) : "",
             stockQuantity: String(p.stockQuantity || 0),
+            unitQuantity:
+              p.unitQuantity !== null && p.unitQuantity !== undefined
+                ? String(p.unitQuantity)
+                : p.unit_quantity !== null && p.unit_quantity !== undefined
+                ? String(p.unit_quantity)
+                : "",
             unit: p.unit || "piece",
             images: Array.isArray(p.images) ? p.images : [],
             description: p.description || "",
@@ -260,9 +267,9 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             Pricing & Inventory
           </h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-ink">Regular Price (৳)</label>
+              <label className="block text-sm font-semibold text-ink">Regular Price (৳) <span className="text-rose-500">*</span></label>
               <input
                 type="number"
                 required
@@ -275,7 +282,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-ink">Discount Price (৳)</label>
+              <label className="block text-sm font-semibold text-ink">Discount Price (৳) (Optional)</label>
               <input
                 type="number"
                 min="0"
@@ -286,6 +293,21 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
               />
             </div>
 
+            {/* Side-by-side Unit Quantity & Measurement Unit */}
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-ink">Unit Quantity / Net Weight</label>
+              <input
+                type="number"
+                min="0"
+                step="any"
+                placeholder="e.g. 500, 1.5, 2"
+                value={formData.unitQuantity}
+                onChange={(e) => setFormData({ ...formData, unitQuantity: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-xl bg-bg border border-line text-sm font-mono focus:outline-none focus:ring-2 focus:ring-forest/20"
+              />
+              <p className="text-[11px] text-ink-soft">Specific weight/volume per item (e.g. 500)</p>
+            </div>
+
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-ink">Measurement Unit</label>
               <select
@@ -293,16 +315,17 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                 onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
                 className="w-full px-4 py-2.5 rounded-xl bg-bg border border-line text-sm focus:outline-none focus:ring-2 focus:ring-forest/20"
               >
-                <option value="piece">Piece (Bottle/Jar/Pack)</option>
-                <option value="kg">kg (Kilogram)</option>
                 <option value="g">g (Gram)</option>
-                <option value="L">L (Liter)</option>
+                <option value="kg">kg (Kilogram)</option>
                 <option value="ml">ml (Milliliter)</option>
+                <option value="L">L (Liter)</option>
+                <option value="piece">Piece (Bottle/Jar/Pack)</option>
                 <option value="bundle">Bundle / Combo Pack</option>
               </select>
+              <p className="text-[11px] text-ink-soft">Unit metric (e.g. g, kg, L)</p>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 sm:col-span-2">
               <label className="block text-sm font-semibold text-ink">Stock Quantity</label>
               <input
                 type="number"
@@ -313,8 +336,8 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
               />
             </div>
 
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-ink">Badge / Tag</label>
+            <div className="space-y-2 sm:col-span-2">
+              <label className="block text-sm font-semibold text-ink">Badge / Tag (Optional)</label>
               <input
                 type="text"
                 value={formData.badge}

@@ -49,6 +49,8 @@ export async function PUT(
       price,
       discountPrice,
       stockQuantity,
+      unitQuantity,
+      unit_quantity,
       unit,
       images,
       description,
@@ -73,6 +75,13 @@ export async function PUT(
       }
     }
 
+    let parsedUnitQty: any = undefined;
+    if (unitQuantity !== undefined) {
+      parsedUnitQty = unitQuantity !== null && unitQuantity !== "" ? Number(unitQuantity) : null;
+    } else if (unit_quantity !== undefined) {
+      parsedUnitQty = unit_quantity !== null && unit_quantity !== "" ? Number(unit_quantity) : null;
+    }
+
     const updated = await prisma.product.update({
       where: { id: productId },
       data: {
@@ -83,6 +92,7 @@ export async function PUT(
         price: price !== undefined ? Number(price) : existing.price,
         discountPrice: discountPrice !== undefined ? (discountPrice ? Number(discountPrice) : null) : existing.discountPrice,
         stockQuantity: stockQuantity !== undefined ? Number(stockQuantity) : existing.stockQuantity,
+        unitQuantity: parsedUnitQty !== undefined ? parsedUnitQty : (existing as any).unitQuantity,
         unit: unit !== undefined ? unit : existing.unit,
         images: images !== undefined ? (Array.isArray(images) ? images : []) : (existing.images as any),
         description: description !== undefined ? description : existing.description,

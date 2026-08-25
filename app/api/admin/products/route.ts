@@ -49,6 +49,8 @@ export async function POST(req: NextRequest) {
       price,
       discountPrice,
       stockQuantity,
+      unitQuantity,
+      unit_quantity,
       unit,
       images,
       description,
@@ -72,6 +74,13 @@ export async function POST(req: NextRequest) {
       slug = `${slug}-${Date.now().toString().slice(-4)}`;
     }
 
+    const resolvedUnitQty =
+      unitQuantity !== undefined && unitQuantity !== null && unitQuantity !== ""
+        ? Number(unitQuantity)
+        : unit_quantity !== undefined && unit_quantity !== null && unit_quantity !== ""
+        ? Number(unit_quantity)
+        : null;
+
     const product = await prisma.product.create({
       data: {
         name,
@@ -81,6 +90,7 @@ export async function POST(req: NextRequest) {
         price: Number(price),
         discountPrice: discountPrice ? Number(discountPrice) : null,
         stockQuantity: Number(stockQuantity || 0),
+        unitQuantity: resolvedUnitQty !== null && !isNaN(resolvedUnitQty) ? resolvedUnitQty : null,
         unit: unit || "piece",
         images: Array.isArray(images) ? images : [],
         description: description || "",

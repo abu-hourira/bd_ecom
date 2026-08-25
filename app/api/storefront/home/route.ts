@@ -14,6 +14,7 @@ const PRODUCT_CARD_SELECT = {
   price: true,
   discountPrice: true,
   stockQuantity: true,
+  unitQuantity: true,
   unit: true,
   images: true,
   shortDescription: true,

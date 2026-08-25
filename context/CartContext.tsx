@@ -2,6 +2,7 @@
 // context/CartContext.tsx
 
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { formatProductUnit } from "@/lib/utils";
 
 export interface CartItem {
   id: number;
@@ -10,6 +11,7 @@ export interface CartItem {
   price: number;
   discountPrice?: number | null;
   unit: string;
+  unitQuantity?: number | string | null;
   image: string;
   quantity: number;
 }
@@ -84,7 +86,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             slug: product.slug,
             price: effectivePrice,
             discountPrice: product.discountPrice ? Number(product.discountPrice) : null,
-            unit: product.unit || "piece",
+            unit: formatProductUnit(product.unitQuantity, product.unit),
+            unitQuantity: product.unitQuantity || null,
             image: imageSrc,
             quantity,
           },

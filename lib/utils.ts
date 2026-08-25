@@ -102,3 +102,33 @@ export function getProductImages(
 
   return [fallback];
 }
+
+/**
+ * Format product unit display, combining quantity and unit (e.g. "500 g", "1.5 kg", "2 L", "1 piece")
+ */
+export function formatProductUnit(
+  unitQuantity?: number | string | null,
+  unit?: string | null
+): string {
+  const u = unit?.trim() || "";
+
+  if (unitQuantity !== undefined && unitQuantity !== null && unitQuantity !== "") {
+    const qtyNum = Number(unitQuantity);
+    if (!isNaN(qtyNum) && qtyNum > 0) {
+      // Format number without unnecessary trailing zeros
+      const qtyFormatted = Number.isInteger(qtyNum)
+        ? qtyNum.toString()
+        : parseFloat(qtyNum.toFixed(3)).toString();
+
+      if (!u) return qtyFormatted;
+
+      // If unit already starts with numbers/quantity (e.g., "500g", "1 Litre", "4-in-1 Combo"), return unit directly
+      if (/^\d/.test(u)) return u;
+
+      return `${qtyFormatted} ${u}`;
+    }
+  }
+
+  return u || "piece";
+}
+

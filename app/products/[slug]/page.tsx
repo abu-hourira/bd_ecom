@@ -25,7 +25,7 @@ import {
 import StorefrontHeader from "@/components/storefront/Header";
 import StorefrontFooter from "@/components/storefront/Footer";
 import ProductCard from "@/components/storefront/ProductCard";
-import { formatTaka, getProductImages, getSafeImageUrl } from "@/lib/utils";
+import { formatTaka, getProductImages, getSafeImageUrl, formatProductUnit } from "@/lib/utils";
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
 
@@ -233,25 +233,29 @@ export default function ProductDetailPage({
                 </span>
               )}
 
-              <h1 className="text-xl sm:text-3xl font-display font-bold text-stone-900 leading-tight">
-                {product.name}
-              </h1>
-
-              {product.unit && (
+              {formatProductUnit(product.unitQuantity, product.unit) && (
                 <span className="text-xs sm:text-sm text-stone-500 font-medium block">
-                  {locale === "bn" ? "পরিমাণ:" : "Pack Size:"} <strong className="text-stone-800">{product.unit}</strong>
+                  {locale === "bn" ? "পরিমাণ:" : "Pack Size:"}{" "}
+                  <strong className="text-stone-800 font-bold">
+                    {formatProductUnit(product.unitQuantity, product.unit)}
+                  </strong>
                 </span>
               )}
             </div>
 
             {/* Price Box */}
             <div className="p-3.5 sm:p-4 rounded-2xl bg-white border border-stone-200/80 flex items-baseline justify-between">
-              <div className="flex items-baseline gap-2">
+              <div className="flex items-baseline gap-2 flex-wrap">
                 <span className="text-2xl sm:text-3xl font-extrabold font-mono text-forest">
                   {formatTaka(effectivePrice)}
                 </span>
+                {formatProductUnit(product.unitQuantity, product.unit) && (
+                  <span className="text-xs sm:text-sm font-medium text-stone-500">
+                    / {formatProductUnit(product.unitQuantity, product.unit)}
+                  </span>
+                )}
                 {hasDiscount && (
-                  <span className="text-sm sm:text-base font-mono text-stone-400 line-through">
+                  <span className="text-sm sm:text-base font-mono text-stone-400 line-through ml-1">
                     {formatTaka(Number(product.price))}
                   </span>
                 )}

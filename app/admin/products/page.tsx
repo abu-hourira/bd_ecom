@@ -20,7 +20,7 @@ import {
   RefreshCw,
   Loader2,
 } from "lucide-react";
-import { formatTaka } from "@/lib/utils";
+import { formatTaka, formatProductUnit } from "@/lib/utils";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import AlertModal from "@/components/ui/AlertModal";
 
@@ -361,7 +361,7 @@ export default function AdminProductsPage() {
                               {p.name}
                             </div>
                             <div className="text-xs text-ink-soft flex items-center gap-2 mt-0.5">
-                              <span>Unit: {p.unit || "N/A"}</span>
+                              <span>Unit: {formatProductUnit(p.unitQuantity, p.unit)}</span>
                               {p.organicCertified && (
                                 <span className="inline-flex items-center gap-0.5 text-forest font-medium text-[11px] bg-forest/10 px-1.5 py-0.5 rounded">
                                   <Leaf className="w-3 h-3" />
