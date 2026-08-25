@@ -110,22 +110,34 @@ export async function POST(request: NextRequest) {
     let orderTrackingContext = "";
     let inChatOrderCreatedContext = "";
 
-    // A. Detect if customer is trying to place an in-chat order with full details
-    const phoneMatch = message.match(/(?:\+?88)?01[3-9]\d{8}/);
-    const orderIntentWords = /(অর্ডার|order|কিনব|চাই|need|buy|পাঠিয়ে দিন|পাঠান|পৌছে দিন)/i;
+    // Combine recent conversation history with current message to support multi-turn ordering
+    const fullConversationText = [
+      ...(Array.isArray(history) ? history.map((h: any) => String(h.content || "")) : []),
+      message,
+    ].join("\n");
+
+    const phoneMatch = fullConversationText.match(/(?:\+?88)?01[3-9]\d{8}/);
+    const orderIntentWords = /(অর্ডার|order|কিনব|চাই|need|buy|পাঠিয়ে দিন|পাঠান|পৌছে দিন|নিব|নিব|নেব|দেওয়া যাবে)/i;
     
-    if (phoneMatch && orderIntentWords.test(message) && products.length > 0) {
+    if (phoneMatch && orderIntentWords.test(fullConversationText) && products.length > 0) {
       const detectedPhone = phoneMatch[0].replace(/^\+?88/, "");
-      // Attempt to match a product from the live catalog
-      const matchedProduct: any = (products as any[]).find((p: any) =>
-        message.toLowerCase().includes(String(p.name || "").toLowerCase()) ||
-        (p.category?.name && message.toLowerCase().includes(String(p.category.name).toLowerCase()))
-      ) || (products as any[])[0]; // fallback to most popular/first active product
+      
+      // Attempt to match a product from the current message first, then conversation history
+      const matchedProduct: any =
+        (products as any[]).find((p: any) =>
+          message.toLowerCase().includes(String(p.name || "").toLowerCase()) ||
+          (p.category?.name && message.toLowerCase().includes(String(p.category.name).toLowerCase()))
+        ) ||
+        (products as any[]).find((p: any) =>
+          fullConversationText.toLowerCase().includes(String(p.name || "").toLowerCase()) ||
+          (p.category?.name && fullConversationText.toLowerCase().includes(String(p.category.name).toLowerCase()))
+        ) ||
+        (products as any[])[0];
 
       if (matchedProduct && Number(matchedProduct.stockQuantity) > 0) {
         try {
           const rawPrice = Number(matchedProduct.discountPrice || matchedProduct.price || 0);
-          const isOutside = /(বাইরে|outside|chittagong|sylhet|rajshahi|khulna|barishal|rangpur|mymensingh|গ্রাম|থানা|জেলা)/i.test(message);
+          const isOutside = /(বাইরে|outside|chittagong|sylhet|rajshahi|khulna|barishal|rangpur|mymensingh|গ্রাম|থানা|জেলা)/i.test(fullConversationText);
           const zone = isOutside ? "Outside Dhaka" : "Inside Dhaka";
           const shippingFeeNum = isOutside ? Number(outsideDhakaFee) : Number(insideDhakaFee);
           const subtotalNum = rawPrice;
@@ -136,8 +148,11 @@ export async function POST(request: NextRequest) {
           const trkId = `ENM-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
 
           // Extract potential customer name or fallback
-          const nameLines = message.split(/[\n,]/).map((s: string) => s.trim());
-          const customerNameStr = nameLines.find((l: string) => l.length >= 3 && l.length <= 30 && !l.includes(detectedPhone)) || "Valued Customer";
+          const nameLines = fullConversationText.split(/[\n,]/).map((s: string) => s.trim());
+          const customerNameStr = nameLines.find((l: string) => l.length >= 3 && l.length <= 30 && !l.includes(detectedPhone) && !l.includes("ORD-") && !l.includes("ENM-")) || "Valued Customer";
+
+          // Extract best shipping address
+          const addressCandidate = nameLines.find((l: string) => /(ধানমন্ডি|মিরপুর|উত্তরা|গুলশান|বনানী|ঢাকা|রোড|বাড়ি|বাসা|ফ্ল্যাট|গ্রাম|থানা|জেলা|সেক্টর|ব্লক|মহল্লা)/i.test(l)) || fullConversationText.slice(0, 300);
 
           const createdOrder = await prisma.$transaction(async (tx) => {
             const ord = await tx.order.create({
@@ -147,7 +162,7 @@ export async function POST(request: NextRequest) {
                 customerName: customerNameStr,
                 customerEmail: "guest@enmar.bd",
                 customerPhone: detectedPhone,
-                shippingAddress: message.slice(0, 300),
+                shippingAddress: addressCandidate,
                 deliveryZone: zone,
                 subtotal: subtotalNum,
                 discountAmount: 0,
@@ -192,7 +207,7 @@ export async function POST(request: NextRequest) {
             return ord;
           });
 
-          inChatOrderCreatedContext = `\n[SUCCESSFULLY CREATED REAL DATABASE ORDER]: Order #${createdOrder.orderNumber} (Tracking ID: ${createdOrder.trackingId}) has been successfully created in the store database! Product: '${matchedProduct.name}' | Total Amount: ৳${createdOrder.totalAmount} (COD) | Delivery Phone: ${detectedPhone} | Delivery Zone: ${zone}.`;
+          inChatOrderCreatedContext = `\n[SUCCESSFULLY CREATED REAL DATABASE ORDER]: Order #${createdOrder.orderNumber} (Tracking ID: ${createdOrder.trackingId}) has been successfully placed into the live store database! Product: '${matchedProduct.name}' | Total Amount: ৳${createdOrder.totalAmount} (Cash on Delivery) | Customer Name: ${customerNameStr} | Delivery Phone: ${detectedPhone} | Delivery Address: ${addressCandidate} | Delivery Zone: ${zone}.`;
         } catch (orderErr) {
           console.error("[In-Chat Order Creation Error]:", orderErr);
         }
