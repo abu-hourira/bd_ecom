@@ -20,24 +20,18 @@ import {
 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { useAuth } from "@/context/AuthContext";
 import LanguageToggle from "./LanguageToggle";
 import { getSafeImageUrl } from "@/lib/utils";
-
-interface LoggedInUser {
-  id: number;
-  name: string;
-  email?: string;
-  role?: string;
-}
 
 export default function StorefrontHeader() {
   const router = useRouter();
   const { cartCount, setIsCartOpen } = useCart();
-  const { t, locale } = useLanguage();
+  const { locale } = useLanguage();
+  const { user: customer, isAuthenticated, isStaff } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpenMobile, setSearchOpenMobile] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [customer, setCustomer] = useState<LoggedInUser | null>(null);
   const [navCategories, setNavCategories] = useState<any[]>(() => getCachedCategories());
   const [siteSettings, setSiteSettings] = useState<Record<string, string>>(() => getCachedSettings());
 
@@ -61,15 +55,6 @@ export default function StorefrontHeader() {
         }
       })
       .catch(() => {});
-
-    try {
-      const savedUser = localStorage.getItem("enmar_user");
-      if (savedUser) {
-        setCustomer(JSON.parse(savedUser));
-      }
-    } catch (e) {
-      console.error(e);
-    }
   }, []);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -80,11 +65,6 @@ export default function StorefrontHeader() {
       setSearchOpenMobile(false);
     }
   };
-
-  const isStaff = Boolean(
-    customer?.role &&
-      ["SUPER_ADMIN", "ADMIN", "MANAGER", "MODERATOR"].includes(customer.role)
-  );
 
   const brandTitle = siteSettings.brandName || "";
   const brandSub = siteSettings.brandTagline || "";

@@ -17,35 +17,32 @@ import StorefrontHeader from "@/components/storefront/Header";
 import StorefrontFooter from "@/components/storefront/Footer";
 import AccountNav from "@/components/account/AccountNav";
 import { useLanguage } from "@/context/LanguageContext";
+import { useAuth } from "@/context/AuthContext";
 import { formatTaka } from "@/lib/utils";
 
 export default function CustomerOrdersPage() {
   const router = useRouter();
   const { lang } = useLanguage();
+  const { user, isAuthenticated, isLoaded } = useAuth();
 
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("enmar_customer");
-      if (!stored) {
-        router.push("/auth/login");
-        return;
-      }
-      const parsed = JSON.parse(stored);
-      fetch(`/api/account/orders?email=${encodeURIComponent(parsed.email || "")}&phone=${encodeURIComponent(parsed.phone || "")}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.success) {
-            setOrders(data.orders || []);
-          }
-        })
-        .finally(() => setLoading(false));
-    } catch (e) {
+    if (!isLoaded) return;
+    if (!isAuthenticated || !user) {
       router.push("/auth/login");
+      return;
     }
-  }, [router]);
+    fetch(`/api/account/orders?email=${encodeURIComponent(user.email || "")}&phone=${encodeURIComponent(user.phone || "")}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          setOrders(data.orders || []);
+        }
+      })
+      .finally(() => setLoading(false));
+  }, [isLoaded, isAuthenticated]);
 
   return (
     <div className="min-h-screen bg-bg text-ink flex flex-col justify-between">

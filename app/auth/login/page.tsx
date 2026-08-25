@@ -16,6 +16,7 @@ import StorefrontHeader from "@/components/storefront/Header";
 import StorefrontFooter from "@/components/storefront/Footer";
 import { useLanguage } from "@/context/LanguageContext";
 import { useFeatures } from "@/context/FeatureFlagContext";
+import { useAuth } from "@/context/AuthContext";
 
 function LoginContent() {
   const router = useRouter();
@@ -23,6 +24,7 @@ function LoginContent() {
   const callbackUrl = searchParams.get("callbackUrl") || "";
   const { t, locale } = useLanguage();
   const { isFeatureEnabled } = useFeatures();
+  const { login } = useAuth();
 
   const phoneOtpEnabled = isFeatureEnabled("phone_otp_login");
   const [loginMethod, setLoginMethod] = useState<"phone" | "password">("password");
@@ -84,7 +86,7 @@ function LoginContent() {
       });
       const data = await res.json();
       if (data.success && data.user) {
-        localStorage.setItem("enmar_customer", JSON.stringify(data.user));
+        login(data.user);
 
         const isStaff = ["SUPER_ADMIN", "ADMIN", "MANAGER", "MODERATOR"].includes(data.user.role);
         if (isStaff) {
@@ -117,7 +119,7 @@ function LoginContent() {
       });
       const data = await res.json();
       if (data.success && data.user) {
-        localStorage.setItem("enmar_customer", JSON.stringify(data.user));
+        login(data.user);
 
         if (data.isStaff) {
           router.push("/admin");

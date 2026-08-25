@@ -18,12 +18,14 @@ import {
 import StorefrontHeader from "@/components/storefront/Header";
 import StorefrontFooter from "@/components/storefront/Footer";
 import { useLanguage } from "@/context/LanguageContext";
+import { useAuth } from "@/context/AuthContext";
 
 function RegisterContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "";
   const { t, locale } = useLanguage();
+  const { login } = useAuth();
 
   const [step, setStep] = useState<"form" | "verify">("form");
   const [name, setName] = useState("");
@@ -91,7 +93,7 @@ function RegisterContent() {
 
       const data = await res.json();
       if (data.success && data.user) {
-        localStorage.setItem("enmar_customer", JSON.stringify(data.user));
+        login(data.user);
         router.push(callbackUrl || "/account/profile");
       } else {
         setError(data.error || (locale === "bn" ? "ভুল ভেরিফিকেশন কোড।" : "Invalid verification code."));

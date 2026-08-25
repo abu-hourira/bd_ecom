@@ -19,11 +19,13 @@ import StorefrontHeader from "@/components/storefront/Header";
 import StorefrontFooter from "@/components/storefront/Footer";
 import AccountNav from "@/components/account/AccountNav";
 import { useLanguage } from "@/context/LanguageContext";
+import { useAuth } from "@/context/AuthContext";
 import AlertModal from "@/components/ui/AlertModal";
 
 export default function ProfilePage() {
   const router = useRouter();
   const { lang, locale } = useLanguage();
+  const { user: storedAuth, isAuthenticated, isLoaded, updateUser } = useAuth();
   const isBn = locale === "bn";
 
   const [customer, setCustomer] = useState<any>(null);
@@ -84,17 +86,13 @@ export default function ProfilePage() {
   };
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("enmar_customer");
-      if (!stored) {
-        router.push("/auth/login");
-        return;
-      }
-      loadUserData(JSON.parse(stored));
-    } catch (e) {
+    if (!isLoaded) return;
+    if (!isAuthenticated || !storedAuth) {
       router.push("/auth/login");
+      return;
     }
-  }, [router]);
+    loadUserData(storedAuth);
+  }, [isLoaded, isAuthenticated]);
 
   // Update General Details (Name, Address, City)
   const handleSaveGeneral = async (e: React.FormEvent) => {
@@ -116,8 +114,7 @@ export default function ProfilePage() {
       const data = await res.json();
       if (!res.ok || !data.success) throw new Error(data.error || "Failed to update profile");
 
-      const stored = JSON.parse(localStorage.getItem("enmar_customer") || "{}");
-      localStorage.setItem("enmar_customer", JSON.stringify({ ...stored, name }));
+      updateUser({ name });
 
       setAlertState({
         isOpen: true,
@@ -201,8 +198,7 @@ export default function ProfilePage() {
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.error || "Verification failed");
 
-      const stored = JSON.parse(localStorage.getItem("enmar_customer") || "{}");
-      localStorage.setItem("enmar_customer", JSON.stringify({ ...stored, email: newEmail }));
+      updateUser({ email: newEmail });
       setCustomer({ ...customer, email: newEmail });
       setEmailOtpSent(false);
       setEmailOtp("");

@@ -17,12 +17,14 @@ import StorefrontFooter from "@/components/storefront/Footer";
 import AccountNav from "@/components/account/AccountNav";
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { useAuth } from "@/context/AuthContext";
 import { formatTaka } from "@/lib/utils";
 
 export default function CustomerWishlistPage() {
   const router = useRouter();
   const { lang } = useLanguage();
   const { addToCart } = useCart();
+  const { user, isAuthenticated, isLoaded } = useAuth();
 
   const [customer, setCustomer] = useState<any>(null);
   const [wishlist, setWishlist] = useState<any[]>([]);
@@ -38,21 +40,16 @@ export default function CustomerWishlistPage() {
   };
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("enmar_customer");
-      if (!stored) {
-        router.push("/auth/login");
-        return;
-      }
-      const parsed = JSON.parse(stored);
-      setCustomer(parsed);
-      if (parsed.id) {
-        fetchWishlist(parsed.id);
-      }
-    } catch (e) {
+    if (!isLoaded) return;
+    if (!isAuthenticated || !user) {
       router.push("/auth/login");
+      return;
     }
-  }, [router]);
+    setCustomer(user);
+    if (user.id) {
+      fetchWishlist(user.id);
+    }
+  }, [isLoaded, isAuthenticated]);
 
   const handleRemove = async (productId: number) => {
     if (!customer?.id) return;

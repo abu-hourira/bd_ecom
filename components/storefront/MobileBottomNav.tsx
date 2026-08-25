@@ -6,11 +6,13 @@ import { usePathname } from "next/navigation";
 import { Home, ShoppingBag, Grid, Truck, User } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { useAuth } from "@/context/AuthContext";
 
 export default function MobileBottomNav() {
   const pathname = usePathname();
   const { cartCount, setIsCartOpen } = useCart();
   const { locale } = useLanguage();
+  const { isAuthenticated } = useAuth();
 
   const isHome = pathname === "/";
   const isProducts = pathname.startsWith("/products");
@@ -74,13 +76,17 @@ export default function MobileBottomNav() {
 
         {/* 5. Account */}
         <Link
-          href="/account/profile"
+          href={isAuthenticated ? "/account/profile" : "/auth/login"}
           className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all cursor-pointer ${
             isAccount ? "text-forest font-bold scale-105" : "text-stone-500 hover:text-stone-900 font-medium"
           }`}
         >
           <User className={`w-4 h-4 ${isAccount ? "text-forest stroke-[2.5]" : ""}`} />
-          <span className="text-[10px] mt-0.5 leading-none">{locale === "bn" ? "প্রোফাইল" : "Account"}</span>
+          <span className="text-[10px] mt-0.5 leading-none">
+            {isAuthenticated
+              ? (locale === "bn" ? "প্রোফাইল" : "Account")
+              : (locale === "bn" ? "লগইন" : "Login")}
+          </span>
         </Link>
       </div>
     </div>

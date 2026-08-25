@@ -6,7 +6,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { ShieldCheck, ShieldAlert, Loader2, Lock } from "lucide-react";
 import AdminSidebar from "@/components/admin/Sidebar";
 import AdminHeader from "@/components/admin/Header";
-import { isStaffRole } from "@/lib/authSession";
+import { useAuth } from "@/context/AuthContext";
 
 export default function AdminLayout({
   children,
@@ -16,33 +16,17 @@ export default function AdminLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
+  const { isAuthenticated, isStaff, isLoaded } = useAuth();
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("enmar_customer");
-      if (!stored) {
-        setIsAuthorized(false);
-        router.replace(`/auth/login?callbackUrl=${encodeURIComponent(pathname)}`);
-        return;
-      }
-
-      const user = JSON.parse(stored);
-      if (!user || !user.role || !isStaffRole(user.role)) {
-        setIsAuthorized(false);
-        router.replace(`/auth/login?callbackUrl=${encodeURIComponent(pathname)}&error=unauthorized`);
-        return;
-      }
-
-      setIsAuthorized(true);
-    } catch (e) {
-      setIsAuthorized(false);
-      router.replace(`/auth/login?callbackUrl=${encodeURIComponent(pathname)}`);
+    if (!isLoaded) return;
+    if (!isAuthenticated || !isStaff) {
+      router.replace(`/auth/login?callbackUrl=${encodeURIComponent(pathname)}&error=unauthorized`);
     }
-  }, [pathname, router]);
+  }, [isLoaded, isAuthenticated, isStaff, pathname, router]);
 
-  // Loading / Authorization Check Screen
-  if (isAuthorized === null) {
+  // Loading state — wait for auth to hydrate from localStorage
+  if (!isLoaded) {
     return (
       <div className="min-h-screen bg-[#FAF8F5] flex flex-col items-center justify-center p-4">
         <div className="bg-white p-8 rounded-3xl border border-stone-200 shadow-xl max-w-sm w-full text-center space-y-4 animate-in fade-in zoom-in-95 duration-300">
@@ -66,8 +50,8 @@ export default function AdminLayout({
     );
   }
 
-  // Unauthorized Screen
-  if (!isAuthorized) {
+  // Unauthorized
+  if (!isAuthenticated || !isStaff) {
     return (
       <div className="min-h-screen bg-[#FAF8F5] flex flex-col items-center justify-center p-4">
         <div className="bg-white p-8 rounded-3xl border border-red-200 shadow-xl max-w-sm w-full text-center space-y-4">

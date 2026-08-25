@@ -3,7 +3,8 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useLanguage } from "@/context/LanguageContext";
+import { useAuth } from "@/context/AuthContext";
 import {
   User,
   ShoppingBag,
@@ -12,33 +13,15 @@ import {
   LogOut,
   LayoutDashboard,
 } from "lucide-react";
-import { useLanguage } from "@/context/LanguageContext";
 
 export default function AccountNav() {
   const pathname = usePathname();
   const router = useRouter();
   const { lang } = useLanguage();
-  const [isStaff, setIsStaff] = useState(false);
+  const { isStaff, logout } = useAuth();
 
-  useEffect(() => {
-    try {
-      const savedUser = localStorage.getItem("enmar_customer");
-      if (savedUser) {
-        const parsed = JSON.parse(savedUser);
-        if (
-          parsed.role &&
-          ["SUPER_ADMIN", "ADMIN", "MANAGER", "MODERATOR"].includes(parsed.role)
-        ) {
-          setIsStaff(true);
-        }
-      }
-    } catch (e) {
-      console.error(e);
-    }
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem("enmar_customer");
+  const handleLogout = async () => {
+    await logout();
     router.push("/");
   };
 

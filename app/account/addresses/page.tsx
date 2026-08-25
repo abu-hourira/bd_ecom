@@ -18,10 +18,12 @@ import StorefrontHeader from "@/components/storefront/Header";
 import StorefrontFooter from "@/components/storefront/Footer";
 import AccountNav from "@/components/account/AccountNav";
 import { useLanguage } from "@/context/LanguageContext";
+import { useAuth } from "@/context/AuthContext";
 
 export default function CustomerAddressesPage() {
   const router = useRouter();
   const { lang } = useLanguage();
+  const { user, isAuthenticated, isLoaded } = useAuth();
 
   const [customer, setCustomer] = useState<any>(null);
   const [addresses, setAddresses] = useState<any[]>([]);
@@ -56,23 +58,18 @@ export default function CustomerAddressesPage() {
   };
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("enmar_customer");
-      if (!stored) {
-        router.push("/auth/login");
-        return;
-      }
-      const parsed = JSON.parse(stored);
-      setCustomer(parsed);
-      setRecipientName(parsed.name || "");
-      setPhone(parsed.phone || "");
-      if (parsed.id) {
-        fetchAddresses(parsed.id);
-      }
-    } catch (e) {
+    if (!isLoaded) return;
+    if (!isAuthenticated || !user) {
       router.push("/auth/login");
+      return;
     }
-  }, [router]);
+    setCustomer(user);
+    setRecipientName(user.name || "");
+    setPhone(user.phone || "");
+    if (user.id) {
+      fetchAddresses(user.id);
+    }
+  }, [isLoaded, isAuthenticated]);
 
   const handleAddAddress = async (e: React.FormEvent) => {
     e.preventDefault();

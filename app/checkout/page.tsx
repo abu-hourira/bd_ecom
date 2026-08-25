@@ -27,6 +27,7 @@ import StorefrontFooter from "@/components/storefront/Footer";
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useFeatures } from "@/context/FeatureFlagContext";
+import { useAuth } from "@/context/AuthContext";
 import { formatTaka } from "@/lib/utils";
 
 export default function CheckoutPage() {
@@ -34,6 +35,7 @@ export default function CheckoutPage() {
   const { cart, cartSubtotal, clearCart, hasFreeShipping } = useCart();
   const { t, locale } = useLanguage();
   const { isFeatureEnabled } = useFeatures();
+  const { user: authUser, isLoaded: authLoaded } = useAuth();
 
   const [customer, setCustomer] = useState<any | null>(null);
   const [formData, setFormData] = useState({
@@ -64,46 +66,44 @@ export default function CheckoutPage() {
   });
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("enmar_customer");
-      if (stored) {
-        const user = JSON.parse(stored);
-        setCustomer(user);
-        setFormData((prev) => ({
-          ...prev,
-          customerName: user.name || prev.customerName,
-          customerPhone: user.phone || prev.customerPhone,
-          customerEmail: user.email || prev.customerEmail,
-          shippingAddress: user.address || prev.shippingAddress,
-        }));
+    if (!authLoaded) return;
+    if (authUser) {
+      setCustomer(authUser);
+      setFormData((prev) => ({
+        ...prev,
+        customerName: authUser.name || prev.customerName,
+        customerPhone: authUser.phone || prev.customerPhone,
+        customerEmail: authUser.email || prev.customerEmail,
+        shippingAddress: authUser.address || prev.shippingAddress,
+      }));
 
-        if (user.id) {
-          fetch(`/api/account/addresses?userId=${user.id}`)
-            .then((res) => res.json())
-            .then((data) => {
-              if (data.success && data.addresses?.length > 0) {
-                setSavedAddresses(data.addresses);
-                const defaultAddr =
-                  data.addresses.find((a: any) => a.isDefault) || data.addresses[0];
-                if (defaultAddr) {
-                  setSelectedAddressId(defaultAddr.id);
-                  setFormData((prev) => ({
-                    ...prev,
-                    customerName: defaultAddr.recipientName,
-                    customerPhone: defaultAddr.phone,
-                    shippingAddress: `${defaultAddr.streetAddress}, ${
-                      defaultAddr.area ? defaultAddr.area + ", " : ""
-                    }${defaultAddr.city}`,
-                    deliveryZone:
-                      defaultAddr.city === "Dhaka" ? "Inside Dhaka" : "Outside Dhaka",
-                  }));
-                }
+      if (authUser.id) {
+        fetch(`/api/account/addresses?userId=${authUser.id}`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.success && data.addresses?.length > 0) {
+              setSavedAddresses(data.addresses);
+              const defaultAddr =
+                data.addresses.find((a: any) => a.isDefault) || data.addresses[0];
+              if (defaultAddr) {
+                setSelectedAddressId(defaultAddr.id);
+                setFormData((prev) => ({
+                  ...prev,
+                  customerName: defaultAddr.recipientName,
+                  customerPhone: defaultAddr.phone,
+                  shippingAddress: `${defaultAddr.streetAddress}, ${
+                    defaultAddr.area ? defaultAddr.area + ", " : ""
+                  }${defaultAddr.city}`,
+                  deliveryZone:
+                    defaultAddr.city === "Dhaka" ? "Inside Dhaka" : "Outside Dhaka",
+                }));
               }
-            });
-        }
+            }
+          })
+          .catch(() => {});
       }
-    } catch (e) {}
-  }, []);
+    }
+  }, [authLoaded, authUser]);
 
   const handleSelectAddress = (addr: any) => {
     setSelectedAddressId(addr.id);
