@@ -407,13 +407,13 @@ export default function AdminAiPage() {
                         const val = e.target.value;
                         setProvider(val);
                         if (val === "openai") setModelName("gpt-4o");
-                        else if (val === "gemini") setModelName("gemini-1.5-flash");
+                        else if (val === "gemini") setModelName("gemini-3.6-flash");
                         else if (val === "anthropic") setModelName("claude-3-5-sonnet-20241022");
                       }}
                       className="w-full px-4 py-3 rounded-2xl bg-bg border border-line text-xs font-semibold text-ink focus:outline-none focus:border-forest"
                     >
                       <option value="openai">OpenAI (ChatGPT / GPT-4o)</option>
-                      <option value="gemini">Google Gemini (Gemini 1.5 Flash/Pro)</option>
+                      <option value="gemini">Google Gemini (Gemini 3.6 Flash)</option>
                       <option value="anthropic">Anthropic Claude (Claude 3.5 Sonnet)</option>
                       <option value="groq">Groq (Ultra-Fast Llama 3)</option>
                       <option value="openrouter">OpenRouter (Multi-Model Gateway)</option>
@@ -428,7 +428,7 @@ export default function AdminAiPage() {
                       type="text"
                       value={modelName}
                       onChange={(e) => setModelName(e.target.value)}
-                      placeholder="e.g. gpt-4o, gemini-1.5-flash"
+                      placeholder="e.g. gpt-4o, gemini-3.6-flash"
                       className="w-full px-4 py-3 rounded-2xl bg-bg border border-line text-xs font-mono text-ink focus:outline-none focus:border-forest"
                     />
                   </div>

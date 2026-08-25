@@ -150,9 +150,15 @@ export async function callLLM(
   }
 
   let model = config.modelName?.trim() || "";
-  if (!model) {
+  if (!model || ((provider === "gemini" || provider === "google") && (model === "gemini-1.5-flash" || model === "gemini-2.0-flash" || model === "gemini-1.5-pro"))) {
     if (provider === "anthropic") model = "claude-3-5-sonnet-20241022";
-    else if (provider === "gemini" || provider === "google") model = "gemini-1.5-flash";
+    else if (provider === "gemini" || provider === "google") model = "gemini-3.6-flash";
+    else if (provider === "openrouter") model = "nvidia/nemotron-3.5-lightning:free";
+    else if (provider === "groq") model = "llama3-8b-8192";
+    else model = "gpt-4o-mini";
+  } else if (!model) {
+    if (provider === "anthropic") model = "claude-3-5-sonnet-20241022";
+    else if (provider === "gemini" || provider === "google") model = "gemini-3.6-flash";
     else if (provider === "openrouter") model = "nvidia/nemotron-3.5-lightning:free";
     else if (provider === "groq") model = "llama3-8b-8192";
     else model = "gpt-4o-mini";
