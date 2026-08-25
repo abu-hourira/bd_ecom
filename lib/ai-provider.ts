@@ -120,13 +120,24 @@ export async function callLLM(
   messages: ChatMessage[],
   config: LLMConfig
 ): Promise<{ text: string; tokensUsed?: number }> {
-  const apiKey = config.apiKey || (config.apiKeyEncrypted ? decryptAES(config.apiKeyEncrypted) : "");
+  let apiKey = config.apiKey || (config.apiKeyEncrypted ? decryptAES(config.apiKeyEncrypted) : "");
+  const provider = (config.provider || "openai").toLowerCase();
 
-  if (!apiKey) {
-    throw new Error("No API key configured for AI provider.");
+  // Environment variable fallback if not set in DB
+  if (!apiKey || apiKey.trim() === "") {
+    if (provider === "openrouter") apiKey = process.env.OPENROUTER_API_KEY || "";
+    else if (provider === "openai") apiKey = process.env.OPENAI_API_KEY || "";
+    else if (provider === "gemini" || provider === "google") apiKey = process.env.GEMINI_API_KEY || "";
+    else if (provider === "anthropic") apiKey = process.env.ANTHROPIC_API_KEY || "";
+    else if (provider === "groq") apiKey = process.env.GROQ_API_KEY || "";
   }
 
-  const provider = (config.provider || "openai").toLowerCase();
+  apiKey = apiKey.trim();
+
+  if (!apiKey) {
+    throw new Error(`No API key configured for ${provider}. Please enter your API key in the AI Settings tab or set OPENROUTER_API_KEY in environment variables.`);
+  }
+
   const model = config.modelName || (provider === "anthropic" ? "claude-3-5-sonnet-20241022" : provider === "gemini" ? "gemini-1.5-flash" : "gpt-4o-mini");
 
   try {
@@ -169,7 +180,7 @@ export async function callLLM(
       return { text, tokensUsed: data.usageMetadata?.totalTokenCount || 0 };
     }
 
-    // 2. OpenAI Provider
+    // 2. OpenAI / OpenRouter / Groq / DeepSeek Provider
     if (provider === "openai" || provider === "groq" || provider === "deepseek" || provider === "openrouter") {
       const endpoint =
         provider === "groq"
@@ -178,12 +189,19 @@ export async function callLLM(
           ? "https://openrouter.ai/api/v1/chat/completions"
           : "https://api.openai.com/v1/chat/completions";
 
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      };
+
+      if (provider === "openrouter") {
+        headers["HTTP-Referer"] = process.env.NEXTAUTH_URL || "https://enmar.shop";
+        headers["X-Title"] = "ENMAR Organic Food";
+      }
+
       const res = await fetch(endpoint, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-        },
+        headers,
         body: JSON.stringify({
           model,
           messages,
@@ -194,9 +212,9 @@ export async function callLLM(
       if (!res.ok) {
         const errText = await res.text();
         if (res.status === 429 || errText.includes("insufficient_quota") || errText.includes("rate_limit")) {
-          await recordAiQuotaExhausted("OpenAI Quota Exhausted: " + errText.slice(0, 150));
+          await recordAiQuotaExhausted(`${provider} Quota Exhausted: ` + errText.slice(0, 150));
         }
-        throw new Error(`OpenAI API error (${res.status}): ${errText}`);
+        throw new Error(`${provider.toUpperCase()} API error (${res.status}): ${errText}`);
       }
 
       const data = await res.json();
