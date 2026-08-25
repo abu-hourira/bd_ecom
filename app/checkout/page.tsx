@@ -32,7 +32,7 @@ import { formatTaka } from "@/lib/utils";
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { cart, cartSubtotal, clearCart, hasFreeShipping } = useCart();
+  const { cart, cartSubtotal, clearCart, hasFreeShipping, flatDeliveryFee } = useCart();
   const { t, locale } = useLanguage();
   const { isFeatureEnabled } = useFeatures();
   const { user: authUser, isLoaded: authLoaded } = useAuth();
@@ -122,7 +122,7 @@ export default function CheckoutPage() {
     ? 0
     : formData.deliveryZone === "Outside Dhaka"
     ? 130
-    : 70;
+    : (flatDeliveryFee || 70);
 
   const discountAmount = appliedPromo ? Number(appliedPromo.discountAmount || 0) : 0;
   const grandTotal = Math.max(0, cartSubtotal - discountAmount + deliveryFee);

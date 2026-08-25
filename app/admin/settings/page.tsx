@@ -456,6 +456,19 @@ export default function AdminSettingsPage() {
                 />
               </div>
             </div>
+
+            {/* Direct Section Save Button */}
+            <div className="flex items-center justify-end pt-3">
+              <button
+                type="button"
+                onClick={() => handleSave()}
+                disabled={saving}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-forest hover:bg-forest-deep text-white font-bold text-xs shadow-premium transition-all duration-200 cursor-pointer active:scale-95 disabled:opacity-60"
+              >
+                {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+                <span>{saving ? "Saving..." : "Save Shipping & Contact Details"}</span>
+              </button>
+            </div>
           </div>
         </div>
 

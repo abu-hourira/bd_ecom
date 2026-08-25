@@ -37,6 +37,8 @@ export async function GET() {
   }
 }
 
+import { serverCache } from "@/lib/serverCache";
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -74,6 +76,10 @@ export async function POST(req: NextRequest) {
         await prisma.themeSetting.create({ data: theme });
       }
     }
+
+    // Invalidate server cache so storefront updates immediately
+    serverCache.invalidateTag("settings");
+    serverCache.invalidateAll();
 
     return NextResponse.json({ success: true, message: "Settings saved successfully." });
   } catch (error: any) {

@@ -27,6 +27,7 @@ interface CartContextType {
   isCartOpen: boolean;
   setIsCartOpen: (open: boolean) => void;
   freeShippingThreshold: number;
+  flatDeliveryFee: number;
   amountNeededForFreeShipping: number;
   hasFreeShipping: boolean;
 }
@@ -37,8 +38,27 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [freeShippingThreshold, setFreeShippingThreshold] = useState(1500);
+  const [flatDeliveryFee, setFlatDeliveryFee] = useState(70);
 
-  const freeShippingThreshold = 1500; // Free delivery over ৳1500
+  // Fetch live settings from database
+  useEffect(() => {
+    fetch("/api/storefront/settings")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.settings) {
+          if (data.settings.freeShippingThreshold) {
+            const parsed = Number(data.settings.freeShippingThreshold);
+            if (!isNaN(parsed) && parsed > 0) setFreeShippingThreshold(parsed);
+          }
+          if (data.settings.shippingFlat) {
+            const parsedFee = Number(data.settings.shippingFlat);
+            if (!isNaN(parsedFee) && parsedFee >= 0) setFlatDeliveryFee(parsedFee);
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -135,6 +155,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         isCartOpen,
         setIsCartOpen,
         freeShippingThreshold,
+        flatDeliveryFee,
         amountNeededForFreeShipping,
         hasFreeShipping,
       }}
