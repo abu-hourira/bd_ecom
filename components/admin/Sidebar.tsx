@@ -45,6 +45,8 @@ export default function AdminSidebar({ mobileOpen, onCloseMobile }: SidebarProps
     role?: string;
   } | null>(null);
 
+  const [permissions, setPermissions] = useState<any[]>([]);
+
   useEffect(() => {
     try {
       const stored = localStorage.getItem("enmar_customer");
@@ -52,6 +54,17 @@ export default function AdminSidebar({ mobileOpen, onCloseMobile }: SidebarProps
         setCurrentUser(JSON.parse(stored));
       }
     } catch (e) {}
+
+    const fetchPermissions = async () => {
+      try {
+        const res = await fetch("/api/admin/staff/permissions");
+        const json = await res.json();
+        if (json.success) {
+          setPermissions(json.permissions || []);
+        }
+      } catch (e) {}
+    };
+    fetchPermissions();
   }, []);
 
   const handleLogout = async () => {
@@ -63,32 +76,47 @@ export default function AdminSidebar({ mobileOpen, onCloseMobile }: SidebarProps
     router.replace("/auth/login");
   };
 
+  const canAccess = (moduleName: string, superAdminOnly: boolean = false) => {
+    if (!currentUser?.role) return false;
+    if (currentUser.role === "SUPER_ADMIN") return true;
+    if (superAdminOnly) return false;
+    if (moduleName === "dashboard") return true;
+
+    const perm = permissions.find(
+      (p) => p.role === currentUser.role && p.module === moduleName
+    );
+    if (!perm) {
+      return currentUser.role === "ADMIN";
+    }
+    return Boolean(perm.canRead);
+  };
+
   const navItems = [
-    { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
-    { label: "Products", href: "/admin/products", icon: Package },
-    { label: "Categories", href: "/admin/categories", icon: Layers },
-    { label: "Orders & Tracking", href: "/admin/orders", icon: ShoppingBag },
-    { label: "Delivery Fleet", href: "/admin/delivery", icon: Bike },
-    { label: "Returns & Refunds", href: "/admin/returns", icon: RotateCcw },
-    { label: "Customers", href: "/admin/customers", icon: Users },
-    { label: "Analytics & Reports", href: "/admin/analytics", icon: BarChart3 },
-    { label: "Inventory Stock", href: "/admin/inventory", icon: Boxes },
-    { label: "Promo Codes", href: "/admin/promos", icon: TicketPercent },
-    { label: "Staff & RBAC", href: "/admin/staff", icon: UserCheck },
-    { label: "Ads & Promo Banners", href: "/admin/banners", icon: Sparkles },
-    { label: "Site Content & Text", href: "/admin/content", icon: FileText },
-    { label: "Feature Toggles", href: "/admin/features", icon: Sliders },
-    { label: "Site Settings & Theme", href: "/admin/settings", icon: Palette },
-    { label: "Recycle Bin", href: "/admin/bin", icon: Trash2 },
-  ];
+    { label: "Dashboard", href: "/admin", icon: LayoutDashboard, module: "dashboard" },
+    { label: "Products", href: "/admin/products", icon: Package, module: "products" },
+    { label: "Categories", href: "/admin/categories", icon: Layers, module: "products" },
+    { label: "Orders & Tracking", href: "/admin/orders", icon: ShoppingBag, module: "orders" },
+    { label: "Delivery Fleet", href: "/admin/delivery", icon: Bike, module: "orders" },
+    { label: "Returns & Refunds", href: "/admin/returns", icon: RotateCcw, module: "returns" },
+    { label: "Customers", href: "/admin/customers", icon: Users, module: "customers" },
+    { label: "Analytics & Reports", href: "/admin/analytics", icon: BarChart3, module: "analytics" },
+    { label: "Inventory Stock", href: "/admin/inventory", icon: Boxes, module: "inventory" },
+    { label: "Promo Codes", href: "/admin/promos", icon: TicketPercent, module: "promos" },
+    { label: "Staff & RBAC", href: "/admin/staff", icon: UserCheck, module: "staff", superAdminOnly: true },
+    { label: "Ads & Promo Banners", href: "/admin/banners", icon: Sparkles, module: "promos" },
+    { label: "Site Content & Text", href: "/admin/content", icon: FileText, module: "content" },
+    { label: "Feature Toggles", href: "/admin/features", icon: Sliders, module: "settings", superAdminOnly: true },
+    { label: "Site Settings & Theme", href: "/admin/settings", icon: Palette, module: "settings" },
+    { label: "Recycle Bin", href: "/admin/bin", icon: Trash2, module: "settings", superAdminOnly: true },
+  ].filter((item) => canAccess(item.module, item.superAdminOnly));
 
   const advancedItems = [
-    { label: "Admin AI Agent", href: "/admin/ai", icon: Bot, badge: "AI" },
-    { label: "Notifications", href: "/admin/notifications", icon: BellRing },
-    { label: "API Access & Keys", href: "/admin/api-access", icon: KeyRound },
-    { label: "API Import Sync", href: "/admin/api-import", icon: ExternalLink },
-    { label: "Backup & Export", href: "/admin/backup", icon: Database },
-  ];
+    { label: "Admin AI Agent", href: "/admin/ai", icon: Bot, badge: "AI", module: "api" },
+    { label: "Notifications", href: "/admin/notifications", icon: BellRing, module: "notifications" },
+    { label: "API Access & Keys", href: "/admin/api-access", icon: KeyRound, module: "api" },
+    { label: "API Import Sync", href: "/admin/api-import", icon: ExternalLink, module: "api" },
+    { label: "Backup & Export", href: "/admin/backup", icon: Database, module: "settings", superAdminOnly: true },
+  ].filter((item) => canAccess(item.module, item.superAdminOnly));
 
   return (
     <>

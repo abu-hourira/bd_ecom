@@ -16,14 +16,64 @@ export default function AdminLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { isAuthenticated, isStaff, isLoaded } = useAuth();
+  const { user, isAuthenticated, isStaff, isLoaded } = useAuth();
+  const [permissions, setPermissions] = useState<any[]>([]);
+  const [permsLoaded, setPermsLoaded] = useState(false);
 
   useEffect(() => {
     if (!isLoaded) return;
     if (!isAuthenticated || !isStaff) {
       router.replace(`/auth/login?callbackUrl=${encodeURIComponent(pathname)}&error=unauthorized`);
+      return;
     }
+
+    const fetchPermissions = async () => {
+      try {
+        const res = await fetch("/api/admin/staff/permissions");
+        const json = await res.json();
+        if (json.success) {
+          setPermissions(json.permissions || []);
+        }
+      } catch (e) {
+      } finally {
+        setPermsLoaded(true);
+      }
+    };
+    fetchPermissions();
   }, [isLoaded, isAuthenticated, isStaff, pathname, router]);
+
+  const getModuleForPath = (path: string): { module: string; superAdminOnly?: boolean } => {
+    if (path.startsWith("/admin/staff") || path.startsWith("/admin/features") || path.startsWith("/admin/backup") || path.startsWith("/admin/bin")) {
+      return { module: "staff", superAdminOnly: true };
+    }
+    if (path.startsWith("/admin/products") || path.startsWith("/admin/categories")) return { module: "products" };
+    if (path.startsWith("/admin/orders") || path.startsWith("/admin/delivery")) return { module: "orders" };
+    if (path.startsWith("/admin/returns")) return { module: "returns" };
+    if (path.startsWith("/admin/customers")) return { module: "customers" };
+    if (path.startsWith("/admin/analytics")) return { module: "analytics" };
+    if (path.startsWith("/admin/inventory")) return { module: "inventory" };
+    if (path.startsWith("/admin/promos") || path.startsWith("/admin/banners")) return { module: "promos" };
+    if (path.startsWith("/admin/content")) return { module: "content" };
+    if (path.startsWith("/admin/settings")) return { module: "settings" };
+    if (path.startsWith("/admin/notifications")) return { module: "notifications" };
+    if (path.startsWith("/admin/api-access") || path.startsWith("/admin/api-import") || path.startsWith("/admin/ai")) return { module: "api" };
+    return { module: "dashboard" };
+  };
+
+  const isAccessAllowed = () => {
+    if (!user?.role) return false;
+    if (user.role === "SUPER_ADMIN") return true;
+
+    const { module, superAdminOnly } = getModuleForPath(pathname || "");
+    if (superAdminOnly) return false;
+    if (module === "dashboard") return true;
+
+    const perm = permissions.find((p) => p.role === user.role && p.module === module);
+    if (!perm) {
+      return user.role === "ADMIN";
+    }
+    return Boolean(perm.canRead);
+  };
 
   // Loading state — wait for auth to hydrate from localStorage
   if (!isLoaded) {
@@ -94,7 +144,29 @@ export default function AdminLayout({
         />
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
-          {children}
+          {permsLoaded && !isAccessAllowed() ? (
+            <div className="py-16 flex flex-col items-center justify-center text-center max-w-md mx-auto space-y-4 animate-in fade-in zoom-in-95">
+              <div className="w-16 h-16 rounded-3xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center shadow-card">
+                <Lock className="w-8 h-8" />
+              </div>
+              <div className="space-y-1">
+                <h2 className="text-xl font-bold font-display text-ink">
+                  অনুমতি সীমাবদ্ধ (Access Restricted)
+                </h2>
+                <p className="text-xs text-ink-soft leading-relaxed">
+                  সুপার এডমিন আপনার রোলের (<strong>{user?.role}</strong>) জন্য এই মডিউলের অ্যাক্সেস বন্ধ রেখেছেন।
+                </p>
+              </div>
+              <button
+                onClick={() => router.push("/admin")}
+                className="px-6 py-2.5 rounded-xl bg-forest hover:bg-forest-deep text-white text-xs font-bold shadow-premium transition-all cursor-pointer"
+              >
+                ড্যাশবোর্ডে ফিরে যান
+              </button>
+            </div>
+          ) : (
+            children
+          )}
         </main>
       </div>
     </div>

@@ -2,6 +2,17 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Role } from "@prisma/client";
 
+export async function GET() {
+  try {
+    const permissions = await prisma.rolePermission.findMany({
+      orderBy: [{ role: "asc" }, { module: "asc" }],
+    });
+    return NextResponse.json({ success: true, permissions });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
