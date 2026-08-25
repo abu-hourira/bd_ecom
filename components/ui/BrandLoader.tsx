@@ -1,10 +1,11 @@
 "use client";
 // components/ui/BrandLoader.tsx - Ultra-Premium Animated Brand Logo Loader
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { Store, Leaf } from "lucide-react";
 import { getSafeImageUrl } from "@/lib/utils";
+import { useStorefront } from "@/context/StorefrontContext";
 
 interface BrandLoaderProps {
   fullScreen?: boolean;
@@ -17,20 +18,9 @@ export default function BrandLoader({
   message,
   size = "md",
 }: BrandLoaderProps) {
-  const [logo, setLogo] = useState<string>("");
-  const [brandName, setBrandName] = useState<string>("");
-
-  useEffect(() => {
-    fetch("/api/storefront/settings")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && data.settings) {
-          if (data.settings.siteLogo) setLogo(data.settings.siteLogo);
-          if (data.settings.brandName) setBrandName(data.settings.brandName);
-        }
-      })
-      .catch(() => {});
-  }, []);
+  const { settings } = useStorefront();
+  const logo = settings?.siteLogo || "";
+  const brandName = settings?.brandName || "";
 
   const sizeClasses = {
     sm: "w-12 h-12",

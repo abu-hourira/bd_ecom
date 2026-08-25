@@ -1,9 +1,7 @@
 "use client";
-import { getCachedSettings, setCachedSettings, getCachedCategories, setCachedCategories } from "@/lib/storeCache";
-
 // components/storefront/Header.tsx - Ultra-Sleek Mobile & Desktop Storefront Header
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -21,6 +19,7 @@ import {
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
+import { useStorefront } from "@/context/StorefrontContext";
 import LanguageToggle from "./LanguageToggle";
 import { getSafeImageUrl } from "@/lib/utils";
 
@@ -29,33 +28,10 @@ export default function StorefrontHeader() {
   const { cartCount, setIsCartOpen } = useCart();
   const { locale } = useLanguage();
   const { user: customer, isAuthenticated, isStaff } = useAuth();
+  const { settings: siteSettings, categories: navCategories } = useStorefront();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpenMobile, setSearchOpenMobile] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [navCategories, setNavCategories] = useState<any[]>(() => getCachedCategories());
-  const [siteSettings, setSiteSettings] = useState<Record<string, string>>(() => getCachedSettings());
-
-  useEffect(() => {
-    fetch("/api/storefront/categories")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && data.categories) {
-          setNavCategories(data.categories);
-          setCachedCategories(data.categories);
-        }
-      })
-      .catch(() => {});
-
-    fetch("/api/storefront/settings")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && data.settings) {
-          setSiteSettings(data.settings);
-          setCachedSettings(data.settings);
-        }
-      })
-      .catch(() => {});
-  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

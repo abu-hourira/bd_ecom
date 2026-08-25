@@ -1,6 +1,7 @@
 // app/layout.tsx
 import type { Metadata } from "next";
 import { AuthProvider } from "@/context/AuthContext";
+import { StorefrontProvider } from "@/context/StorefrontContext";
 import { CartProvider } from "@/context/CartContext";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { FeatureFlagProvider } from "@/context/FeatureFlagContext";
@@ -37,20 +38,22 @@ export default function RootLayout({
       </head>
       <body className="min-h-screen bg-[#FAF8F5] text-stone-900 antialiased overflow-x-hidden max-w-[100vw] w-full relative" suppressHydrationWarning>
         <AuthProvider>
-          <FeatureFlagProvider>
-            <LanguageProvider>
-              <CartProvider>
-                <div className="pb-20 md:pb-0 min-h-screen flex flex-col justify-between w-full overflow-x-hidden">
-                  {children}
-                </div>
-                <MobileBottomNav />
-                <CartDrawer />
-                <CustomerAiWidget />
-                <FloatingWhatsApp />
-                <CookieConsent />
-              </CartProvider>
-            </LanguageProvider>
-          </FeatureFlagProvider>
+          <StorefrontProvider>
+            <FeatureFlagProvider>
+              <LanguageProvider>
+                <CartProvider>
+                  <div className="pb-20 md:pb-0 min-h-screen flex flex-col justify-between w-full overflow-x-hidden">
+                    {children}
+                  </div>
+                  <MobileBottomNav />
+                  <CartDrawer />
+                  <CustomerAiWidget />
+                  <FloatingWhatsApp />
+                  <CookieConsent />
+                </CartProvider>
+              </LanguageProvider>
+            </FeatureFlagProvider>
+          </StorefrontProvider>
         </AuthProvider>
       </body>
     </html>

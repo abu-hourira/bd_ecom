@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { serverCache } from "@/lib/serverCache";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60; // Edge CDN ISR Cache
 
 const PRODUCT_CARD_SELECT = {
   id: true,

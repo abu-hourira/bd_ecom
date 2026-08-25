@@ -1,27 +1,12 @@
 "use client";
 // components/storefront/FloatingWhatsApp.tsx - Floating WhatsApp support positioned above mobile bottom nav
 
-import { useEffect, useState } from "react";
 import { MessageCircle } from "lucide-react";
-import { getCachedSettings } from "@/lib/storeCache";
+import { useStorefront } from "@/context/StorefrontContext";
 
 export default function FloatingWhatsApp() {
-  const [phone, setPhone] = useState<string>(() => {
-    const cached = getCachedSettings();
-    return cached.whatsappNumber || cached.contactPhone || "";
-  });
-
-  useEffect(() => {
-    fetch("/api/storefront/settings")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && data.settings) {
-          const num = data.settings.whatsappNumber || data.settings.contactPhone || "";
-          setPhone(num);
-        }
-      })
-      .catch(() => {});
-  }, []);
+  const { settings } = useStorefront();
+  const phone = settings?.whatsappNumber || settings?.contactPhone || "";
 
   if (!phone) return null;
 

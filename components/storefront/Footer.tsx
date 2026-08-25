@@ -1,9 +1,6 @@
 "use client";
-import { getCachedSettings, setCachedSettings, getCachedCategories, setCachedCategories } from "@/lib/storeCache";
-
 // components/storefront/Footer.tsx - Clean 100% Dynamic Footer
 
-import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -14,34 +11,12 @@ import {
   Store,
 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
+import { useStorefront } from "@/context/StorefrontContext";
 import { getSafeImageUrl } from "@/lib/utils";
 
 export default function StorefrontFooter() {
   const { locale } = useLanguage();
-  const [categories, setCategories] = useState<any[]>(() => getCachedCategories());
-  const [settings, setSettings] = useState<Record<string, string>>(() => getCachedSettings());
-
-  useEffect(() => {
-    fetch("/api/storefront/categories")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && data.categories) {
-          setCategories(data.categories);
-          setCachedCategories(data.categories);
-        }
-      })
-      .catch(() => {});
-
-    fetch("/api/storefront/settings")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && data.settings) {
-          setSettings(data.settings);
-          setCachedSettings(data.settings);
-        }
-      })
-      .catch(() => {});
-  }, []);
+  const { settings, categories } = useStorefront();
 
   const brandTitle = settings.brandName || "";
 
