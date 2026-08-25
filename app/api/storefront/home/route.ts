@@ -1,9 +1,9 @@
 // app/api/storefront/home/route.ts
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { serverCache } from "@/lib/serverCache";
 
-export const revalidate = 60; // Edge CDN ISR Cache
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 const PRODUCT_CARD_SELECT = {
   id: true,
@@ -31,20 +31,6 @@ const PRODUCT_CARD_SELECT = {
 
 export async function GET() {
   try {
-    const cacheKey = "storefront_home_data";
-    const cachedData = serverCache.get<any>(cacheKey);
-
-    if (cachedData) {
-      return NextResponse.json(
-        { success: true, ...cachedData },
-        {
-          headers: {
-            "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
-          },
-        }
-      );
-    }
-
     const [categories, featuredProducts, comboDeals, siteSettings, theme, banners] =
       await Promise.all([
         prisma.category.findMany({
@@ -64,13 +50,13 @@ export async function GET() {
           where: { isActive: true },
           select: PRODUCT_CARD_SELECT,
           orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
-          take: 12,
+          take: 24,
         }),
         prisma.product.findMany({
           where: { isActive: true, isCombo: true },
           select: PRODUCT_CARD_SELECT,
           orderBy: { createdAt: "desc" },
-          take: 4,
+          take: 6,
         }),
         prisma.siteSetting.findMany({
           where: { isSecret: false },
@@ -97,14 +83,6 @@ export async function GET() {
       banners,
     };
 
-    serverCache.set(cacheKey, payload, 60, [
-      "home",
-      "products",
-      "settings",
-      "categories",
-      "banners",
-    ]);
-
     return NextResponse.json(
       {
         success: true,
@@ -112,7 +90,7 @@ export async function GET() {
       },
       {
         headers: {
-          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+          "Cache-Control": "no-store, max-age=0",
         },
       }
     );
