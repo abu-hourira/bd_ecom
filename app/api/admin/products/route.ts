@@ -81,28 +81,33 @@ export async function POST(req: NextRequest) {
         ? Number(unit_quantity)
         : null;
 
+    const createData: any = {
+      name,
+      slug,
+      categoryId: categoryId ? Number(categoryId) : null,
+      subcategory: subcategory || null,
+      price: Number(price),
+      discountPrice: discountPrice ? Number(discountPrice) : null,
+      stockQuantity: Number(stockQuantity || 0),
+      unit: unit || "piece",
+      images: Array.isArray(images) ? images : [],
+      description: description || "",
+      shortDescription: shortDescription || null,
+      organicCertified: organicCertified !== undefined ? Boolean(organicCertified) : true,
+      isCombo: Boolean(isCombo),
+      comboProductIds: Array.isArray(comboProductIds) ? comboProductIds : undefined,
+      savingsPercentage: savingsPercentage ? Number(savingsPercentage) : null,
+      badge: badge || null,
+      featured: Boolean(featured),
+      isActive: true,
+    };
+
+    if (resolvedUnitQty !== null && !isNaN(resolvedUnitQty)) {
+      createData.unitQuantity = resolvedUnitQty;
+    }
+
     const product = await prisma.product.create({
-      data: {
-        name,
-        slug,
-        categoryId: categoryId ? Number(categoryId) : null,
-        subcategory: subcategory || null,
-        price: Number(price),
-        discountPrice: discountPrice ? Number(discountPrice) : null,
-        stockQuantity: Number(stockQuantity || 0),
-        unitQuantity: resolvedUnitQty !== null && !isNaN(resolvedUnitQty) ? resolvedUnitQty : null,
-        unit: unit || "piece",
-        images: Array.isArray(images) ? images : [],
-        description: description || "",
-        shortDescription: shortDescription || null,
-        organicCertified: organicCertified !== undefined ? Boolean(organicCertified) : true,
-        isCombo: Boolean(isCombo),
-        comboProductIds: Array.isArray(comboProductIds) ? comboProductIds : undefined,
-        savingsPercentage: savingsPercentage ? Number(savingsPercentage) : null,
-        badge: badge || null,
-        featured: Boolean(featured),
-        isActive: true,
-      },
+      data: createData,
     });
 
     revalidatePath("/", "layout");

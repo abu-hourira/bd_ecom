@@ -75,36 +75,41 @@ export async function PUT(
       }
     }
 
-    let parsedUnitQty: any = undefined;
+    let parsedUnitQty: number | null | undefined = undefined;
     if (unitQuantity !== undefined) {
       parsedUnitQty = unitQuantity !== null && unitQuantity !== "" ? Number(unitQuantity) : null;
     } else if (unit_quantity !== undefined) {
       parsedUnitQty = unit_quantity !== null && unit_quantity !== "" ? Number(unit_quantity) : null;
     }
 
+    const updateData: any = {
+      name: name !== undefined ? name : existing.name,
+      slug,
+      categoryId: categoryId !== undefined ? (categoryId ? Number(categoryId) : null) : existing.categoryId,
+      subcategory: subcategory !== undefined ? subcategory : existing.subcategory,
+      price: price !== undefined ? Number(price) : existing.price,
+      discountPrice: discountPrice !== undefined ? (discountPrice ? Number(discountPrice) : null) : existing.discountPrice,
+      stockQuantity: stockQuantity !== undefined ? Number(stockQuantity) : existing.stockQuantity,
+      unit: unit !== undefined ? unit : existing.unit,
+      images: images !== undefined ? (Array.isArray(images) ? images : []) : (existing.images as any),
+      description: description !== undefined ? description : existing.description,
+      shortDescription: shortDescription !== undefined ? shortDescription : existing.shortDescription,
+      organicCertified: organicCertified !== undefined ? Boolean(organicCertified) : existing.organicCertified,
+      isCombo: isCombo !== undefined ? Boolean(isCombo) : existing.isCombo,
+      comboProductIds: comboProductIds !== undefined ? comboProductIds : (existing.comboProductIds as any),
+      savingsPercentage: savingsPercentage !== undefined ? (savingsPercentage ? Number(savingsPercentage) : null) : existing.savingsPercentage,
+      badge: badge !== undefined ? badge : existing.badge,
+      featured: featured !== undefined ? Boolean(featured) : existing.featured,
+      isActive: isActive !== undefined ? Boolean(isActive) : existing.isActive,
+    };
+
+    if (parsedUnitQty !== undefined) {
+      updateData.unitQuantity = parsedUnitQty;
+    }
+
     const updated = await prisma.product.update({
       where: { id: productId },
-      data: {
-        name: name !== undefined ? name : existing.name,
-        slug,
-        categoryId: categoryId !== undefined ? (categoryId ? Number(categoryId) : null) : existing.categoryId,
-        subcategory: subcategory !== undefined ? subcategory : existing.subcategory,
-        price: price !== undefined ? Number(price) : existing.price,
-        discountPrice: discountPrice !== undefined ? (discountPrice ? Number(discountPrice) : null) : existing.discountPrice,
-        stockQuantity: stockQuantity !== undefined ? Number(stockQuantity) : existing.stockQuantity,
-        unitQuantity: parsedUnitQty !== undefined ? parsedUnitQty : (existing as any).unitQuantity,
-        unit: unit !== undefined ? unit : existing.unit,
-        images: images !== undefined ? (Array.isArray(images) ? images : []) : (existing.images as any),
-        description: description !== undefined ? description : existing.description,
-        shortDescription: shortDescription !== undefined ? shortDescription : existing.shortDescription,
-        organicCertified: organicCertified !== undefined ? Boolean(organicCertified) : existing.organicCertified,
-        isCombo: isCombo !== undefined ? Boolean(isCombo) : existing.isCombo,
-        comboProductIds: comboProductIds !== undefined ? comboProductIds : (existing.comboProductIds as any),
-        savingsPercentage: savingsPercentage !== undefined ? (savingsPercentage ? Number(savingsPercentage) : null) : existing.savingsPercentage,
-        badge: badge !== undefined ? badge : existing.badge,
-        featured: featured !== undefined ? Boolean(featured) : existing.featured,
-        isActive: isActive !== undefined ? Boolean(isActive) : existing.isActive,
-      },
+      data: updateData,
     });
 
     revalidatePath("/", "layout");
