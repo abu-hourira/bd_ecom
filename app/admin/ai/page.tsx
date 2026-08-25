@@ -19,6 +19,7 @@ import {
   AlertTriangle,
   Activity,
   RotateCcw,
+  Trash2,
 } from "lucide-react";
 import AdminSidebar from "@/components/admin/Sidebar";
 import AlertModal from "@/components/ui/AlertModal";
@@ -51,6 +52,8 @@ export default function AdminAiPage() {
   const [autoResetOnLimit, setAutoResetOnLimit] = useState(true);
   const [savingSettings, setSavingSettings] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [deletingConfig, setDeletingConfig] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Quota status state
   const [quotaStatus, setQuotaStatus] = useState<{
@@ -237,6 +240,40 @@ export default function AdminAiPage() {
       }
     } catch (e: any) {
       setAlertState({ isOpen: true, title: "Error", message: e.message, type: "error" });
+    }
+  };
+
+  const handleDeleteConfig = async () => {
+    setDeletingConfig(true);
+    try {
+      const res = await fetch("/api/admin/ai", { method: "DELETE" });
+      const json = await res.json();
+      if (json.success) {
+        // Reset all local state
+        setProvider("openai");
+        setApiKey("");
+        setModelName("gpt-4o");
+        setSystemPrompt("");
+        setAdminPrompt("");
+        setIsActive(false);
+        setHasApiKey(false);
+        setMonthlyLimit(1000);
+        setAutoResetOnLimit(true);
+        setShowDeleteConfirm(false);
+        setAlertState({
+          isOpen: true,
+          title: "Configuration Deleted",
+          message: "AI model credentials and quota counters have been wiped successfully. You can set up a new configuration anytime.",
+          type: "success",
+        });
+        fetchAiData();
+      } else {
+        setAlertState({ isOpen: true, title: "Error", message: json.error || "Deletion failed.", type: "error" });
+      }
+    } catch (e: any) {
+      setAlertState({ isOpen: true, title: "Error", message: e.message, type: "error" });
+    } finally {
+      setDeletingConfig(false);
     }
   };
 
@@ -639,9 +676,52 @@ export default function AdminAiPage() {
                     <RotateCcw className="w-3.5 h-3.5" />
                     <span>Reset Quota Alert Status</span>
                   </button>
+
+                  {/* Delete Configuration */}
+                  <div className="mt-4 pt-3 border-t border-red-100">
+                    {!showDeleteConfirm ? (
+                      <button
+                        type="button"
+                        onClick={() => setShowDeleteConfirm(true)}
+                        className="w-full py-2.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Delete AI Configuration & Credentials</span>
+                      </button>
+                    ) : (
+                      <div className="rounded-xl border border-red-300 bg-red-50 p-3 space-y-2">
+                        <p className="text-xs text-red-700 font-semibold text-center">
+                          ⚠️ এই কাজটি Provider, API Key এবং সব Quota ডেটা মুছে দেবে। নিশ্চিত?
+                        </p>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setShowDeleteConfirm(false)}
+                            className="flex-1 py-2 rounded-lg bg-white border border-line text-xs font-bold text-ink-soft hover:text-ink transition-colors cursor-pointer"
+                          >
+                            বাতিল করুন
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleDeleteConfig}
+                            disabled={deletingConfig}
+                            className="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60"
+                          >
+                            {deletingConfig ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Trash2 className="w-3.5 h-3.5" />
+                            )}
+                            <span>{deletingConfig ? "Deleting..." : "হ্যাঁ, মুছে দিন"}</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
+
           </div>
         )}
       </main>

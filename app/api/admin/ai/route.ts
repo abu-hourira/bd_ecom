@@ -142,3 +142,30 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function DELETE() {
+  try {
+    // Delete all AI setting records
+    await prisma.aISetting.deleteMany({});
+
+    // Reset quota-related site settings
+    const keysToReset = [
+      "ai_requests_this_month",
+      "ai_quota_exhausted",
+      "ai_quota_exhausted_at",
+      "ai_rate_limit_hit",
+      "ai_rate_limit_hit_at",
+    ];
+
+    for (const key of keysToReset) {
+      await prisma.siteSetting.deleteMany({ where: { key } }).catch(() => {});
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "AI configuration deleted successfully.",
+    });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
