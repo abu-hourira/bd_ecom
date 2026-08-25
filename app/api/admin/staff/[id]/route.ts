@@ -73,6 +73,8 @@ export async function DELETE(
   }
 }
 
+import bcrypt from "bcryptjs";
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -81,7 +83,7 @@ export async function PATCH(
     const { id } = await params;
     const staffId = Number(id);
     const body = await req.json();
-    const { isDeactivated, role, name, phone } = body;
+    const { isDeactivated, role, name, phone, email, password } = body;
 
     const staffMember = await prisma.user.findUnique({
       where: { id: staffId },
@@ -91,8 +93,8 @@ export async function PATCH(
       return NextResponse.json({ error: "Staff member not found" }, { status: 404 });
     }
 
-    // Safeguard: Cannot deactivate the last Super Admin
-    if (isDeactivated && staffMember.role === Role.SUPER_ADMIN) {
+    // Safeguard: Cannot deactivate or demote the last Super Admin
+    if ((isDeactivated || (role && role !== Role.SUPER_ADMIN)) && staffMember.role === Role.SUPER_ADMIN) {
       const superAdminCount = await prisma.user.count({
         where: { role: Role.SUPER_ADMIN },
       });
@@ -101,30 +103,39 @@ export async function PATCH(
         return NextResponse.json(
           {
             error:
-              "Action Blocked: The last remaining Super Admin account cannot be deactivated.",
+              "Action Blocked: The last remaining Super Admin account cannot be deactivated or demoted.",
           },
           { status: 403 }
         );
       }
     }
 
-    // If isDeactivated is true, set lockedUntil to a distant future date (e.g. 100 years), or null if reactivated
-    const lockedUntil = isDeactivated ? new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000) : null;
+    // If isDeactivated is true, set lockedUntil to a distant future date, or null if reactivated
+    const lockedUntil = isDeactivated !== undefined
+      ? isDeactivated ? new Date(Date.now() + 100 * 365 * 24 * 60 * 60 * 1000) : null
+      : staffMember.lockedUntil;
+
+    let passwordHash = staffMember.passwordHash;
+    if (password && password.trim().length >= 6) {
+      passwordHash = await bcrypt.hash(password.trim(), 10);
+    }
 
     const updated = await prisma.user.update({
       where: { id: staffId },
       data: {
-        lockedUntil: isDeactivated !== undefined ? lockedUntil : staffMember.lockedUntil,
+        lockedUntil,
         failedAttempts: isDeactivated ? 99 : 0,
         role: role !== undefined ? role : staffMember.role,
-        name: name !== undefined ? name : staffMember.name,
-        phone: phone !== undefined ? phone : staffMember.phone,
+        name: name !== undefined ? name.trim() : staffMember.name,
+        phone: phone !== undefined ? phone.trim() : staffMember.phone,
+        email: email !== undefined ? email.trim().toLowerCase() : staffMember.email,
+        passwordHash,
       },
     });
 
     return NextResponse.json({
       success: true,
-      message: `Staff account '${updated.name}' updated successfully.`,
+      message: `Staff account '${updated.name}' (${updated.role}) updated successfully.`,
       staff: updated,
     });
   } catch (error: any) {

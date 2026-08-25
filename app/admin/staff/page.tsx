@@ -17,6 +17,10 @@ import {
   Power,
   X,
   AlertCircle,
+  Pencil,
+  Eye,
+  Edit2,
+  Trash,
 } from "lucide-react";
 
 export default function StaffManagementPage() {
@@ -33,6 +37,15 @@ export default function StaffManagementPage() {
   const [password, setPassword] = useState("");
   const [twoFactor, setTwoFactor] = useState(false);
   const [inviting, setInviting] = useState(false);
+
+  // Edit Staff Modal
+  const [editTarget, setEditTarget] = useState<any | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editRole, setEditRole] = useState("MANAGER");
+  const [editPassword, setEditPassword] = useState("");
+  const [updatingStaff, setUpdatingStaff] = useState(false);
 
   // Delete / Action Modal
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
@@ -102,6 +115,91 @@ export default function StaffManagementPage() {
       });
     } finally {
       setInviting(false);
+    }
+  };
+
+  const openEditModal = (staffMember: any) => {
+    setEditTarget(staffMember);
+    setEditName(staffMember.name);
+    setEditEmail(staffMember.email);
+    setEditPhone(staffMember.phone || "");
+    setEditRole(staffMember.role);
+    setEditPassword("");
+  };
+
+  const handleUpdateStaff = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editTarget) return;
+
+    setUpdatingStaff(true);
+    try {
+      const res = await fetch(`/api/admin/staff/${editTarget.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: editName,
+          email: editEmail,
+          phone: editPhone,
+          role: editRole,
+          password: editPassword.trim() || undefined,
+        }),
+      });
+
+      const json = await res.json();
+      if (json.success) {
+        setEditTarget(null);
+        setActionFeedback(json.message || "Staff member updated successfully.");
+        setTimeout(() => setActionFeedback(null), 3000);
+        fetchStaffData();
+      } else {
+        setAlertState({
+          isOpen: true,
+          title: "Update Error",
+          message: json.error || "Failed to update staff member.",
+          type: "error",
+        });
+      }
+    } catch (e: any) {
+      setAlertState({
+        isOpen: true,
+        title: "Error",
+        message: e.message || "An unexpected error occurred.",
+        type: "error",
+      });
+    } finally {
+      setUpdatingStaff(false);
+    }
+  };
+
+  const handleInlineRoleChange = async (staffMember: any, newRole: string) => {
+    if (staffMember.role === newRole) return;
+    try {
+      const res = await fetch(`/api/admin/staff/${staffMember.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: newRole }),
+      });
+
+      const json = await res.json();
+      if (json.success) {
+        setActionFeedback(`Role for ${staffMember.name} changed to ${newRole}.`);
+        setTimeout(() => setActionFeedback(null), 3000);
+        fetchStaffData();
+      } else {
+        setAlertState({
+          isOpen: true,
+          title: "Role Change Error",
+          message: json.error || "Failed to change role.",
+          type: "error",
+        });
+      }
+    } catch (e: any) {
+      setAlertState({
+        isOpen: true,
+        title: "Error",
+        message: e.message || "An unexpected error occurred.",
+        type: "error",
+      });
     }
   };
 
@@ -180,6 +278,18 @@ export default function StaffManagementPage() {
     field: "canRead" | "canCreate" | "canEdit" | "canDelete",
     currentVal: boolean
   ) => {
+    // Optimistic UI update
+    setPermissions((prev) => {
+      const existingIdx = prev.findIndex((p) => p.role === roleName && p.module === module);
+      if (existingIdx >= 0) {
+        const next = [...prev];
+        next[existingIdx] = { ...next[existingIdx], [field]: !currentVal };
+        return next;
+      } else {
+        return [...prev, { role: roleName, module, [field]: !currentVal }];
+      }
+    });
+
     try {
       await fetch("/api/admin/staff/permissions", {
         method: "POST",
@@ -190,9 +300,9 @@ export default function StaffManagementPage() {
           [field]: !currentVal,
         }),
       });
-      fetchStaffData();
     } catch (e) {
       console.error(e);
+      fetchStaffData();
     }
   };
 
@@ -214,7 +324,7 @@ export default function StaffManagementPage() {
             Staff & Permissions Matrix
           </h2>
           <p className="text-xs text-ink-soft mt-0.5">
-            Manage admin team members, role assignments, security 2FA, and granular module permissions.
+            Manage admin team members, edit roles/credentials, and toggle granular permissions.
           </p>
         </div>
 
@@ -261,7 +371,7 @@ export default function StaffManagementPage() {
                 <tr>
                   <th className="p-4">Staff Member</th>
                   <th className="p-4">Email & Phone</th>
-                  <th className="p-4">Role Tier</th>
+                  <th className="p-4">Role Assignment</th>
                   <th className="p-4">Security Status</th>
                   <th className="p-4 text-right">Actions</th>
                 </tr>
@@ -300,19 +410,21 @@ export default function StaffManagementPage() {
                       </td>
 
                       <td className="p-4">
-                        <span
-                          className={`px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase border ${
-                            s.role === "SUPER_ADMIN"
-                              ? "bg-amber-100 text-amber-900 border-amber-300"
-                              : s.role === "ADMIN"
-                              ? "bg-emerald-100 text-emerald-900 border-emerald-300"
-                              : s.role === "MANAGER"
-                              ? "bg-blue-100 text-blue-900 border-blue-300"
-                              : "bg-purple-100 text-purple-900 border-purple-300"
-                          }`}
-                        >
-                          {s.role}
-                        </span>
+                        {s.role === "SUPER_ADMIN" ? (
+                          <span className="px-2.5 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase border bg-amber-100 text-amber-900 border-amber-300">
+                            SUPER_ADMIN
+                          </span>
+                        ) : (
+                          <select
+                            value={s.role}
+                            onChange={(e) => handleInlineRoleChange(s, e.target.value)}
+                            className="px-2.5 py-1 rounded-xl text-[11px] font-bold border border-line bg-bg focus:outline-none focus:border-forest cursor-pointer"
+                          >
+                            <option value="ADMIN">ADMIN</option>
+                            <option value="MANAGER">MANAGER</option>
+                            <option value="MODERATOR">MODERATOR</option>
+                          </select>
+                        )}
                       </td>
 
                       <td className="p-4">
@@ -339,6 +451,16 @@ export default function StaffManagementPage() {
 
                       <td className="p-4 text-right">
                         <div className="inline-flex items-center gap-1.5">
+                          {/* Edit Details Button */}
+                          <button
+                            type="button"
+                            onClick={() => openEditModal(s)}
+                            className="p-2 rounded-xl border border-line bg-white text-forest hover:bg-forest-soft text-xs font-semibold transition-all cursor-pointer"
+                            title="Edit Staff Information & Role"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+
                           {/* Deactivate / Reactivate */}
                           <button
                             type="button"
@@ -391,34 +513,44 @@ export default function StaffManagementPage() {
         )}
       </div>
 
-      {/* Dynamic RBAC Permission Matrix Table */}
+      {/* Dynamic RBAC Permission Matrix Table (Toggle Switch Mode) */}
       <div className="bg-paper rounded-3xl border border-line shadow-xs p-6 sm:p-8 space-y-6">
-        <div className="border-b border-line pb-4">
-          <h3 className="font-bold font-display text-lg text-ink flex items-center gap-2">
-            <KeyRound className="w-5 h-5 text-forest" />
-            <span>Configurable Role Permission Matrix</span>
-          </h3>
-          <p className="text-xs text-ink-soft mt-0.5">
-            Super Admin possesses unrestricted access. Super Admin can adjust permissions for Admin, Manager, and Moderator below.
-          </p>
+        <div className="border-b border-line pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h3 className="font-bold font-display text-lg text-ink flex items-center gap-2">
+              <KeyRound className="w-5 h-5 text-forest" />
+              <span>Role Permissions Matrix (টগল মোড)</span>
+            </h3>
+            <p className="text-xs text-ink-soft mt-0.5">
+              যেকোনো রোলের অনুমতি সহজে টগল (On/Off) করে পরিবর্তন করুন। Super Admin সবসময় ফুল অ্যাক্সেস রাখবে।
+            </p>
+          </div>
+
+          <div className="flex items-center gap-4 text-xs font-semibold text-ink-soft bg-bg px-4 py-2 rounded-2xl border border-line">
+            <span className="flex items-center gap-1.5"><Eye className="w-3.5 h-3.5 text-forest" /> Read (দেখা)</span>
+            <span className="flex items-center gap-1.5"><Edit2 className="w-3.5 h-3.5 text-blue-600" /> Write (এডিট)</span>
+            <span className="flex items-center gap-1.5"><Trash className="w-3.5 h-3.5 text-rose-600" /> Delete (ডিলিট)</span>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-bg border-b border-line text-ink-soft uppercase text-[10px] tracking-wider">
               <tr>
-                <th className="p-3">Module</th>
+                <th className="p-4 w-40">Module Name</th>
                 {roles.map((r) => (
-                  <th key={r} className="p-3 text-center">
-                    {r} (Read / Write / Delete)
+                  <th key={r} className="p-4 text-center">
+                    <div className="inline-block px-3 py-1 rounded-xl bg-paper border border-line font-bold text-ink">
+                      {r}
+                    </div>
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
               {modules.map((mod) => (
-                <tr key={mod} className="hover:bg-bg/40">
-                  <td className="p-3 font-bold text-ink uppercase tracking-wider text-[11px]">
+                <tr key={mod} className="hover:bg-bg/40 transition-colors">
+                  <td className="p-4 font-bold text-ink uppercase tracking-wider text-xs">
                     {mod}
                   </td>
                   {roles.map((r) => {
@@ -428,35 +560,64 @@ export default function StaffManagementPage() {
                     const canDelete = p ? p.canDelete : false;
 
                     return (
-                      <td key={r} className="p-3 text-center">
-                        <div className="inline-flex items-center gap-2">
-                          <label className="flex items-center gap-1 text-[10px] text-ink-soft cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={canRead}
-                              onChange={() => handlePermissionToggle(r, mod, "canRead", canRead)}
-                              className="w-3.5 h-3.5 text-forest rounded cursor-pointer"
-                            />
-                            <span>R</span>
-                          </label>
-                          <label className="flex items-center gap-1 text-[10px] text-ink-soft cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={canEdit}
-                              onChange={() => handlePermissionToggle(r, mod, "canEdit", canEdit)}
-                              className="w-3.5 h-3.5 text-forest rounded cursor-pointer"
-                            />
-                            <span>W</span>
-                          </label>
-                          <label className="flex items-center gap-1 text-[10px] text-ink-soft cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={canDelete}
-                              onChange={() => handlePermissionToggle(r, mod, "canDelete", canDelete)}
-                              className="w-3.5 h-3.5 text-forest rounded cursor-pointer"
-                            />
-                            <span>D</span>
-                          </label>
+                      <td key={r} className="p-4 text-center">
+                        <div className="inline-flex items-center justify-center gap-3 bg-bg/80 px-3 py-2 rounded-2xl border border-line/60">
+                          {/* Read Toggle */}
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-bold text-ink-soft">Read:</span>
+                            <button
+                              type="button"
+                              onClick={() => handlePermissionToggle(r, mod, "canRead", canRead)}
+                              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                canRead ? "bg-forest" : "bg-stone-300 dark:bg-stone-600"
+                              }`}
+                              title={`Toggle Read for ${r} on ${mod}`}
+                            >
+                              <span
+                                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                                  canRead ? "translate-x-4" : "translate-x-0"
+                                }`}
+                              />
+                            </button>
+                          </div>
+
+                          {/* Write Toggle */}
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-bold text-ink-soft">Write:</span>
+                            <button
+                              type="button"
+                              onClick={() => handlePermissionToggle(r, mod, "canEdit", canEdit)}
+                              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                canEdit ? "bg-blue-600" : "bg-stone-300 dark:bg-stone-600"
+                              }`}
+                              title={`Toggle Write/Edit for ${r} on ${mod}`}
+                            >
+                              <span
+                                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                                  canEdit ? "translate-x-4" : "translate-x-0"
+                                }`}
+                              />
+                            </button>
+                          </div>
+
+                          {/* Delete Toggle */}
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-bold text-ink-soft">Delete:</span>
+                            <button
+                              type="button"
+                              onClick={() => handlePermissionToggle(r, mod, "canDelete", canDelete)}
+                              className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                                canDelete ? "bg-rose-600" : "bg-stone-300 dark:bg-stone-600"
+                              }`}
+                              title={`Toggle Delete for ${r} on ${mod}`}
+                            >
+                              <span
+                                className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                                  canDelete ? "translate-x-4" : "translate-x-0"
+                                }`}
+                              />
+                            </button>
+                          </div>
                         </div>
                       </td>
                     );
@@ -511,17 +672,28 @@ export default function StaffManagementPage() {
                 />
               </div>
 
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-ink">Phone Number (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 01711223344"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl bg-bg border border-line text-sm focus:outline-none focus:border-forest"
+                />
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <label className="block text-xs font-semibold text-ink">Role Tier</label>
                   <select
                     value={role}
                     onChange={(e) => setRole(e.target.value)}
-                    className="w-full px-4 py-2 rounded-xl bg-bg border border-line text-xs font-semibold focus:outline-none focus:border-forest"
+                    className="w-full px-4 py-2.5 rounded-xl bg-bg border border-line text-xs font-semibold focus:outline-none focus:border-forest cursor-pointer"
                   >
-                    <option value="ADMIN">Admin (Broad Ops)</option>
-                    <option value="MANAGER">Manager (Daily Orders)</option>
-                    <option value="MODERATOR">Moderator (Content)</option>
+                    <option value="ADMIN">ADMIN</option>
+                    <option value="MANAGER">MANAGER</option>
+                    <option value="MODERATOR">MODERATOR</option>
                   </select>
                 </div>
 
@@ -533,7 +705,7 @@ export default function StaffManagementPage() {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-4 py-2 rounded-xl bg-bg border border-line text-xs font-mono focus:outline-none focus:border-forest"
+                    className="w-full px-4 py-2.5 rounded-xl bg-bg border border-line text-xs font-mono focus:outline-none focus:border-forest"
                   />
                 </div>
               </div>
@@ -562,6 +734,121 @@ export default function StaffManagementPage() {
                   className="px-6 py-2 rounded-xl bg-forest text-white text-xs font-bold shadow-premium disabled:opacity-50 cursor-pointer active:scale-95"
                 >
                   {inviting ? "Creating..." : "Save Staff"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Staff Modal */}
+      {editTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+          <div className="bg-paper rounded-3xl border border-line shadow-2xl p-6 sm:p-8 max-w-lg w-full space-y-6 animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-line pb-3">
+              <div>
+                <h3 className="font-bold font-display text-xl text-ink">Edit Staff Account</h3>
+                <p className="text-xs text-ink-soft mt-0.5">Update staff name, contact, role tier, or password.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditTarget(null)}
+                className="p-1.5 rounded-lg text-ink-soft hover:text-ink cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateStaff} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-ink">Full Name</label>
+                <input
+                  type="text"
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl bg-bg border border-line text-sm focus:outline-none focus:border-forest"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-ink">Email Address</label>
+                <input
+                  type="email"
+                  required
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl bg-bg border border-line text-sm focus:outline-none focus:border-forest"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="block text-xs font-semibold text-ink">Phone Number</label>
+                <input
+                  type="text"
+                  placeholder="e.g. 01711223344"
+                  value={editPhone}
+                  onChange={(e) => setEditPhone(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl bg-bg border border-line text-sm focus:outline-none focus:border-forest"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-ink">Role Tier</label>
+                  {editTarget.role === "SUPER_ADMIN" ? (
+                    <input
+                      type="text"
+                      disabled
+                      value="SUPER_ADMIN"
+                      className="w-full px-4 py-2.5 rounded-xl bg-stone-100 border border-line text-xs font-bold text-stone-500"
+                    />
+                  ) : (
+                    <select
+                      value={editRole}
+                      onChange={(e) => setEditRole(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl bg-bg border border-line text-xs font-semibold focus:outline-none focus:border-forest cursor-pointer"
+                    >
+                      <option value="ADMIN">ADMIN</option>
+                      <option value="MANAGER">MANAGER</option>
+                      <option value="MODERATOR">MODERATOR</option>
+                    </select>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-ink">New Password (Optional)</label>
+                  <input
+                    type="password"
+                    placeholder="Leave blank to keep current"
+                    value={editPassword}
+                    onChange={(e) => setEditPassword(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl bg-bg border border-line text-xs font-mono focus:outline-none focus:border-forest"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-line">
+                <button
+                  type="button"
+                  onClick={() => setEditTarget(null)}
+                  className="px-4 py-2 rounded-xl border border-line text-xs font-semibold text-ink-soft hover:bg-bg cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updatingStaff}
+                  className="px-6 py-2 rounded-xl bg-forest text-white text-xs font-bold shadow-premium disabled:opacity-50 cursor-pointer active:scale-95 flex items-center gap-1.5"
+                >
+                  {updatingStaff ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Updating...</span>
+                    </>
+                  ) : (
+                    <span>Save Changes</span>
+                  )}
                 </button>
               </div>
             </form>
