@@ -61,10 +61,25 @@ export default function AdminSidebar({ mobileOpen, onCloseMobile }: SidebarProps
         const json = await res.json();
         if (json.success) {
           setPermissions(json.permissions || []);
+          if (json.liveRole) {
+            setCurrentUser((prev) => {
+              if (prev && prev.role !== json.liveRole) {
+                const updated = { ...prev, role: json.liveRole };
+                try {
+                  localStorage.setItem("enmar_customer", JSON.stringify(updated));
+                } catch (e) {}
+                return updated;
+              }
+              return prev;
+            });
+          }
         }
       } catch (e) {}
     };
+
     fetchPermissions();
+    const interval = setInterval(fetchPermissions, 4000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleLogout = async () => {

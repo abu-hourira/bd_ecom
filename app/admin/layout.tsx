@@ -39,7 +39,10 @@ export default function AdminLayout({
         setPermsLoaded(true);
       }
     };
+
     fetchPermissions();
+    const interval = setInterval(fetchPermissions, 4000);
+    return () => clearInterval(interval);
   }, [isLoaded, isAuthenticated, isStaff, pathname, router]);
 
   const getModuleForPath = (path: string): { module: string; superAdminOnly?: boolean } => {
