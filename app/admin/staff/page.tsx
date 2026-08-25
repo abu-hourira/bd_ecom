@@ -51,12 +51,17 @@ export default function StaffManagementPage() {
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
+  const [selectedStaffFilter, setSelectedStaffFilter] = useState<string>("ALL");
   const [alertState, setAlertState] = useState<{ isOpen: boolean; title: string; message: string; type: "success" | "error" | "warning" | "info" }>({
     isOpen: false,
     title: "",
     message: "",
     type: "info",
   });
+
+  const selectedStaffMember = selectedStaffFilter !== "ALL"
+    ? staff.find((s) => s.id.toString() === selectedStaffFilter)
+    : null;
 
   const fetchStaffData = async () => {
     try {
@@ -451,6 +456,21 @@ export default function StaffManagementPage() {
 
                       <td className="p-4 text-right">
                         <div className="inline-flex items-center gap-1.5">
+                          {/* Permissions Focus Button */}
+                          {s.role !== "SUPER_ADMIN" && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedStaffFilter(s.id.toString());
+                                document.getElementById("permissions-matrix-section")?.scrollIntoView({ behavior: "smooth" });
+                              }}
+                              className="p-2 rounded-xl border border-line bg-white text-blue-600 hover:bg-blue-50 text-xs font-semibold transition-all cursor-pointer"
+                              title={`View & Edit Permissions for ${s.name} (${s.role})`}
+                            >
+                              <KeyRound className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+
                           {/* Edit Details Button */}
                           <button
                             type="button"
@@ -514,37 +534,106 @@ export default function StaffManagementPage() {
       </div>
 
       {/* Dynamic RBAC Permission Matrix Table (Toggle Switch Mode) */}
-      <div className="bg-paper rounded-3xl border border-line shadow-xs p-6 sm:p-8 space-y-6">
-        <div className="border-b border-line pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+      <div id="permissions-matrix-section" className="bg-paper rounded-3xl border border-line shadow-xs p-6 sm:p-8 space-y-6">
+        <div className="border-b border-line pb-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <h3 className="font-bold font-display text-lg text-ink flex items-center gap-2">
               <KeyRound className="w-5 h-5 text-forest" />
-              <span>Role Permissions Matrix (টগল মোড)</span>
+              <span>Role Permissions Matrix (স্টাফ ও রোল অনুযায়ী অনুমতি)</span>
             </h3>
-            <p className="text-xs text-ink-soft mt-0.5">
-              যেকোনো রোলের অনুমতি সহজে টগল (On/Off) করে পরিবর্তন করুন। Super Admin সবসময় ফুল অ্যাক্সেস রাখবে।
+            <p className="text-xs text-ink-soft mt-1">
+              💡 <strong>কীভাবে কাজ করে:</strong> আপনি যে রোলের (যেমন: ADMIN) টগল পরিবর্তন করবেন, সেই রোলে যুক্ত <strong>সকল স্টাফের</strong> অনুমতি সাথে সাথে পরিবর্তিত হবে।
             </p>
           </div>
 
-          <div className="flex items-center gap-4 text-xs font-semibold text-ink-soft bg-bg px-4 py-2 rounded-2xl border border-line">
-            <span className="flex items-center gap-1.5"><Eye className="w-3.5 h-3.5 text-forest" /> Read (দেখা)</span>
-            <span className="flex items-center gap-1.5"><Edit2 className="w-3.5 h-3.5 text-blue-600" /> Write (এডিট)</span>
-            <span className="flex items-center gap-1.5"><Trash className="w-3.5 h-3.5 text-rose-600" /> Delete (ডিলিট)</span>
+          {/* Quick Staff-to-Role Filter */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 bg-bg px-3 py-1.5 rounded-2xl border border-line">
+              <span className="text-xs font-bold text-ink whitespace-nowrap">স্টাফ সিলেক্ট করুন:</span>
+              <select
+                value={selectedStaffFilter}
+                onChange={(e) => setSelectedStaffFilter(e.target.value)}
+                className="bg-transparent text-xs font-semibold text-forest focus:outline-none cursor-pointer"
+              >
+                <option value="ALL">সকল রোল দেখুন (All Roles)</option>
+                {staff.map((s) => (
+                  <option key={s.id} value={s.id.toString()}>
+                    {s.name} ({s.role})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="hidden sm:flex items-center gap-3 text-xs font-semibold text-ink-soft bg-bg px-3.5 py-1.5 rounded-2xl border border-line">
+              <span className="flex items-center gap-1"><Eye className="w-3.5 h-3.5 text-forest" /> Read</span>
+              <span className="flex items-center gap-1"><Edit2 className="w-3.5 h-3.5 text-blue-600" /> Write</span>
+              <span className="flex items-center gap-1"><Trash className="w-3.5 h-3.5 text-rose-600" /> Delete</span>
+            </div>
           </div>
         </div>
+
+        {/* Selected Staff Focus Banner */}
+        {selectedStaffMember && (
+          <div className="p-3.5 rounded-2xl bg-forest-soft border border-forest/20 text-forest text-xs font-semibold flex items-center justify-between animate-in fade-in">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-forest animate-pulse" />
+              <span>
+                বর্তমানে আপনি <strong>{selectedStaffMember.name}</strong>-এর জন্য অনুমতি দেখতে ও এডিট করতে পারছেন (তার নির্ধারিত রোল: <strong className="underline">{selectedStaffMember.role}</strong>)।
+              </span>
+            </div>
+            <button
+              onClick={() => setSelectedStaffFilter("ALL")}
+              className="text-[11px] underline hover:text-forest-deep cursor-pointer"
+            >
+              সকল রোল দেখুন
+            </button>
+          </div>
+        )}
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-bg border-b border-line text-ink-soft uppercase text-[10px] tracking-wider">
               <tr>
                 <th className="p-4 w-40">Module Name</th>
-                {roles.map((r) => (
-                  <th key={r} className="p-4 text-center">
-                    <div className="inline-block px-3 py-1 rounded-xl bg-paper border border-line font-bold text-ink">
-                      {r}
-                    </div>
-                  </th>
-                ))}
+                {roles
+                  .filter((r) => !selectedStaffMember || selectedStaffMember.role === r)
+                  .map((r) => {
+                    const assignedStaff = staff.filter((s) => s.role === r);
+                    const isHighlighted = selectedStaffMember && selectedStaffMember.role === r;
+
+                    return (
+                      <th
+                        key={r}
+                        className={`p-4 text-center transition-all ${
+                          isHighlighted ? "bg-forest/10 border-x-2 border-forest" : ""
+                        }`}
+                      >
+                        <div className="space-y-1.5">
+                          <div className="inline-block px-3 py-1 rounded-xl bg-paper border border-line font-bold text-ink text-xs">
+                            {r}
+                          </div>
+                          {/* Staff Assigned to this Role */}
+                          <div className="flex flex-wrap items-center justify-center gap-1">
+                            {assignedStaff.length > 0 ? (
+                              assignedStaff.map((s) => (
+                                <span
+                                  key={s.id}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold text-[10px]"
+                                  title={s.email}
+                                >
+                                  👤 {s.name}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-[10px] text-ink-soft/60 italic font-normal">
+                                ০ জন স্টাফ
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </th>
+                    );
+                  })}
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
@@ -553,15 +642,23 @@ export default function StaffManagementPage() {
                   <td className="p-4 font-bold text-ink uppercase tracking-wider text-xs">
                     {mod}
                   </td>
-                  {roles.map((r) => {
-                    const p = permissions.find((perm) => perm.role === r && perm.module === mod);
-                    const canRead = p ? p.canRead : false;
-                    const canEdit = p ? p.canEdit : false;
-                    const canDelete = p ? p.canDelete : false;
+                  {roles
+                    .filter((r) => !selectedStaffMember || selectedStaffMember.role === r)
+                    .map((r) => {
+                      const p = permissions.find((perm) => perm.role === r && perm.module === mod);
+                      const canRead = p ? p.canRead : false;
+                      const canEdit = p ? p.canEdit : false;
+                      const canDelete = p ? p.canDelete : false;
+                      const isHighlighted = selectedStaffMember && selectedStaffMember.role === r;
 
-                    return (
-                      <td key={r} className="p-4 text-center">
-                        <div className="inline-flex items-center justify-center gap-3 bg-bg/80 px-3 py-2 rounded-2xl border border-line/60">
+                      return (
+                        <td
+                          key={r}
+                          className={`p-4 text-center transition-all ${
+                            isHighlighted ? "bg-forest/5 border-x-2 border-forest" : ""
+                          }`}
+                        >
+                          <div className="inline-flex items-center justify-center gap-3 bg-bg/80 px-3 py-2 rounded-2xl border border-line/60 shadow-2xs">
                           {/* Read Toggle */}
                           <div className="flex items-center gap-1.5">
                             <span className="text-[10px] font-bold text-ink-soft">Read:</span>
