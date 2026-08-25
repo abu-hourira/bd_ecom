@@ -13,6 +13,7 @@ interface StorefrontContextType {
 }
 
 const DEFAULT_FEATURES: Record<string, boolean> = {
+  require_login_checkout: true,
   wishlist: true,
   reviews: true,
   customer_ai_widget: true,

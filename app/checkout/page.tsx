@@ -159,13 +159,28 @@ export default function CheckoutPage() {
     e.preventDefault();
     if (cart.length === 0) return;
 
+    // Enforcement: If require_login_checkout is enabled and customer is not logged in
+    if (isFeatureEnabled("require_login_checkout") && (!authUser || !authUser.id)) {
+      setAlertState({
+        isOpen: true,
+        title: locale === "bn" ? "লগইন আবশ্যক" : "Login Required",
+        message:
+          locale === "bn"
+            ? "অর্ডার সম্পন্ন করতে অনুগ্রহ করে আপনার অ্যাকাউন্টে সাইন ইন বা রেজিস্টার করুন।"
+            : "Please sign in or register to place your order.",
+        type: "warning",
+        onConfirm: () => router.push("/auth/login?callbackUrl=/checkout"),
+      });
+      return;
+    }
+
     setSubmitting(true);
     try {
       const orderPayload = {
         customerName: formData.customerName,
         customerPhone: formData.customerPhone,
-        userId: customer ? customer.id : null,
-        customerEmail: formData.customerEmail || (customer ? customer.email : "customer@enmar.bd"),
+        userId: authUser ? authUser.id : (customer ? customer.id : null),
+        customerEmail: formData.customerEmail || (authUser ? authUser.email : (customer ? customer.email : "customer@enmar.bd")),
         shippingAddress: formData.shippingAddress,
         deliveryZone: formData.deliveryZone,
         paymentMethod: formData.paymentMethod,
@@ -272,15 +287,61 @@ export default function CheckoutPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left Form */}
           <div className="lg:col-span-7 space-y-6">
+            {/* Login Prompt Banner */}
+            {!authUser && (
+              <div
+                className={`p-4 rounded-2xl border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 ${
+                  isFeatureEnabled("require_login_checkout")
+                    ? "bg-amber-50/90 border-amber-300 text-amber-950"
+                    : "bg-emerald-50/70 border-emerald-200 text-emerald-950"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                      isFeatureEnabled("require_login_checkout")
+                        ? "bg-amber-200 text-amber-900"
+                        : "bg-emerald-200 text-emerald-900"
+                    }`}
+                  >
+                    <Lock className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold font-display">
+                      {isFeatureEnabled("require_login_checkout")
+                        ? (locale === "bn" ? "অর্ডার করার জন্য লগইন প্রয়োজন" : "Login Required to Order")
+                        : (locale === "bn" ? "পূর্বে অ্যাকাউন্ট আছে?" : "Already have an account?")}
+                    </h4>
+                    <p className="text-[11px] opacity-80">
+                      {isFeatureEnabled("require_login_checkout")
+                        ? (locale === "bn"
+                            ? "অর্ডার কনফার্ম করতে অনুগ্রহ করে সাইন ইন বা রেজিস্টার করুন।"
+                            : "Please sign in or register to complete your order.")
+                        : (locale === "bn"
+                            ? "দ্রুত চেকআউট ও পয়েন্ট পেতে সাইন ইন করুন।"
+                            : "Sign in for faster checkout and order tracking.")}
+                    </p>
+                  </div>
+                </div>
+
+                <Link
+                  href="/auth/login?callbackUrl=/checkout"
+                  className="shrink-0 px-4 py-2 rounded-xl bg-forest hover:bg-forest-deep text-white text-xs font-bold transition-all shadow-xs"
+                >
+                  {locale === "bn" ? "লগইন / সাইন আপ" : "Sign In / Register"}
+                </Link>
+              </div>
+            )}
+
             {savedAddresses.length > 0 && (
               <div className="bg-white p-5 rounded-2xl border border-stone-200 shadow-xs space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-stone-900 flex items-center gap-1.5">
                     <MapPin className="w-4 h-4 text-forest" />
-                    <span>{t("checkout.title")}</span>
+                    <span>{locale === "bn" ? "সংরক্ষিত ঠিকানা" : "Saved Addresses"}</span>
                   </span>
                   <Link href="/account/addresses" className="text-[11px] font-semibold text-forest underline">
-                    {t("checkout.title")}
+                    {locale === "bn" ? "ঠিকানা পরিচালনা" : "Manage"}
                   </Link>
                 </div>
 
@@ -574,6 +635,11 @@ export default function CheckoutPage() {
                     <Loader2 className="w-4 h-4 animate-spin" />
                     <span>{t("checkout.placingOrder")}</span>
                   </>
+                ) : isFeatureEnabled("require_login_checkout") && !authUser ? (
+                  <>
+                    <Lock className="w-4 h-4 text-amber-300" />
+                    <span>{locale === "bn" ? "লগইন করে অর্ডার সম্পন্ন করুন" : "Sign In & Complete Order"}</span>
+                  </>
                 ) : (
                   <>
                     <Lock className="w-4 h-4 text-amber-300" />
@@ -593,7 +659,10 @@ export default function CheckoutPage() {
         title={alertState.title}
         message={alertState.message}
         type={alertState.type}
-        onClose={() => setAlertState((prev) => ({ ...prev, isOpen: false }))}
+        onClose={() => {
+          setAlertState((prev) => ({ ...prev, isOpen: false }));
+          if (alertState.onConfirm) alertState.onConfirm();
+        }}
       />
     </div>
   );
