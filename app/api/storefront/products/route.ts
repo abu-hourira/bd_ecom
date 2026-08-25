@@ -103,7 +103,7 @@ export async function GET(req: NextRequest) {
           category: {
             select: { id: true, name: true, slug: true },
           },
-        },
+        } as any,
         orderBy,
         skip,
         take: limit,

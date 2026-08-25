@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
         badge: true,
         isCombo: true,
         createdAt: true,
-      },
+      } as any,
       orderBy: { createdAt: "desc" },
     });
 

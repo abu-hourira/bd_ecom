@@ -58,7 +58,7 @@ export async function GET(
         badge: true,
         isCombo: true,
         createdAt: true,
-      },
+      } as any,
     });
 
     if (!product) {

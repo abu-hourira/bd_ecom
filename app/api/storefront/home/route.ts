@@ -27,7 +27,7 @@ const PRODUCT_CARD_SELECT = {
   category: {
     select: { id: true, name: true, slug: true },
   },
-};
+} as any;
 
 export async function GET() {
   try {
