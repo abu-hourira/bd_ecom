@@ -8,12 +8,18 @@ export async function GET(
 ) {
   try {
     const { trackingId } = await params;
-
-    const cleanId = trackingId.trim().toUpperCase();
+    const cleanId = trackingId.trim();
+    const isPhone = /(?:\+?88)?01[3-9]\d{8}/.test(cleanId);
+    const cleanPhone = isPhone ? cleanId.replace(/^\+?88/, "") : "";
+    const cleanTracking = cleanId.toUpperCase();
 
     const order = await prisma.order.findFirst({
       where: {
-        OR: [{ trackingId: cleanId }, { orderNumber: cleanId }],
+        OR: [
+          { trackingId: cleanTracking },
+          { orderNumber: cleanTracking },
+          ...(cleanPhone ? [{ customerPhone: cleanPhone }, { customerPhone: { contains: cleanPhone } }] : []),
+        ],
       },
       include: {
         items: true,

@@ -308,6 +308,7 @@ export default function AdminOrdersPage() {
         <div className="flex items-center gap-1.5 overflow-x-auto text-xs pb-1 lg:pb-0">
           {[
             { key: "ALL", label: "All Orders" },
+            { key: "AI_ORDERS", label: "🤖 AI Chat Orders" },
             { key: "PENDING", label: "Pending" },
             { key: "CONFIRMED", label: "Confirmed" },
             { key: "PACKED", label: "Packed" },
@@ -361,22 +362,40 @@ export default function AdminOrdersPage() {
         </div>
       </div>
 
-      {/* Orders Table */}
+      {/* Bulk Action Bar */}
+      {selectedIds.length > 0 && (
+        <div className="flex items-center justify-between p-4 rounded-2xl bg-forest-soft border border-forest/20 animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center gap-2">
+            <CheckSquare className="w-5 h-5 text-forest" />
+            <span className="text-xs font-bold text-forest">
+              {selectedIds.length} orders selected
+            </span>
+          </div>
+          <button
+            onClick={() => setConfirmBulkDelete(true)}
+            className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>Purge / Delete Selected</span>
+          </button>
+        </div>
+      )}
+
+      {/* Orders Table Card */}
       <div className="bg-paper rounded-3xl border border-line shadow-card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-bg border-b border-line text-ink-soft font-mono uppercase text-[10px]">
-              <tr>
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="border-b border-line bg-bg/50 text-ink-soft font-bold uppercase tracking-wider text-[10px]">
                 <th className="py-3 px-4 w-10 text-center">
                   <button
                     onClick={toggleSelectAll}
                     className="cursor-pointer text-forest hover:text-forest-deep"
-                    title="Select All"
                   >
-                    {selectedIds.length > 0 && selectedIds.length === filteredOrders.length ? (
+                    {selectedIds.length === filteredOrders.length && filteredOrders.length > 0 ? (
                       <CheckSquare className="w-4 h-4" />
                     ) : (
-                      <Square className="w-4 h-4" />
+                      <Square className="w-4 h-4 text-ink-soft" />
                     )}
                   </button>
                 </th>
@@ -413,6 +432,7 @@ export default function AdminOrdersPage() {
                 filteredOrders.map((order) => {
                   const isSelected = selectedIds.includes(order.id);
                   const isDeletable = ["DELIVERED", "CANCELLED", "RETURNED"].includes(order.orderStatus);
+                  const isAiOrder = order.customerNotes?.includes("AI") || order.customerNotes?.includes("AI Customer Assistant");
 
                   return (
                     <tr
@@ -438,12 +458,19 @@ export default function AdminOrdersPage() {
                       {/* Order / Tracking */}
                       <td className="py-3 px-4">
                         <div className="space-y-0.5">
-                          <Link
-                            href={`/admin/orders/${order.id}`}
-                            className="font-mono font-bold text-forest hover:underline"
-                          >
-                            #{order.orderNumber}
-                          </Link>
+                          <div className="flex items-center gap-1.5">
+                            <Link
+                              href={`/admin/orders/${order.id}`}
+                              className="font-mono font-bold text-forest hover:underline"
+                            >
+                              #{order.orderNumber}
+                            </Link>
+                            {isAiOrder && (
+                              <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300 font-bold text-[9px]">
+                                🤖 AI
+                              </span>
+                            )}
+                          </div>
                           <p className="font-mono text-[10px] text-ink-soft block">
                             {order.trackingId}
                           </p>

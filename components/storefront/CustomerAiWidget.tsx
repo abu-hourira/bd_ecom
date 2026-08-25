@@ -1,21 +1,46 @@
 "use client";
 // components/storefront/CustomerAiWidget.tsx
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Bot, Send, X, Loader2, Sparkles, MessageSquare } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { useFeatures } from "@/context/FeatureFlagContext";
 
 export default function CustomerAiWidget() {
   const [open, setOpen] = useState(false);
+  const DEFAULT_MESSAGE = {
+    sender: "ai" as const,
+    text: "আসসালামু আলাইকুম! আমি ENMAR অর্গানিক খাদ্য বিশেষজ্ঞ এআই সহকারী। সুন্দরবনের খাঁটি মধু, কাঠের ঘানিভাঙা তেল, পাহাড়ি মশলা বা আপনার সুস্থতার জন্য যেকোনো পণ্যের তথ্য জানতে আমাকে প্রশ্ন করুন!",
+  };
+
   const [messages, setMessages] = useState<
     Array<{ sender: "user" | "ai"; text: string }>
-  >([
-    {
-      sender: "ai",
-      text: "আসসালামু আলাইকুম! আমি ENMAR অর্গানিক খাদ্য বিশেষজ্ঞ এআই সহকারী। সুন্দরবনের খাঁটি মধু, কাঠের ঘানিভাঙা তেল, পাহাড়ি মশলা বা আপনার সুস্থতার জন্য যেকোনো পণ্যের তথ্য জানতে আমাকে প্রশ্ন করুন!",
-    },
-  ]);
+  >([DEFAULT_MESSAGE]);
+
+  // Load chat history from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("enmar_customer_ai_chat");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed);
+        }
+      }
+    } catch (e) {}
+  }, []);
+
+  // Save chat history to localStorage whenever messages change
+  const updateMessages = (updater: (prev: Array<{ sender: "user" | "ai"; text: string }>) => Array<{ sender: "user" | "ai"; text: string }>) => {
+    setMessages((prev) => {
+      const next = updater(prev);
+      try {
+        localStorage.setItem("enmar_customer_ai_chat", JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
+  };
+
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const { t, locale } = useLanguage();
@@ -33,7 +58,7 @@ export default function CustomerAiWidget() {
       content: m.text,
     }));
 
-    setMessages((prev) => [...prev, userMsg]);
+    updateMessages((prev) => [...prev, userMsg]);
     if (!text) setInput("");
     setSending(true);
 
@@ -49,9 +74,9 @@ export default function CustomerAiWidget() {
       });
       const json = await res.json();
       if (json.success) {
-        setMessages((prev) => [...prev, { sender: "ai" as const, text: json.reply }]);
+        updateMessages((prev) => [...prev, { sender: "ai" as const, text: json.reply }]);
       } else {
-        setMessages((prev) => [
+        updateMessages((prev) => [
           ...prev,
           {
             sender: "ai" as const,
@@ -64,7 +89,7 @@ export default function CustomerAiWidget() {
         ]);
       }
     } catch (err: any) {
-      setMessages((prev) => [
+      updateMessages((prev) => [
         ...prev,
         {
           sender: "ai",

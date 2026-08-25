@@ -11,7 +11,11 @@ export async function GET(req: NextRequest) {
 
     const where: any = {};
     if (status && status !== ("ALL" as any)) {
-      where.orderStatus = status;
+      if ((status as any) === "AI_ORDERS") {
+        where.customerNotes = { contains: "AI Customer Assistant" };
+      } else {
+        where.orderStatus = status;
+      }
     }
     if (search) {
       where.OR = [
