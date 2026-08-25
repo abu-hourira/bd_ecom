@@ -98,14 +98,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Dynamic free shipping threshold
+    // Dynamic free shipping threshold and flat shipping fee
     let freeShippingThreshold = 1500;
+    let flatShippingFee = 70;
     try {
-      const thresholdSetting = await prisma.siteSetting.findUnique({
-        where: { key: "freeShippingThreshold" },
-      });
+      const [thresholdSetting, flatSetting] = await Promise.all([
+        prisma.siteSetting.findUnique({ where: { key: "freeShippingThreshold" } }),
+        prisma.siteSetting.findUnique({ where: { key: "shippingFlat" } }),
+      ]);
       if (thresholdSetting && Number(thresholdSetting.value) > 0) {
         freeShippingThreshold = Number(thresholdSetting.value);
+      }
+      if (flatSetting && Number(flatSetting.value) >= 0) {
+        flatShippingFee = Number(flatSetting.value);
       }
     } catch (e) {}
 
@@ -113,7 +118,7 @@ export async function POST(req: NextRequest) {
     if (subtotal >= freeShippingThreshold) {
       shippingFee = 0;
     } else {
-      shippingFee = deliveryZone === "Outside Dhaka" ? 130 : 70;
+      shippingFee = deliveryZone === "Outside Dhaka" ? 130 : flatShippingFee;
     }
 
     let discountAmount = 0;

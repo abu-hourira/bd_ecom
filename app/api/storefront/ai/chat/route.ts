@@ -19,23 +19,7 @@ export async function POST(request: NextRequest) {
         orderBy: { id: "desc" },
       }),
       prisma.siteSetting.findMany({
-        where: {
-          key: {
-            in: [
-              "site_name",
-              "site_tagline",
-              "contact_phone",
-              "contact_whatsapp",
-              "contact_email",
-              "delivery_charge_inside_dhaka",
-              "delivery_charge_outside_dhaka",
-              "free_delivery_threshold",
-              "return_policy",
-              "shipping_policy",
-              "about_us",
-            ],
-          },
-        },
+        select: { key: true, value: true },
       }),
       prisma.category.findMany({
         where: { isActive: true },
@@ -73,12 +57,14 @@ export async function POST(request: NextRequest) {
       return acc;
     }, {});
 
-    const siteName = settingsMap.site_name || "ENMAR Organic Food";
-    const siteTagline = settingsMap.site_tagline || "100% Pure & Organic Food";
-    const contactPhone = settingsMap.contact_phone || settingsMap.contact_whatsapp || "+880 1614 663082";
-    const insideDhakaFee = settingsMap.delivery_charge_inside_dhaka || "70";
-    const outsideDhakaFee = settingsMap.delivery_charge_outside_dhaka || "130";
-    const freeDeliveryMin = settingsMap.free_delivery_threshold || "1500";
+    const siteName = settingsMap.brandName || settingsMap.site_name || "ENMAR Organic Food";
+    const siteTagline = settingsMap.brandTagline || settingsMap.site_tagline || "100% Pure & Organic Food";
+    const contactPhone = settingsMap.contactPhone || settingsMap.whatsappNumber || settingsMap.contact_phone || "+880 1614 113082";
+    const contactEmail = settingsMap.contactEmail || settingsMap.contact_email || "support@enmar.shop";
+    const contactAddress = settingsMap.contactAddress || settingsMap.contact_address || "House 14, Road 7, Sector 3, Uttara, Dhaka-1230, Bangladesh";
+    const insideDhakaFee = settingsMap.shippingFlat || settingsMap.delivery_charge_inside_dhaka || "70";
+    const outsideDhakaFee = settingsMap.shippingOutside || settingsMap.delivery_charge_outside_dhaka || "130";
+    const freeDeliveryMin = settingsMap.freeShippingThreshold || settingsMap.free_delivery_threshold || "1500";
 
     // Format Categories
     const categoriesSummary = categoriesList.length > 0
