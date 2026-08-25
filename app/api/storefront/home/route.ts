@@ -1,31 +1,80 @@
 // app/api/storefront/home/route.ts
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { serverCache } from "@/lib/serverCache";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
+
+const PRODUCT_CARD_SELECT = {
+  id: true,
+  name: true,
+  slug: true,
+  categoryId: true,
+  subcategory: true,
+  price: true,
+  discountPrice: true,
+  stockQuantity: true,
+  unit: true,
+  images: true,
+  shortDescription: true,
+  organicCertified: true,
+  isCombo: true,
+  savingsPercentage: true,
+  badge: true,
+  featured: true,
+  createdAt: true,
+  category: {
+    select: { id: true, name: true, slug: true },
+  },
+};
 
 export async function GET() {
   try {
+    const cacheKey = "storefront_home_data";
+    const cachedData = serverCache.get<any>(cacheKey);
+
+    if (cachedData) {
+      return NextResponse.json(
+        { success: true, ...cachedData },
+        {
+          headers: {
+            "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+          },
+        }
+      );
+    }
+
     const [categories, featuredProducts, comboDeals, siteSettings, theme, banners] =
       await Promise.all([
         prisma.category.findMany({
           where: { isActive: true },
-          include: { _count: { select: { products: true } } },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            icon: true,
+            image: true,
+            displayOrder: true,
+            _count: { select: { products: true } },
+          },
           orderBy: { displayOrder: "asc" },
         }),
         prisma.product.findMany({
           where: { isActive: true },
-          include: { category: { select: { id: true, name: true, slug: true } } },
+          select: PRODUCT_CARD_SELECT,
           orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
           take: 12,
         }),
         prisma.product.findMany({
           where: { isActive: true, isCombo: true },
-          include: { category: { select: { id: true, name: true, slug: true } } },
+          select: PRODUCT_CARD_SELECT,
+          orderBy: { createdAt: "desc" },
           take: 4,
         }),
-        prisma.siteSetting.findMany(),
+        prisma.siteSetting.findMany({
+          where: { isSecret: false },
+          select: { key: true, value: true },
+        }),
         prisma.themeSetting.findFirst(),
         prisma.promotionBanner.findMany({
           where: { isActive: true },
@@ -38,19 +87,31 @@ export async function GET() {
       settingsMap[s.key] = s.value;
     });
 
+    const payload = {
+      categories,
+      featuredProducts,
+      comboDeals,
+      settings: settingsMap,
+      theme,
+      banners,
+    };
+
+    serverCache.set(cacheKey, payload, 60, [
+      "home",
+      "products",
+      "settings",
+      "categories",
+      "banners",
+    ]);
+
     return NextResponse.json(
       {
         success: true,
-        categories,
-        featuredProducts,
-        comboDeals,
-        settings: settingsMap,
-        theme,
-        banners,
+        ...payload,
       },
       {
         headers: {
-          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
         },
       }
     );

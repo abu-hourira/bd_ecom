@@ -1,14 +1,31 @@
 // app/api/storefront/settings/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { serverCache } from "@/lib/serverCache";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 export async function GET() {
   try {
+    const cacheKey = "storefront_settings";
+    const cached = serverCache.get<any>(cacheKey);
+
+    if (cached) {
+      return NextResponse.json(
+        { success: true, ...cached },
+        {
+          headers: {
+            "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+          },
+        }
+      );
+    }
+
     const [settingsList, theme] = await Promise.all([
-      prisma.siteSetting.findMany(),
+      prisma.siteSetting.findMany({
+        where: { isSecret: false },
+        select: { key: true, value: true },
+      }),
       prisma.themeSetting.findFirst(),
     ]);
 
@@ -30,7 +47,17 @@ export async function GET() {
       settings[s.key] = s.value;
     });
 
-    return NextResponse.json({ success: true, settings, theme });
+    const payload = { settings, theme };
+    serverCache.set(cacheKey, payload, 300, ["settings"]);
+
+    return NextResponse.json(
+      { success: true, ...payload },
+      {
+        headers: {
+          "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+        },
+      }
+    );
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

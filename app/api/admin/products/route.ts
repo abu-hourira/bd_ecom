@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
+import { serverCache } from "@/lib/serverCache";
 
 export async function GET(req: NextRequest) {
   try {
@@ -96,6 +97,8 @@ export async function POST(req: NextRequest) {
 
     revalidatePath("/", "layout");
     revalidatePath("/products");
+    serverCache.invalidateTag("products");
+    serverCache.invalidateTag("home");
     return NextResponse.json({ success: true, product }, { status: 201 });
   } catch (error: any) {
     console.error("[Products API POST Error]:", error);

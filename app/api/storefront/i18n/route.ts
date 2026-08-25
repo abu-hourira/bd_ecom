@@ -2,16 +2,31 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { translations as defaultTranslations } from "@/lib/i18n";
+import { serverCache } from "@/lib/serverCache";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 export async function GET() {
   try {
+    const cacheKey = "storefront_i18n";
+    const cached = serverCache.get<any>(cacheKey);
+
+    if (cached) {
+      return NextResponse.json(
+        { success: true, translations: cached },
+        {
+          headers: {
+            "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+          },
+        }
+      );
+    }
+
     const settings = await prisma.siteSetting.findMany({
       where: {
         group: { in: ["i18n", "content", "i18n_bn", "i18n_en"] },
       },
+      select: { key: true, value: true },
     });
 
     const dynamicBn: Record<string, string> = { ...defaultTranslations.bn };
@@ -27,17 +42,21 @@ export async function GET() {
       }
     });
 
+    const translations = {
+      bn: dynamicBn,
+      en: dynamicEn,
+    };
+
+    serverCache.set(cacheKey, translations, 300, ["settings", "i18n"]);
+
     return NextResponse.json(
       {
         success: true,
-        translations: {
-          bn: dynamicBn,
-          en: dynamicEn,
-        },
+        translations,
       },
       {
         headers: {
-          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
         },
       }
     );

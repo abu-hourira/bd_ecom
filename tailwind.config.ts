@@ -53,6 +53,16 @@ const config: Config = {
         "2xl": "1.5rem",
         "3xl": "2rem",
       },
+      keyframes: {
+        shimmer: {
+          "100%": {
+            transform: "translateX(100%)",
+          },
+        },
+      },
+      animation: {
+        shimmer: "shimmer 1.6s infinite",
+      },
     },
   },
   plugins: [],

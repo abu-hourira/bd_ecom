@@ -143,6 +143,7 @@ model Category {
   children     Category[] @relation("CategoryHierarchy")
   products     Product[]
 
+  @@index([isActive, displayOrder])
   @@map("categories")
 }
 
@@ -176,6 +177,12 @@ model Product {
 
   @@index([slug])
   @@index([categoryId])
+  @@index([isActive, createdAt])
+  @@index([isActive, categoryId])
+  @@index([isActive, featured, createdAt])
+  @@index([isActive, isCombo])
+  @@index([price])
+  @@index([organicCertified])
   @@map("products")
 }
 
@@ -501,6 +508,7 @@ model PromotionBanner {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  @@index([isActive, displayOrder])
   @@map("promotion_banners")
 }
 

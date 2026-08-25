@@ -12,7 +12,7 @@ export default function FloatingWhatsApp() {
   });
 
   useEffect(() => {
-    fetch("/api/storefront/settings", { cache: "no-store" })
+    fetch("/api/storefront/settings")
       .then((res) => res.json())
       .then((data) => {
         if (data.success && data.settings) {

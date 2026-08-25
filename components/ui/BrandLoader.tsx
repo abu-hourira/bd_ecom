@@ -21,7 +21,7 @@ export default function BrandLoader({
   const [brandName, setBrandName] = useState<string>("");
 
   useEffect(() => {
-    fetch("/api/storefront/settings", { cache: "no-store" })
+    fetch("/api/storefront/settings")
       .then((res) => res.json())
       .then((data) => {
         if (data.success && data.settings) {

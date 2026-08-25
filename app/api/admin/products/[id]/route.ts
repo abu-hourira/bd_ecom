@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
+import { serverCache } from "@/lib/serverCache";
 
 export async function GET(
   req: NextRequest,
@@ -99,6 +100,8 @@ export async function PUT(
     revalidatePath("/", "layout");
     revalidatePath("/products");
     revalidatePath(`/products/${updated.slug}`);
+    serverCache.invalidateTag("products");
+    serverCache.invalidateTag("home");
     return NextResponse.json({ success: true, product: updated });
   } catch (error: any) {
     console.error("[Product PUT Error]:", error);
@@ -144,18 +147,16 @@ export async function DELETE(
         // 3. Delete product
         await tx.product.delete({ where: { id: productId } });
       },
-      {
-        maxWait: 10000,
-        timeout: 20000,
-      }
+      { timeout: 15000 }
     );
 
     revalidatePath("/", "layout");
     revalidatePath("/products");
-
+    serverCache.invalidateTag("products");
+    serverCache.invalidateTag("home");
     return NextResponse.json({
       success: true,
-      message: `"${product.name}" moved to Recycle Bin successfully.`,
+      message: "Product safely moved to recycle bin and deleted",
     });
   } catch (error: any) {
     console.error("[Product DELETE Error]:", error);

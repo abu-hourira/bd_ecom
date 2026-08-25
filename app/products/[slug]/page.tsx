@@ -48,7 +48,7 @@ export default function ProductDetailPage({
   const [added, setAdded] = useState(false);
 
   useEffect(() => {
-    fetch(`/api/storefront/products/${resolvedParams.slug}`, { cache: "no-store" })
+    fetch(`/api/storefront/products/${resolvedParams.slug}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.product) {

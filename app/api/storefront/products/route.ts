@@ -1,9 +1,9 @@
 // app/api/storefront/products/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { serverCache } from "@/lib/serverCache";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 export async function GET(req: NextRequest) {
   try {
@@ -12,9 +12,36 @@ export async function GET(req: NextRequest) {
     const search = searchParams.get("search");
     const minPrice = searchParams.get("minPrice");
     const maxPrice = searchParams.get("maxPrice");
-    const organicOnly = searchParams.get("organicOnly") === "true";
-    const inStockOnly = searchParams.get("inStockOnly") === "true";
-    const sort = searchParams.get("sort") || "newest";
+    const organicOnly =
+      searchParams.get("organicOnly") === "true" ||
+      searchParams.get("organic") === "true";
+    const inStockOnly =
+      searchParams.get("inStockOnly") === "true" ||
+      searchParams.get("inStock") === "true";
+    const sort = searchParams.get("sort") || "featured";
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(searchParams.get("limit") || "24", 10))
+    );
+    const skip = (page - 1) * limit;
+
+    const cacheKey = `storefront_products_${req.url}`;
+    const cachedResponse = serverCache.get<{
+      products: any[];
+      pagination: any;
+    }>(cacheKey);
+
+    if (cachedResponse) {
+      return NextResponse.json(
+        { success: true, ...cachedResponse },
+        {
+          headers: {
+            "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+          },
+        }
+      );
+    }
 
     const where: any = { isActive: true };
 
@@ -25,7 +52,6 @@ export async function GET(req: NextRequest) {
     if (search) {
       where.OR = [
         { name: { contains: search } },
-        { description: { contains: search } },
         { shortDescription: { contains: search } },
       ];
     }
@@ -44,26 +70,60 @@ export async function GET(req: NextRequest) {
       where.stockQuantity = { gt: 0 };
     }
 
-    let orderBy: any = { createdAt: "desc" };
-    if (sort === "price-asc") orderBy = { price: "asc" };
-    if (sort === "price-desc") orderBy = { price: "desc" };
-    if (sort === "popular") orderBy = { featured: "desc" };
+    let orderBy: any = [{ featured: "desc" }, { createdAt: "desc" }];
+    if (sort === "price-asc" || sort === "price_asc") orderBy = { price: "asc" };
+    if (sort === "price-desc" || sort === "price_desc") orderBy = { price: "desc" };
+    if (sort === "newest") orderBy = { createdAt: "desc" };
+    if (sort === "featured" || sort === "popular")
+      orderBy = [{ featured: "desc" }, { createdAt: "desc" }];
 
-    const products = await prisma.product.findMany({
-      where,
-      include: {
-        category: {
-          select: { id: true, name: true, slug: true },
+    const [products, total] = await Promise.all([
+      prisma.product.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          categoryId: true,
+          subcategory: true,
+          price: true,
+          discountPrice: true,
+          stockQuantity: true,
+          unit: true,
+          images: true,
+          shortDescription: true,
+          organicCertified: true,
+          isCombo: true,
+          savingsPercentage: true,
+          badge: true,
+          featured: true,
+          createdAt: true,
+          category: {
+            select: { id: true, name: true, slug: true },
+          },
         },
-      },
-      orderBy,
-    });
+        orderBy,
+        skip,
+        take: limit,
+      }),
+      prisma.product.count({ where }),
+    ]);
+
+    const pagination = {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+      hasMore: skip + products.length < total,
+    };
+
+    serverCache.set(cacheKey, { products, pagination }, 60, ["products"]);
 
     return NextResponse.json(
-      { success: true, products },
+      { success: true, products, pagination },
       {
         headers: {
-          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
         },
       }
     );

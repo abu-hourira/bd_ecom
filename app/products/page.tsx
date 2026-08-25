@@ -16,6 +16,7 @@ import {
 import StorefrontHeader from "@/components/storefront/Header";
 import StorefrontFooter from "@/components/storefront/Footer";
 import ProductCard from "@/components/storefront/ProductCard";
+import { ProductCardSkeleton } from "@/components/storefront/ProductCardSkeleton";
 import { useLanguage } from "@/context/LanguageContext";
 
 function ProductsContent() {
@@ -26,6 +27,20 @@ function ProductsContent() {
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [pagination, setPagination] = useState<{
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasMore: boolean;
+  }>({
+    total: 0,
+    page: 1,
+    limit: 24,
+    totalPages: 1,
+    hasMore: false,
+  });
 
   // Filters State
   const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory);
@@ -39,7 +54,7 @@ function ProductsContent() {
   const { t, locale } = useLanguage();
 
   useEffect(() => {
-    fetch("/api/storefront/categories", { cache: "no-store" })
+    fetch("/api/storefront/categories")
       .then((res) => res.json())
       .then((data) => {
         if (data.categories) setCategories(data.categories);
@@ -47,10 +62,8 @@ function ProductsContent() {
       .catch((e) => console.error(e));
   }, []);
 
-  useEffect(() => {
-    setLoading(true);
+  const buildQueryParams = (pageNum: number) => {
     const params = new URLSearchParams();
-
     if (selectedCategory && selectedCategory !== "all") {
       params.append("category", selectedCategory);
     }
@@ -59,14 +72,25 @@ function ProductsContent() {
     }
     if (minPrice) params.append("minPrice", minPrice);
     if (maxPrice) params.append("maxPrice", maxPrice);
-    if (organicOnly) params.append("organic", "true");
-    if (inStockOnly) params.append("inStock", "true");
+    if (organicOnly) params.append("organicOnly", "true");
+    if (inStockOnly) params.append("inStockOnly", "true");
     if (sortBy) params.append("sort", sortBy);
+    params.append("page", pageNum.toString());
+    params.append("limit", "24");
+    return params.toString();
+  };
 
-    fetch(`/api/storefront/products?${params.toString()}`, { cache: "no-store" })
+  useEffect(() => {
+    setLoading(true);
+    const queryString = buildQueryParams(1);
+
+    fetch(`/api/storefront/products?${queryString}`)
       .then((res) => res.json())
       .then((data) => {
-        if (data.products) setProducts(data.products);
+        if (data.products) {
+          setProducts(data.products);
+          if (data.pagination) setPagination(data.pagination);
+        }
       })
       .catch((e) => console.error(e))
       .finally(() => setLoading(false));
@@ -79,6 +103,24 @@ function ProductsContent() {
     inStockOnly,
     sortBy,
   ]);
+
+  const handleLoadMore = () => {
+    if (!pagination.hasMore || loadingMore) return;
+    setLoadingMore(true);
+    const nextPage = pagination.page + 1;
+    const queryString = buildQueryParams(nextPage);
+
+    fetch(`/api/storefront/products?${queryString}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.products) {
+          setProducts((prev) => [...prev, ...data.products]);
+          if (data.pagination) setPagination(data.pagination);
+        }
+      })
+      .catch((e) => console.error(e))
+      .finally(() => setLoadingMore(false));
+  };
 
   const handleCategorySelect = (slug: string) => {
     setSelectedCategory(slug);
@@ -117,7 +159,7 @@ function ProductsContent() {
             <p className="text-xs sm:text-sm text-stone-600 mt-1">
               {loading
                 ? t("catalog.loading")
-                : `${products.length} ${t("catalog.showing")}`}
+                : `${pagination.total || products.length} ${t("catalog.showing")}`}
             </p>
           </div>
 
@@ -253,16 +295,17 @@ function ProductsContent() {
 
           {/* Product Grid */}
           <div className="lg:col-span-3">
-            {loading ? (
-              <div className="py-24 text-center text-stone-500 bg-white rounded-2xl border border-stone-200">
-                <Loader2 className="w-8 h-8 animate-spin mx-auto text-forest mb-2" />
-                <span>{t("catalog.loading")}</span>
+            {loading && products.length === 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3.5 sm:gap-6">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <ProductCardSkeleton key={i} />
+                ))}
               </div>
-            ) : products.length === 0 ? (
+            ) : !loading && products.length === 0 ? (
               <div className="py-20 text-center text-stone-500 bg-white rounded-2xl border border-stone-200 p-8 space-y-3">
                 <Leaf className="w-10 h-10 text-stone-300 mx-auto" />
                 <h3 className="text-lg font-bold font-display text-stone-900">
-                  {t("catalog.loading")}
+                  {locale === "bn" ? "কোনো পণ্য পাওয়া যায়নি" : "No products found"}
                 </h3>
                 <p className="text-xs text-stone-500 max-w-sm mx-auto">
                   {locale === "bn"
@@ -272,16 +315,38 @@ function ProductsContent() {
                 <button
                   type="button"
                   onClick={handleReset}
-                  className="px-5 py-2 rounded-xl bg-forest text-white text-xs font-semibold cursor-pointer"
+                  className="px-5 py-2 rounded-xl bg-forest text-white text-xs font-semibold cursor-pointer shadow-xs hover:bg-forest-deep transition-all"
                 >
                   {t("catalog.reset")}
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3.5 sm:gap-6">
-                {products.map((p) => (
-                  <ProductCard key={p.id} product={p} />
-                ))}
+              <div className="space-y-8">
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3.5 sm:gap-6">
+                  {products.map((p) => (
+                    <ProductCard key={p.id} product={p} />
+                  ))}
+                </div>
+
+                {pagination.hasMore && (
+                  <div className="text-center pt-4">
+                    <button
+                      type="button"
+                      onClick={handleLoadMore}
+                      disabled={loadingMore}
+                      className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-forest hover:bg-forest-deep text-white text-xs font-bold transition-all shadow-xs disabled:opacity-50 cursor-pointer"
+                    >
+                      {loadingMore ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>{locale === "bn" ? "লোড হচ্ছে..." : "Loading more..."}</span>
+                        </>
+                      ) : (
+                        <span>{locale === "bn" ? "আরও পণ্য দেখুন" : "Load More Products"}</span>
+                      )}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>

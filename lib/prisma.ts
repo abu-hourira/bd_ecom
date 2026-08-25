@@ -30,6 +30,12 @@ function getSanitizedDatabaseUrl(): string | undefined {
         }
       }
     }
+
+    // 3. Ensure optimal connection pool settings in production/serverless
+    if (!url.includes("connection_limit=")) {
+      const separator = url.includes("?") ? "&" : "?";
+      url = `${url}${separator}connection_limit=10&pool_timeout=20&connect_timeout=15`;
+    }
   } catch (e) {}
 
   return url;

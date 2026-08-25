@@ -1,9 +1,9 @@
 // app/api/storefront/products/[slug]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { serverCache } from "@/lib/serverCache";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 export async function GET(
   req: NextRequest,
@@ -11,6 +11,19 @@ export async function GET(
 ) {
   try {
     const { slug } = await params;
+    const cacheKey = `storefront_product_${slug}`;
+    const cached = serverCache.get<any>(cacheKey);
+
+    if (cached) {
+      return NextResponse.json(
+        { success: true, ...cached },
+        {
+          headers: {
+            "Cache-Control": "public, s-maxage=120, stale-while-revalidate=600",
+          },
+        }
+      );
+    }
 
     const product = await prisma.product.findFirst({
       where: { slug, isActive: true },
@@ -25,14 +38,27 @@ export async function GET(
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
-    // Related products in same category
+    // Related products in same category (lightweight projection)
     const relatedProducts = await prisma.product.findMany({
       where: {
         categoryId: product.categoryId,
         id: { not: product.id },
         isActive: true,
       },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        categoryId: true,
+        price: true,
+        discountPrice: true,
+        stockQuantity: true,
+        unit: true,
+        images: true,
+        organicCertified: true,
+        isCombo: true,
+        badge: true,
+        featured: true,
         category: {
           select: { id: true, name: true, slug: true },
         },
@@ -40,11 +66,14 @@ export async function GET(
       take: 4,
     });
 
+    const payload = { product, related: relatedProducts };
+    serverCache.set(cacheKey, payload, 120, ["products"]);
+
     return NextResponse.json(
-      { success: true, product, relatedProducts },
+      { success: true, ...payload },
       {
         headers: {
-          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          "Cache-Control": "public, s-maxage=120, stale-while-revalidate=600",
         },
       }
     );

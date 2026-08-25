@@ -15,18 +15,20 @@ import StorefrontHeader from "@/components/storefront/Header";
 import StorefrontFooter from "@/components/storefront/Footer";
 import HeroSlider from "@/components/storefront/HeroSlider";
 import ProductCard from "@/components/storefront/ProductCard";
+import { ProductCardSkeleton } from "@/components/storefront/ProductCardSkeleton";
 import { useLanguage } from "@/context/LanguageContext";
 import { getCachedHomeData, setCachedHomeData } from "@/lib/storeCache";
 
 export default function HomePage() {
-  // Initialize state immediately from cache if available (instant 0ms render)
-  const [data, setData] = useState<any>(() => getCachedHomeData());
+  const initialCache = getCachedHomeData();
+  const [data, setData] = useState<any>(() => initialCache);
+  const [loading, setLoading] = useState<boolean>(() => !initialCache);
   const [selectedCategoryTab, setSelectedCategoryTab] = useState<string>("all");
   const { t, locale } = useLanguage();
 
   useEffect(() => {
-    // Background silent SWR refresh
-    fetch("/api/storefront/home", { cache: "no-store" })
+    // SWR fetch for fresh home data
+    fetch("/api/storefront/home")
       .then((res) => res.json())
       .then((json) => {
         if (json.success) {
@@ -34,7 +36,8 @@ export default function HomePage() {
           setCachedHomeData(json);
         }
       })
-      .catch((e) => console.error("Silent home sync error:", e));
+      .catch((e) => console.error("Silent home sync error:", e))
+      .finally(() => setLoading(false));
   }, []);
 
   const categories = data?.categories || [];
@@ -52,7 +55,7 @@ export default function HomePage() {
       <StorefrontHeader />
 
       <main className="space-y-6 sm:space-y-10 pb-24 md:pb-20">
-        {/* 1. Dynamic Top Ad Banners & Promo Slider (Instant Render) */}
+        {/* 1. Dynamic Top Ad Banners & Promo Slider */}
         {banners && banners.length > 0 && (
           <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-3 sm:pt-6">
             <HeroSlider banners={banners} />
@@ -60,7 +63,17 @@ export default function HomePage() {
         )}
 
         {/* 2. Horizontal Category Story-Bar */}
-        {categories && categories.length > 0 && (
+        {(loading && categories.length === 0) ? (
+          <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+            <div className="flex items-center gap-2.5 overflow-x-auto pb-2 scrollbar-none animate-pulse">
+              <div className="h-9 w-24 bg-stone-200/80 rounded-2xl shrink-0" />
+              <div className="h-9 w-28 bg-stone-200/80 rounded-2xl shrink-0" />
+              <div className="h-9 w-24 bg-stone-200/80 rounded-2xl shrink-0" />
+              <div className="h-9 w-32 bg-stone-200/80 rounded-2xl shrink-0" />
+              <div className="h-9 w-24 bg-stone-200/80 rounded-2xl shrink-0" />
+            </div>
+          </section>
+        ) : categories.length > 0 ? (
           <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between mb-2.5">
               <h2 className="text-sm sm:text-lg font-bold text-stone-900 flex items-center gap-1.5">
@@ -109,9 +122,9 @@ export default function HomePage() {
               })}
             </div>
           </section>
-        )}
+        ) : null}
 
-        {/* 3. Main Product Grid — Instant Direct Render */}
+        {/* 3. Main Product Grid */}
         <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 space-y-3.5">
           <div className="flex items-center justify-between border-b border-stone-200/80 pb-2.5">
             <div>
@@ -128,7 +141,15 @@ export default function HomePage() {
             )}
           </div>
 
-          {filteredProducts.length === 0 ? (
+          {/* Loading Shimmer Skeletons */}
+          {loading && filteredProducts.length === 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-6">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <ProductCardSkeleton key={i} />
+              ))}
+            </div>
+          ) : !loading && filteredProducts.length === 0 ? (
+            /* True Empty State (Only displayed when finished loading with 0 items) */
             <div className="text-center py-12 bg-white rounded-2xl border border-stone-200 p-6 space-y-2">
               <ShoppingBag className="w-8 h-8 text-stone-300 mx-auto mb-1" />
               <h3 className="font-bold text-sm text-stone-800 font-display">
@@ -141,6 +162,7 @@ export default function HomePage() {
               </p>
             </div>
           ) : (
+            /* Rendered Product Grid */
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-6">
               {filteredProducts.map((p: any) => (
                 <ProductCard key={p.id} product={p} />
@@ -162,7 +184,18 @@ export default function HomePage() {
         </section>
 
         {/* 4. Family Combo & Bundle Deals */}
-        {comboDeals.length > 0 && (
+        {loading && comboDeals.length === 0 ? (
+          <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+            <div className="bg-[#F7F4EE] p-4 sm:p-8 rounded-3xl border border-stone-200/80 space-y-3.5 sm:space-y-6">
+              <div className="h-6 w-40 bg-stone-200/80 rounded-md animate-pulse" />
+              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-6">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <ProductCardSkeleton key={i} />
+                ))}
+              </div>
+            </div>
+          </section>
+        ) : comboDeals.length > 0 ? (
           <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
             <div className="bg-[#F7F4EE] p-4 sm:p-8 rounded-3xl border border-stone-200/80 space-y-3.5 sm:space-y-6">
               <div className="flex items-center justify-between">
@@ -191,7 +224,7 @@ export default function HomePage() {
               </div>
             </div>
           </section>
-        )}
+        ) : null}
       </main>
 
       <StorefrontFooter />

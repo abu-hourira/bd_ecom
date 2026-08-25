@@ -22,7 +22,7 @@ export default function StorefrontFooter() {
   const [settings, setSettings] = useState<Record<string, string>>(() => getCachedSettings());
 
   useEffect(() => {
-    fetch("/api/storefront/categories", { cache: "no-store" })
+    fetch("/api/storefront/categories")
       .then((res) => res.json())
       .then((data) => {
         if (data.success && data.categories) {
@@ -32,7 +32,7 @@ export default function StorefrontFooter() {
       })
       .catch(() => {});
 
-    fetch("/api/storefront/settings", { cache: "no-store" })
+    fetch("/api/storefront/settings")
       .then((res) => res.json())
       .then((data) => {
         if (data.success && data.settings) {

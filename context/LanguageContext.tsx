@@ -22,7 +22,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   const fetchDynamicTranslations = async () => {
     try {
-      const res = await fetch("/api/storefront/i18n", { cache: "no-store" });
+      const res = await fetch("/api/storefront/i18n");
       const data = await res.json();
       if (data.success && data.translations) {
         setActiveTranslations(data.translations);
