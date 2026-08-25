@@ -17,37 +17,103 @@ export interface LLMConfig {
 }
 
 /**
- * Check if AI Quota is currently marked as exhausted
+ * Check if AI Quota is currently marked as exhausted, with automatic monthly & limit resets
  */
 export async function getAiQuotaStatus() {
   try {
-    const [exceededSetting, errorSetting, countSetting, limitSetting] = await Promise.all([
+    const currentMonthKey = new Date().toISOString().slice(0, 7); // e.g. "2026-08"
+
+    const [
+      exceededSetting,
+      errorSetting,
+      countSetting,
+      limitSetting,
+      monthSetting,
+      autoResetSetting,
+      lastExhaustedSetting,
+    ] = await Promise.all([
       prisma.siteSetting.findUnique({ where: { key: "ai_quota_exceeded" } }),
       prisma.siteSetting.findUnique({ where: { key: "ai_quota_error_msg" } }),
       prisma.siteSetting.findUnique({ where: { key: "ai_requests_this_month" } }),
       prisma.siteSetting.findUnique({ where: { key: "ai_monthly_request_limit" } }),
+      prisma.siteSetting.findUnique({ where: { key: "ai_quota_current_month" } }),
+      prisma.siteSetting.findUnique({ where: { key: "ai_auto_reset_on_limit" } }),
+      prisma.siteSetting.findUnique({ where: { key: "ai_last_exhausted_at" } }),
     ]);
 
-    const isExhausted = exceededSetting?.value === "true";
-    const errorMsg = errorSetting?.value || "";
-    const requestsCount = Number(countSetting?.value || "0");
+    let requestsCount = Number(countSetting?.value || "0");
     const limit = Number(limitSetting?.value || "1000");
+    const savedMonth = monthSetting?.value || currentMonthKey;
+    const autoResetEnabled = autoResetSetting ? autoResetSetting.value === "true" : true; // Default ON
 
-    const limitReached = limit > 0 && requestsCount >= limit;
+    // 1. Monthly Calendar Auto-Rollover
+    if (savedMonth !== currentMonthKey) {
+      requestsCount = 0;
+      await Promise.all([
+        prisma.siteSetting.upsert({
+          where: { key: "ai_requests_this_month" },
+          update: { value: "0" },
+          create: { key: "ai_requests_this_month", value: "0", group: "ai" },
+        }),
+        prisma.siteSetting.upsert({
+          where: { key: "ai_quota_current_month" },
+          update: { value: currentMonthKey },
+          create: { key: "ai_quota_current_month", value: currentMonthKey, group: "ai" },
+        }),
+        prisma.siteSetting.upsert({
+          where: { key: "ai_quota_exceeded" },
+          update: { value: "false" },
+          create: { key: "ai_quota_exceeded", value: "false", group: "ai" },
+        }),
+      ]);
+    }
+
+    // 2. Limit-reached Auto-Reset (User Request: "limit ses hoye gele jeno quata auto matic reset ney")
+    if (limit > 0 && requestsCount >= limit && autoResetEnabled) {
+      requestsCount = 0;
+      await Promise.all([
+        prisma.siteSetting.upsert({
+          where: { key: "ai_requests_this_month" },
+          update: { value: "0" },
+          create: { key: "ai_requests_this_month", value: "0", group: "ai" },
+        }),
+        prisma.siteSetting.upsert({
+          where: { key: "ai_quota_exceeded" },
+          update: { value: "false" },
+          create: { key: "ai_quota_exceeded", value: "false", group: "ai" },
+        }),
+      ]);
+    }
+
+    // 3. Auto-recovery cooldown for temporary provider rate limits (5 minutes)
+    let isExhausted = exceededSetting?.value === "true";
+    if (isExhausted && lastExhaustedSetting?.value) {
+      const exhaustedTime = new Date(lastExhaustedSetting.value).getTime();
+      const elapsedMinutes = (Date.now() - exhaustedTime) / (1000 * 60);
+      if (elapsedMinutes >= 5) {
+        // Auto-recover after 5 min
+        isExhausted = false;
+        await resetAiQuotaStatus();
+      }
+    }
+
+    const errorMsg = errorSetting?.value || "";
+    const limitReached = limit > 0 && requestsCount >= limit && !autoResetEnabled;
 
     return {
       isExhausted: isExhausted || limitReached,
       errorMsg: isExhausted
-        ? errorMsg || "API provider quota exhausted (Rate Limit / Insufficient Credits)."
+        ? errorMsg || "API provider rate limit encountered (Auto-recovering)."
         : limitReached
         ? `Monthly request limit reached (${requestsCount}/${limit} requests).`
         : "",
       requestsCount,
       limit,
+      autoReset: autoResetEnabled,
       percentage: limit > 0 ? Math.min(100, Math.round((requestsCount / limit) * 100)) : 0,
     };
   } catch (e) {
-    return { isExhausted: false, errorMsg: "", requestsCount: 0, limit: 1000, percentage: 0 };
+    return { isExhausted: false, errorMsg: "", requestsCount: 0, limit: 1000, autoReset: true, percentage: 0 };
   }
 }
 
@@ -57,7 +123,23 @@ export async function getAiQuotaStatus() {
 export async function recordAiRequest() {
   try {
     const countSetting = await prisma.siteSetting.findUnique({ where: { key: "ai_requests_this_month" } });
+    const limitSetting = await prisma.siteSetting.findUnique({ where: { key: "ai_monthly_request_limit" } });
+    const autoResetSetting = await prisma.siteSetting.findUnique({ where: { key: "ai_auto_reset_on_limit" } });
+
     const current = Number(countSetting?.value || "0");
+    const limit = Number(limitSetting?.value || "1000");
+    const autoReset = autoResetSetting ? autoResetSetting.value === "true" : true;
+
+    if (limit > 0 && current >= limit && autoReset) {
+      // Auto reset counter back to 1 on limit reach
+      await prisma.siteSetting.upsert({
+        where: { key: "ai_requests_this_month" },
+        update: { value: "1" },
+        create: { key: "ai_requests_this_month", value: "1", group: "ai" },
+      });
+      return;
+    }
+
     await prisma.siteSetting.upsert({
       where: { key: "ai_requests_this_month" },
       update: { value: String(current + 1) },
@@ -94,22 +176,51 @@ export async function recordAiQuotaExhausted(errorText: string) {
 }
 
 /**
- * Reset AI Quota Status
+ * Reset AI Quota Status & Clear Exhaustion Flag
  */
 export async function resetAiQuotaStatus() {
   try {
-    await prisma.siteSetting.upsert({
-      where: { key: "ai_quota_exceeded" },
-      update: { value: "false" },
-      create: { key: "ai_quota_exceeded", value: "false", group: "ai" },
-    });
-    await prisma.siteSetting.upsert({
-      where: { key: "ai_quota_error_msg" },
-      update: { value: "" },
-      create: { key: "ai_quota_error_msg", value: "", group: "ai" },
-    });
+    await Promise.all([
+      prisma.siteSetting.upsert({
+        where: { key: "ai_quota_exceeded" },
+        update: { value: "false" },
+        create: { key: "ai_quota_exceeded", value: "false", group: "ai" },
+      }),
+      prisma.siteSetting.upsert({
+        where: { key: "ai_quota_error_msg" },
+        update: { value: "" },
+        create: { key: "ai_quota_error_msg", value: "", group: "ai" },
+      }),
+    ]);
   } catch (e) {
     console.error("[resetAiQuotaStatus Exception]:", e);
+  }
+}
+
+/**
+ * Reset AI Request Count to 0
+ */
+export async function resetAiRequestCount() {
+  try {
+    await Promise.all([
+      prisma.siteSetting.upsert({
+        where: { key: "ai_requests_this_month" },
+        update: { value: "0" },
+        create: { key: "ai_requests_this_month", value: "0", group: "ai" },
+      }),
+      prisma.siteSetting.upsert({
+        where: { key: "ai_quota_exceeded" },
+        update: { value: "false" },
+        create: { key: "ai_quota_exceeded", value: "false", group: "ai" },
+      }),
+      prisma.siteSetting.upsert({
+        where: { key: "ai_quota_error_msg" },
+        update: { value: "" },
+        create: { key: "ai_quota_error_msg", value: "", group: "ai" },
+      }),
+    ]);
+  } catch (e) {
+    console.error("[resetAiRequestCount Exception]:", e);
   }
 }
 

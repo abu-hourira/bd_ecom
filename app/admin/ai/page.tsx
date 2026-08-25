@@ -48,6 +48,7 @@ export default function AdminAiPage() {
   const [isActive, setIsActive] = useState(false);
   const [hasApiKey, setHasApiKey] = useState(false);
   const [monthlyLimit, setMonthlyLimit] = useState(1000);
+  const [autoResetOnLimit, setAutoResetOnLimit] = useState(true);
   const [savingSettings, setSavingSettings] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -57,12 +58,14 @@ export default function AdminAiPage() {
     errorMsg: string;
     requestsCount: number;
     limit: number;
+    autoReset?: boolean;
     percentage: number;
   }>({
     isExhausted: false,
     errorMsg: "",
     requestsCount: 0,
     limit: 1000,
+    autoReset: true,
     percentage: 0,
   });
 
@@ -93,6 +96,7 @@ export default function AdminAiPage() {
         if (json.quotaStatus) {
           setQuotaStatus(json.quotaStatus);
           if (json.quotaStatus.limit) setMonthlyLimit(json.quotaStatus.limit);
+          if (json.quotaStatus.autoReset !== undefined) setAutoResetOnLimit(Boolean(json.quotaStatus.autoReset));
         }
       });
   };
@@ -173,6 +177,7 @@ export default function AdminAiPage() {
           adminPrompt,
           isActive,
           monthlyLimit,
+          autoResetOnLimit,
         }),
       });
 
@@ -204,6 +209,28 @@ export default function AdminAiPage() {
           isOpen: true,
           title: "Quota Alert Cleared",
           message: "AI Quota status has been reset. The AI Agent is back to active status.",
+          type: "success",
+        });
+        fetchAiData();
+      }
+    } catch (e: any) {
+      setAlertState({ isOpen: true, title: "Error", message: e.message, type: "error" });
+    }
+  };
+
+  const handleResetCounter = async () => {
+    try {
+      const res = await fetch("/api/admin/ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reset_counter" }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setAlertState({
+          isOpen: true,
+          title: "Request Counter Reset",
+          message: "Monthly AI request usage counter has been reset back to 0.",
           type: "success",
         });
         fetchAiData();
@@ -559,23 +586,60 @@ export default function AdminAiPage() {
                   </div>
                 </div>
 
+                {/* Auto Reset on Limit Toggle */}
+                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-bg border border-line">
+                  <div className="pr-2">
+                    <span className="font-bold text-xs text-ink block">Auto-Reset on Limit Reach</span>
+                    <span className="text-[11px] text-ink-soft">
+                      Automatically reset counter to 0 when safety limit is reached so chat never stops.
+                    </span>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={autoResetOnLimit}
+                      onChange={(e) => setAutoResetOnLimit(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-line peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-line after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-forest"></div>
+                  </label>
+                </div>
+
                 {/* Quota details */}
                 <div className="p-3.5 rounded-2xl bg-bg border border-line text-xs space-y-1.5">
-                  <span className="font-bold text-ink block text-[11px] uppercase tracking-wider">Quota Guardrails</span>
+                  <span className="font-bold text-ink block text-[11px] uppercase tracking-wider flex items-center justify-between">
+                    <span>Auto-Reset & Guardrails</span>
+                    <span className="text-[10px] text-emerald-700 font-semibold">
+                      {autoResetOnLimit ? "● Auto-Reset Enabled" : "○ Manual Reset Only"}
+                    </span>
+                  </span>
                   <p className="text-ink-soft text-[11px] leading-relaxed">
-                    When the quota limit is reached or the API provider returns 429 Insufficient Credits, an alert is automatically flagged in the admin panel and the customer chat switches to offline contact mode.
+                    {autoResetOnLimit
+                      ? "কোটা লিমিট (যেমন: ১০০০) শেষ হওয়ার সাথে সাথে কাউন্টার স্বয়ংক্রিয়ভাবে ০ থেকে পুনরায় শুরু হবে এবং প্রতি মাসের শুরুতে ক্যালেন্ডার রোল-ওভার ঘটবে।"
+                      : "লিমিট শেষ হলে বা প্রোভাইডারের সাময়িক রেট লিমিট থাকলে কাস্টমার চ্যাট অফলাইন মোডে যাবে এবং এডমিনকে ম্যানুয়ালি রিসেট করতে হবে।"}
                   </p>
                 </div>
 
-                {/* Reset button */}
-                <button
-                  type="button"
-                  onClick={handleResetQuota}
-                  className="w-full py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Reset Quota Alert Status</span>
-                </button>
+                {/* Action Buttons */}
+                <div className="space-y-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleResetCounter}
+                    className="w-full py-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Reset Usage Counter to 0 (কাউন্টার রিসেট)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleResetQuota}
+                    className="w-full py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Reset Quota Alert Status</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>

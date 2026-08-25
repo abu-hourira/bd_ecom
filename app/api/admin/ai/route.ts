@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { encryptAES } from "@/lib/crypto";
-import { getAiQuotaStatus, resetAiQuotaStatus } from "@/lib/ai-provider";
+import { getAiQuotaStatus, resetAiQuotaStatus, resetAiRequestCount } from "@/lib/ai-provider";
 
 export async function GET() {
   try {
@@ -48,14 +48,37 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { provider, apiKey, modelName, systemPrompt, adminPrompt, isActive, action, monthlyLimit } = body;
+    const {
+      provider,
+      apiKey,
+      modelName,
+      systemPrompt,
+      adminPrompt,
+      isActive,
+      action,
+      monthlyLimit,
+      autoResetOnLimit,
+    } = body;
 
-    // Action: Reset Quota status
+    // Action: Reset Quota status (error clearing)
     if (action === "reset_quota") {
       await resetAiQuotaStatus();
+      const quotaStatus = await getAiQuotaStatus();
       return NextResponse.json({
         success: true,
         message: "AI Quota status reset successfully. AI Agent is back to active status.",
+        quotaStatus,
+      });
+    }
+
+    // Action: Reset Request Counter to 0
+    if (action === "reset_counter") {
+      await resetAiRequestCount();
+      const quotaStatus = await getAiQuotaStatus();
+      return NextResponse.json({
+        success: true,
+        message: "Monthly AI request counter reset to 0.",
+        quotaStatus,
       });
     }
 
@@ -65,6 +88,15 @@ export async function POST(request: NextRequest) {
         where: { key: "ai_monthly_request_limit" },
         update: { value: String(monthlyLimit) },
         create: { key: "ai_monthly_request_limit", value: String(monthlyLimit), group: "ai" },
+      });
+    }
+
+    // Action: Update Auto-Reset on Limit
+    if (autoResetOnLimit !== undefined) {
+      await prisma.siteSetting.upsert({
+        where: { key: "ai_auto_reset_on_limit" },
+        update: { value: String(autoResetOnLimit) },
+        create: { key: "ai_auto_reset_on_limit", value: String(autoResetOnLimit), group: "ai" },
       });
     }
 
