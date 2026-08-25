@@ -29,8 +29,8 @@ export async function POST(request: NextRequest) {
       prisma.product.count(),
       prisma.product.findMany({
         where: { stockQuantity: { lte: 10 } },
-        select: { id: true, name: true, stockQuantity: true, unit: true, price: true, category: { select: { name: true } } },
-        take: 10,
+        select: { id: true, name: true, stockQuantity: true, unitQuantity: true, unit: true, price: true, category: { select: { name: true } } } as any,
+        take: 15,
       }),
       prisma.order.findMany({
         take: 8,
@@ -57,8 +57,8 @@ export async function POST(request: NextRequest) {
 
     const lowStockSummary =
       lowStockProducts.length > 0
-        ? lowStockProducts
-            .map((p) => `- ${p.name} (${p.category?.name || "General"}): only ${p.stockQuantity} ${p.unit} remaining (Price: ৳${p.price})`)
+        ? (lowStockProducts as any[])
+            .map((p: any) => `- ${p.name} (${p.category?.name || "General"}): only ${p.stockQuantity} ${p.unit} remaining (Price: ৳${p.price})`)
             .join("\n")
         : "All products currently have healthy inventory levels (>10 units).";
 

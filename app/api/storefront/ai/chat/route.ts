@@ -12,47 +12,112 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Message is required" }, { status: 400 });
     }
 
-    // 1. Fetch AI Configuration
-    const aiSetting = await prisma.aISetting.findFirst({
-      where: { isActive: true },
-      orderBy: { id: "desc" },
-    });
+    // 1. Fetch AI Configuration and Live Store Settings
+    const [aiSetting, siteSettingsList, categoriesList, products, activePromos] = await Promise.all([
+      prisma.aISetting.findFirst({
+        where: { isActive: true },
+        orderBy: { id: "desc" },
+      }),
+      prisma.siteSetting.findMany({
+        where: {
+          key: {
+            in: [
+              "site_name",
+              "site_tagline",
+              "contact_phone",
+              "contact_whatsapp",
+              "contact_email",
+              "delivery_charge_inside_dhaka",
+              "delivery_charge_outside_dhaka",
+              "free_delivery_threshold",
+              "return_policy",
+              "shipping_policy",
+              "about_us",
+            ],
+          },
+        },
+      }),
+      prisma.category.findMany({
+        where: { isActive: true },
+        select: { id: true, name: true, slug: true, description: true },
+        orderBy: { displayOrder: "asc" },
+      }),
+      prisma.product.findMany({
+        where: { isActive: true },
+        select: {
+          id: true,
+          name: true,
+          category: { select: { name: true } },
+          price: true,
+          discountPrice: true,
+          stockQuantity: true,
+          unitQuantity: true,
+          unit: true,
+          shortDescription: true,
+          organicCertified: true,
+          isCombo: true,
+          badge: true,
+        } as any,
+        orderBy: { createdAt: "desc" },
+        take: 100,
+      }),
+      prisma.promoCode.findMany({
+        where: { isActive: true },
+        select: { code: true, discountType: true, discountValue: true, minOrderAmount: true },
+      }),
+    ]);
 
-    // 2. Fetch Public Product Catalog for Context Grounding
-    const products = await prisma.product.findMany({
-      where: { isActive: true },
-      select: {
-        id: true,
-        name: true,
-        category: { select: { name: true } },
-        price: true,
-        discountPrice: true,
-        stockQuantity: true,
-        unit: true,
-        description: true,
-        organicCertified: true,
-      },
-      take: 50,
-    });
+    // Build key-value map of site settings
+    const settingsMap = (siteSettingsList || []).reduce((acc: Record<string, string>, s) => {
+      acc[s.key] = s.value;
+      return acc;
+    }, {});
 
-    const productCatalogSummary = products
-      .map(
-        (p) =>
-          `- ${p.name} (${p.category?.name || "General"}): ৳${p.discountPrice || p.price} per ${p.unit} | Stock: ${
-            p.stockQuantity > 0 ? "In Stock" : "Out of Stock"
-          } | Certified Organic: ${p.organicCertified ? "Yes" : "No"}`
-      )
-      .join("\n");
+    const siteName = settingsMap.site_name || "ENMAR Organic Food";
+    const siteTagline = settingsMap.site_tagline || "100% Pure & Organic Food";
+    const contactPhone = settingsMap.contact_phone || settingsMap.contact_whatsapp || "+880 1614 663082";
+    const insideDhakaFee = settingsMap.delivery_charge_inside_dhaka || "70";
+    const outsideDhakaFee = settingsMap.delivery_charge_outside_dhaka || "130";
+    const freeDeliveryMin = settingsMap.free_delivery_threshold || "1500";
+
+    // Format Categories
+    const categoriesSummary = categoriesList.length > 0
+      ? categoriesList.map((c) => `- ${c.name}${c.description ? ` (${c.description})` : ""}`).join("\n")
+      : "General Organic Food Catalog";
+
+    // Format Live Products
+    const productCatalogSummary = products.length > 0
+      ? (products as any[])
+          .map((p: any) => {
+            const unitDisplay = p.unitQuantity ? `${Number(p.unitQuantity)} ${p.unit}` : p.unit;
+            const priceDisplay = p.discountPrice ? `৳${p.discountPrice} (Regular: ৳${p.price})` : `৳${p.price}`;
+            const stockStatus = p.stockQuantity > 0 ? `In Stock (${p.stockQuantity} available)` : "Out of Stock";
+            const badge = p.badge ? ` [${p.badge}]` : "";
+            const desc = p.shortDescription ? ` - ${p.shortDescription}` : "";
+            return `- ${p.name} (${p.category?.name || "General"})${badge}: ${priceDisplay} per ${unitDisplay} | ${stockStatus}${desc}`;
+          })
+          .join("\n")
+      : "No products currently listed in catalog.";
+
+    // Format Active Promos
+    const promosSummary = activePromos.length > 0
+      ? activePromos
+          .map((pr) => `- Code '${pr.code}': ${pr.discountType === "PERCENTAGE" ? `${pr.discountValue}% OFF` : `৳${pr.discountValue} OFF`} (Min Order: ৳${pr.minOrderAmount || 0})`)
+          .join("\n")
+      : "No active discount codes right now.";
 
     // 3. Check for Order Tracking Intent in message
     let orderTrackingContext = "";
-    const trackingMatch = message.match(/ENM-[A-Z0-9]{6,10}/i);
+    const trackingMatch = message.match(/ENM-[A-Z0-9]{5,12}/i) || message.match(/ENM\d{4,10}/i);
     if (trackingMatch) {
-      const trackingId = trackingMatch[0].toUpperCase();
-      const order = await prisma.order.findUnique({
-        where: { trackingId },
+      const trackingQuery = trackingMatch[0].toUpperCase();
+      const order = await prisma.order.findFirst({
+        where: {
+          OR: [{ trackingId: trackingQuery }, { orderNumber: trackingQuery }],
+        },
         select: {
           trackingId: true,
+          orderNumber: true,
           orderStatus: true,
           courierPartner: true,
           courierTrackingId: true,
@@ -62,32 +127,39 @@ export async function POST(request: NextRequest) {
       });
 
       if (order) {
-        orderTrackingContext = `\n[Verified Order Details for Tracking ID ${trackingId}]: Status is '${order.orderStatus}', Total: ৳${order.totalAmount}, Courier: ${order.courierPartner || "Processing at ENMAR facility"} (Tracking No: ${order.courierTrackingId || "Pending"}), Created: ${order.createdAt.toISOString()}.`;
+        orderTrackingContext = `\n[Verified Live Order Details for '${trackingQuery}']: Order #${order.orderNumber} (Tracking: ${order.trackingId}) | Status: '${order.orderStatus}' | Total: ৳${order.totalAmount} | Courier: ${order.courierPartner || "ENMAR Logistics"} (Courier Trx: ${order.courierTrackingId || "Pending"}) | Placed on: ${order.createdAt.toLocaleDateString("en-US", { dateStyle: "medium" })}.`;
       } else {
-        orderTrackingContext = `\n[Tracking Query for ID ${trackingId}]: No order was found in the system matching this tracking ID.`;
+        orderTrackingContext = `\n[Tracking Search Result for '${trackingQuery}']: No order found in database matching tracking/order ID '${trackingQuery}'.`;
       }
     }
 
-    // 4. Construct System Prompt with Strict Data Isolation
-    const systemPrompt = `You are the polite, knowledgeable, and fluent AI Shopping Assistant for ENMAR (enmar.bd), Bangladesh's premier 100% pure organic food brand.
-Brand identity: Warm, earthy, authentic organic food (raw Sundarban honey, bilona cow ghee, wood-pressed cold mustard oil, organic spices, pantry staples).
+    // 4. Construct System Prompt with Real-time DB Telemetry
+    const customInstructions = aiSetting?.systemPrompt?.trim() || "";
+    const systemPrompt = `You are the polite, knowledgeable, and fluent AI Shopping Assistant for ${siteName} (${siteTagline}).
+${customInstructions ? `ADMIN CUSTOM INSTRUCTIONS:\n${customInstructions}\n` : ""}
+LIVE STORE DATABASE & POLICIES (REAL-TIME DATA FROM DATABASE):
+- Store Name: ${siteName}
+- Delivery Charges: Inside Dhaka: ৳${insideDhakaFee} | Outside Dhaka: ৳${outsideDhakaFee}
+- Free Delivery: Automatically applied on orders of ৳${freeDeliveryMin} and above!
+- Customer Hotline / WhatsApp: ${contactPhone}
+- Payment Methods: Cash on Delivery (COD) & Online Payment (bKash, Nagad, Rocket, Card via SSLCommerz).
 
-DELIVERY POLICIES:
-- Inside Dhaka: ৳70 (24 to 48 hours)
-- Outside Dhaka: ৳130 (24 to 72 hours)
-- Free Delivery: Automatically applied on orders of ৳1,500 and above nationwide!
-- Payment Methods: Cash on Delivery (COD) and Online Payment via SSLCommerz (bKash, Nagad, Rocket, Visa/Mastercard).
+AVAILABLE STORE CATEGORIES:
+${categoriesSummary}
 
-CURRENT STORE CATALOG:
+LIVE PRODUCT CATALOG (${products.length} active products in database):
 ${productCatalogSummary}
+
+ACTIVE PROMO CODES / OFFERS:
+${promosSummary}
 ${orderTrackingContext}
 
-CRITICAL DATA ISOLATION & SECURITY RULES:
-1. NEVER disclose internal profit margins, supplier costs, admin credentials, database configuration, or API keys under any circumstance.
-2. If asked about another customer's orders, personal details, or phone numbers, politely refuse citing privacy and data protection policies.
-3. Only assist with genuine product inquiries, organic health/cooking usage, delivery rates, and order tracking.
-4. Respond in the customer's preferred language (Bangla or English). If they ask in Bengali, reply naturally in clear Bengali. If they ask in English, reply in English.
-5. Be concise, polite, helpful, and encourage healthy organic living.`;
+CRITICAL OPERATIONAL RULES:
+1. Always base product availability, exact weight/measurement units, and prices ONLY on the LIVE PRODUCT CATALOG above. If a customer asks about a product, refer to its exact price, weight, and in-stock status from the catalog.
+2. If a customer asks in Bengali, reply naturally and politely in Bengali. If they ask in English, reply in English.
+3. If they ask about orders, use the verified live order details provided.
+4. NEVER disclose internal supplier costs, profit margins, database configurations, admin credentials, or API keys.
+5. Be concise, polite, and warmly guide customers to checkout or reach out via WhatsApp (${contactPhone}) if needed.`;
 
     // 5. Build Multi-Turn Message Array
     const messages: ChatMessage[] = [{ role: "system", content: systemPrompt }];
