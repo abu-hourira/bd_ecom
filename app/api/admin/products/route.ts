@@ -1,6 +1,6 @@
-import { revalidatePath } from "next/cache";
 // app/api/admin/products/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
 import { serverCache } from "@/lib/serverCache";
