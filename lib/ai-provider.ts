@@ -121,7 +121,7 @@ export async function callLLM(
   config: LLMConfig
 ): Promise<{ text: string; tokensUsed?: number }> {
   let apiKey = config.apiKey || (config.apiKeyEncrypted ? decryptAES(config.apiKeyEncrypted) : "");
-  const provider = (config.provider || "openai").toLowerCase();
+  let provider = (config.provider || "openai").toLowerCase();
 
   // Environment variable fallback if not set in DB
   if (!apiKey || apiKey.trim() === "") {
@@ -134,29 +134,57 @@ export async function callLLM(
 
   apiKey = apiKey.trim();
 
-  if (!apiKey) {
-    throw new Error(`No API key configured for ${provider}. Please enter your API key in the AI Settings tab or set OPENROUTER_API_KEY in environment variables.`);
+  // Smart provider auto-detection based on API key prefix to prevent mismatched settings
+  if (apiKey.startsWith("sk-or-")) {
+    provider = "openrouter";
+  } else if (apiKey.startsWith("AIzaSy") || apiKey.startsWith("AIza")) {
+    provider = "gemini";
+  } else if (apiKey.startsWith("gsk_")) {
+    provider = "groq";
+  } else if (apiKey.startsWith("sk-ant-")) {
+    provider = "anthropic";
   }
 
-  const model = config.modelName || (provider === "anthropic" ? "claude-3-5-sonnet-20241022" : provider === "gemini" ? "gemini-1.5-flash" : "gpt-4o-mini");
+  if (!apiKey) {
+    throw new Error(`No API key configured for ${provider}. Please enter your API key in the AI Settings tab.`);
+  }
+
+  let model = config.modelName?.trim() || "";
+  if (!model) {
+    if (provider === "anthropic") model = "claude-3-5-sonnet-20241022";
+    else if (provider === "gemini" || provider === "google") model = "gemini-1.5-flash";
+    else if (provider === "openrouter") model = "nvidia/nemotron-3.5-lightning:free";
+    else if (provider === "groq") model = "llama3-8b-8192";
+    else model = "gpt-4o-mini";
+  }
 
   try {
     // 1. Google Gemini Provider
     if (provider === "gemini" || provider === "google") {
-      const contents = messages
-        .filter((m) => m.role !== "system")
-        .map((m) => ({
-          role: m.role === "assistant" ? "model" : "user",
-          parts: [{ text: m.content }],
-        }));
+      const cleanModel = model.replace(/^models\//, "");
+      
+      const contents: Array<{ role: string; parts: Array<{ text: string }> }> = [];
+      const nonSystemMessages = messages.filter((m) => m.role !== "system" && m.content?.trim());
+      
+      for (const m of nonSystemMessages) {
+        const role = m.role === "assistant" ? "model" : "user";
+        contents.push({
+          role,
+          parts: [{ text: m.content.trim() }],
+        });
+      }
 
-      const systemInstruction = messages.find((m) => m.role === "system");
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+      if (contents.length === 0) {
+        contents.push({ role: "user", parts: [{ text: "Hello" }] });
+      }
+
+      const systemInstruction = messages.find((m) => m.role === "system" && m.content?.trim());
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${apiKey}`;
       const payload: any = { contents };
 
       if (systemInstruction) {
         payload.systemInstruction = {
-          parts: [{ text: systemInstruction.content }],
+          parts: [{ text: systemInstruction.content.trim() }],
         };
       }
 
@@ -199,12 +227,16 @@ export async function callLLM(
         headers["X-Title"] = "ENMAR Organic Food";
       }
 
+      const cleanMessages = messages
+        .filter((m) => m.content?.trim())
+        .map((m) => ({ role: m.role, content: m.content.trim() }));
+
       const res = await fetch(endpoint, {
         method: "POST",
         headers,
         body: JSON.stringify({
           model,
-          messages,
+          messages: cleanMessages,
           temperature: 0.7,
         }),
       });
