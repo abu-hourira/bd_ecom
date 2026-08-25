@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { createSessionToken } from "@/lib/authSession";
 
 export async function POST(request: NextRequest) {
   try {
@@ -89,12 +90,37 @@ export async function POST(request: NextRequest) {
       postalCode: user.postalCode,
     };
 
-    return NextResponse.json({
+    const token = createSessionToken({
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+      role: user.role,
+    });
+
+    const response = NextResponse.json({
       success: true,
       user: safeUser,
+      token,
       isStaff,
       redirect: isStaff ? "/admin" : "/account/profile",
     });
+
+    // Set secure HTTP session cookie
+    response.cookies.set("enmar_session", token, {
+      path: "/",
+      maxAge: 7 * 24 * 60 * 60, // 7 days
+      sameSite: "lax",
+      httpOnly: false, // Accessible to client and server
+      secure: process.env.NODE_ENV === "production",
+    });
+
+    response.cookies.set("enmar_role", user.role, {
+      path: "/",
+      maxAge: 7 * 24 * 60 * 60,
+      sameSite: "lax",
+    });
+
+    return response;
   } catch (error: any) {
     console.error("[Unified Auth Login Error]:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

@@ -1,16 +1,97 @@
 "use client";
-// app/admin/layout.tsx
+// app/admin/layout.tsx - Secure Admin Layout Guard
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import { ShieldCheck, ShieldAlert, Loader2, Lock } from "lucide-react";
 import AdminSidebar from "@/components/admin/Sidebar";
 import AdminHeader from "@/components/admin/Header";
+import { isStaffRole } from "@/lib/authSession";
 
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("enmar_customer");
+      if (!stored) {
+        setIsAuthorized(false);
+        router.replace(`/auth/login?callbackUrl=${encodeURIComponent(pathname)}`);
+        return;
+      }
+
+      const user = JSON.parse(stored);
+      if (!user || !user.role || !isStaffRole(user.role)) {
+        setIsAuthorized(false);
+        router.replace(`/auth/login?callbackUrl=${encodeURIComponent(pathname)}&error=unauthorized`);
+        return;
+      }
+
+      setIsAuthorized(true);
+    } catch (e) {
+      setIsAuthorized(false);
+      router.replace(`/auth/login?callbackUrl=${encodeURIComponent(pathname)}`);
+    }
+  }, [pathname, router]);
+
+  // Loading / Authorization Check Screen
+  if (isAuthorized === null) {
+    return (
+      <div className="min-h-screen bg-[#FAF8F5] flex flex-col items-center justify-center p-4">
+        <div className="bg-white p-8 rounded-3xl border border-stone-200 shadow-xl max-w-sm w-full text-center space-y-4 animate-in fade-in zoom-in-95 duration-300">
+          <div className="w-14 h-14 rounded-2xl bg-forest/10 text-forest flex items-center justify-center mx-auto">
+            <Lock className="w-7 h-7 text-forest" />
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-lg font-bold font-display text-stone-900">
+              Verifying Security Access
+            </h2>
+            <p className="text-xs text-stone-500">
+              Authenticating Staff & Superadmin credentials...
+            </p>
+          </div>
+          <div className="flex items-center justify-center gap-2 pt-2 text-forest text-xs font-semibold">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span>Secure Vault Connecting</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Unauthorized Screen
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-screen bg-[#FAF8F5] flex flex-col items-center justify-center p-4">
+        <div className="bg-white p-8 rounded-3xl border border-red-200 shadow-xl max-w-sm w-full text-center space-y-4">
+          <div className="w-14 h-14 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center mx-auto">
+            <ShieldAlert className="w-7 h-7" />
+          </div>
+          <div className="space-y-1">
+            <h2 className="text-lg font-bold font-display text-stone-900">
+              Access Restricted
+            </h2>
+            <p className="text-xs text-stone-500">
+              You must sign in with an authorized Superadmin or Staff account to view this area.
+            </p>
+          </div>
+          <button
+            onClick={() => router.replace(`/auth/login?callbackUrl=${encodeURIComponent(pathname)}`)}
+            className="w-full py-2.5 px-4 rounded-xl bg-forest hover:bg-forest-deep text-white text-xs font-bold transition-all shadow-xs cursor-pointer"
+          >
+            Go to Admin Login
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-bg text-ink flex">

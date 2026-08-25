@@ -1,8 +1,9 @@
 "use client";
 // components/admin/Sidebar.tsx
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Sparkles,
@@ -26,6 +27,7 @@ import {
   BarChart3,
   UserCheck,
   X,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -36,6 +38,30 @@ interface SidebarProps {
 
 export default function AdminSidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [currentUser, setCurrentUser] = useState<{
+    name?: string;
+    email?: string;
+    role?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("enmar_customer");
+      if (stored) {
+        setCurrentUser(JSON.parse(stored));
+      }
+    } catch (e) {}
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch (e) {}
+    localStorage.removeItem("enmar_customer");
+    localStorage.removeItem("enmar_admin_email");
+    router.replace("/auth/login");
+  };
 
   const navItems = [
     { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
@@ -188,14 +214,28 @@ export default function AdminSidebar({ mobileOpen, onCloseMobile }: SidebarProps
             <span className="text-[10px] bg-forest px-1.5 py-0.5 rounded text-white/90">Preview</span>
           </Link>
 
-          <div className="px-3 py-2 rounded-xl bg-black/20 flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-forest text-white flex items-center justify-center font-bold text-xs border border-white/20">
-              AH
+          <div className="px-3 py-2.5 rounded-xl bg-black/20 flex items-center justify-between gap-2 border border-white/5">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-full bg-forest text-white flex items-center justify-center font-bold text-xs border border-white/20 shrink-0 uppercase">
+                {currentUser?.name ? currentUser.name.slice(0, 2) : "SA"}
+              </div>
+              <div className="overflow-hidden">
+                <p className="text-xs font-semibold truncate text-white">
+                  {currentUser?.name || "Superadmin"}
+                </p>
+                <p className="text-[10px] text-white/60 truncate">
+                  {currentUser?.role?.replace("_", " ") || "SUPER ADMIN"}
+                </p>
+              </div>
             </div>
-            <div className="overflow-hidden">
-              <p className="text-xs font-semibold truncate text-white">Abu Hourira</p>
-              <p className="text-[10px] text-white/60 truncate">admin@enmar.bd (Super Admin)</p>
-            </div>
+
+            <button
+              onClick={handleLogout}
+              title="Sign Out"
+              className="p-1.5 rounded-lg text-white/60 hover:text-red-400 hover:bg-white/10 transition-colors cursor-pointer"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </aside>
