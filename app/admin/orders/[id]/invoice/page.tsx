@@ -3,8 +3,8 @@
 
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
-import { ArrowLeft, Printer, Leaf, ShieldCheck, CheckCircle2, Loader2, Tag } from "lucide-react";
-import { formatTaka } from "@/lib/utils";
+import { ArrowLeft, Printer, ShieldCheck, Loader2, Tag } from "lucide-react";
+import { formatTaka, getSafeImageUrl } from "@/lib/utils";
 
 export default function OrderInvoicePrintPage({
   params,
@@ -13,13 +13,17 @@ export default function OrderInvoicePrintPage({
 }) {
   const { id } = use(params);
   const [order, setOrder] = useState<any | null>(null);
+  const [settings, setSettings] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/admin/orders/' + id)
-      .then((res) => res.json())
-      .then((json) => {
-        if (json.success) setOrder(json.order);
+    Promise.all([
+      fetch("/api/admin/orders/" + id).then((res) => res.json()),
+      fetch("/api/admin/settings").then((res) => res.json()).catch(() => ({ settings: {} })),
+    ])
+      .then(([orderJson, settingsJson]) => {
+        if (orderJson.success) setOrder(orderJson.order);
+        if (settingsJson.success && settingsJson.settings) setSettings(settingsJson.settings);
       })
       .catch((e) => console.error(e))
       .finally(() => setLoading(false));
@@ -48,6 +52,13 @@ export default function OrderInvoicePrintPage({
       </div>
     );
   }
+
+  const brandName = settings.brandName || "ENMAR";
+  const brandTagline = settings.brandTagline || "Pure Organic Food";
+  const brandPhone = settings.contactPhone || settings.whatsappNumber || "";
+  const brandEmail = settings.contactEmail || "support@enmar.shop";
+  const brandAddress = settings.contactAddress || "Dhaka, Bangladesh";
+  const brandLogo = settings.siteLogo || "";
 
   return (
     <div className="min-h-screen bg-neutral-100 p-4 sm:p-6 print:p-0 print:m-0 print:bg-white text-neutral-900 font-sans">
@@ -120,21 +131,33 @@ export default function OrderInvoicePrintPage({
         <div className="flex items-start justify-between border-b-2 border-neutral-900 pb-3">
           <div className="space-y-1">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-forest text-accent font-bold flex items-center justify-center text-lg font-display">
-                E
-              </div>
+              {brandLogo ? (
+                <div className="relative w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-neutral-200">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={getSafeImageUrl(brandLogo)}
+                    alt={brandName}
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              ) : (
+                <div className="w-8 h-8 rounded-xl bg-forest text-white font-bold flex items-center justify-center text-lg font-display">
+                  E
+                </div>
+              )}
               <div>
                 <h1 className="text-xl font-bold font-display tracking-wide text-forest leading-tight">
-                  ENMAR
+                  {brandName}
                 </h1>
                 <span className="text-[9px] uppercase font-mono tracking-widest text-neutral-500 block leading-none">
-                  Pure Organic Food
+                  {brandTagline}
                 </span>
               </div>
             </div>
             <p className="text-[10px] text-neutral-600 leading-tight pt-1">
-              House 14, Road 7, Sector 3, Uttara, Dhaka-1230, Bangladesh <br />
-              Hotline: +880 1614 113082 &bull; Email: support@enmar.bd &bull; Web: enmar.bd
+              {brandAddress} <br />
+              {brandPhone ? `Hotline: ${brandPhone} • ` : ""}
+              Email: {brandEmail} • Web: enmar.shop
             </p>
           </div>
 
@@ -169,6 +192,11 @@ export default function OrderInvoicePrintPage({
             <span className="inline-block text-[10px] font-semibold text-forest bg-forest-soft px-1.5 py-0.5 rounded">
               {order.deliveryZone}
             </span>
+            {order.customerNotes && (
+              <p className="text-[10px] text-neutral-500 italic pt-0.5">
+                Note: {order.customerNotes}
+              </p>
+            )}
           </div>
 
           {/* Logistics & Payment */}
@@ -263,7 +291,7 @@ export default function OrderInvoicePrintPage({
             <span>100% Certified Organic & Unadulterated Food Guarantee.</span>
           </div>
           <div className="font-mono text-[10px] font-semibold">
-            Thank you for choosing ENMAR!
+            Thank you for choosing {brandName}!
           </div>
         </div>
       </div>

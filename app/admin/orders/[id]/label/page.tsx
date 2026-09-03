@@ -4,20 +4,21 @@
 
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowLeft,
   Printer,
   FileText,
   Loader2,
-  Package,
   Phone,
   MapPin,
-  Truck,
   ZoomIn,
   ZoomOut,
   RotateCcw,
+  Edit3,
+  Check,
 } from "lucide-react";
-import { formatTaka } from "@/lib/utils";
+import { formatTaka, getSafeImageUrl } from "@/lib/utils";
 import { generateBarcodeSvg } from "@/lib/barcode";
 
 export default function OrderShippingLabelPage({
@@ -30,17 +31,31 @@ export default function OrderShippingLabelPage({
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [previewZoom, setPreviewZoom] = useState<number>(1.25);
+  const [isEditing, setIsEditing] = useState(false);
+
+  // Custom overrides if admin wants to fine-tune text before printing
+  const [customSenderName, setCustomSenderName] = useState("");
+  const [customSenderPhone, setCustomSenderPhone] = useState("");
+  const [customSenderAddress, setCustomSenderAddress] = useState("");
 
   useEffect(() => {
     Promise.all([
       fetch("/api/admin/orders/" + id).then((r) => r.json()),
-      fetch("/api/storefront/settings").then((r) => r.json()).catch(() => ({ settings: {} })),
+      fetch("/api/admin/settings").then((r) => r.json()).catch(() => ({ settings: {} })),
     ])
       .then(([orderRes, settingsRes]) => {
-        if (orderRes.success) setOrder(orderRes.order);
-        if (settingsRes.settings) setSettings(settingsRes.settings);
+        if (orderRes.success && orderRes.order) {
+          setOrder(orderRes.order);
+        }
+        if (settingsRes.success && settingsRes.settings) {
+          const s = settingsRes.settings;
+          setSettings(s);
+          setCustomSenderName(s.brandName || "ENMAR");
+          setCustomSenderPhone(s.contactPhone || s.whatsappNumber || "");
+          setCustomSenderAddress(s.contactAddress || "Dhaka, Bangladesh");
+        }
       })
-      .catch((err) => console.error(err))
+      .catch((err) => console.error("Error loading label data:", err))
       .finally(() => setLoading(false));
   }, [id]);
 
@@ -52,7 +67,7 @@ export default function OrderShippingLabelPage({
     return (
       <div className="min-h-screen flex items-center justify-center bg-neutral-100 text-forest font-medium">
         <Loader2 className="w-8 h-8 animate-spin mr-3 text-forest" />
-        <span>Generating shipping sticker label (2&quot; &times; 3&quot;)...</span>
+        <span>Loading shipping sticker label (2&quot; &times; 3&quot;)...</span>
       </div>
     );
   }
@@ -78,15 +93,16 @@ export default function OrderShippingLabelPage({
   });
 
   const isCOD = order.paymentMethod === "COD" || order.paymentStatus !== "PAID";
-  const brandName = settings.brandName || "ENMAR";
-  const brandPhone = settings.contactPhone || "+880 1614 113082";
-  const brandAddress = settings.contactAddress || "Uttara, Dhaka, Bangladesh";
+  
+  // Sender Details (Prioritizing database settings and custom overrides)
+  const brandName = customSenderName || settings.brandName || "ENMAR";
+  const brandPhone = customSenderPhone || settings.contactPhone || settings.whatsappNumber || "";
+  const brandAddress = customSenderAddress || settings.contactAddress || "Dhaka, Bangladesh";
+  const brandLogo = settings.siteLogo || "";
 
-  // Total items quantity
-  const totalItemsCount = order.items?.reduce(
-    (acc: number, item: any) => acc + (item.quantity || 1),
-    0
-  ) || 0;
+  // Total items count
+  const totalItemsCount =
+    order.items?.reduce((acc: number, item: any) => acc + (item.quantity || 1), 0) || 0;
 
   return (
     <div className="min-h-screen bg-neutral-200 py-6 px-4 print:p-0 print:m-0 print:bg-white text-neutral-900 font-sans">
@@ -140,14 +156,75 @@ export default function OrderShippingLabelPage({
             <span>Back to Order</span>
           </Link>
 
-          <Link
-            href={`/admin/orders/${order.id}/invoice`}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-neutral-300 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 shadow-xs transition-colors"
-          >
-            <FileText className="w-4 h-4 text-forest" />
-            <span>A4 Invoice</span>
-          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsEditing(!isEditing)}
+              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-semibold shadow-xs transition-colors ${
+                isEditing
+                  ? "bg-amber-50 border-amber-300 text-amber-900"
+                  : "bg-white border-neutral-300 text-neutral-700 hover:bg-neutral-50"
+              }`}
+            >
+              {isEditing ? <Check className="w-4 h-4 text-emerald-600" /> : <Edit3 className="w-4 h-4 text-forest" />}
+              <span>{isEditing ? "Done Editing" : "Edit Sender Info"}</span>
+            </button>
+
+            <Link
+              href={`/admin/orders/${order.id}/invoice`}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-neutral-300 text-xs font-semibold text-neutral-700 hover:bg-neutral-50 shadow-xs transition-colors"
+            >
+              <FileText className="w-4 h-4 text-forest" />
+              <span>A4 Invoice</span>
+            </Link>
+          </div>
         </div>
+
+        {/* Quick Edit Sender / Brand details drawer */}
+        {isEditing && (
+          <div className="bg-amber-50 p-3.5 rounded-2xl border border-amber-200 shadow-sm space-y-2 text-xs">
+            <div className="font-bold text-amber-950 flex items-center justify-between">
+              <span>Quick Edit Sender Information:</span>
+              <span className="text-[10px] font-normal text-amber-800">
+                (Temporary for this label print)
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-[10px] text-amber-900 font-semibold mb-0.5">
+                  Brand / Sender Name:
+                </label>
+                <input
+                  type="text"
+                  value={customSenderName}
+                  onChange={(e) => setCustomSenderName(e.target.value)}
+                  className="w-full px-2 py-1 bg-white border border-amber-300 rounded text-xs"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] text-amber-900 font-semibold mb-0.5">
+                  Sender Phone / Hotline:
+                </label>
+                <input
+                  type="text"
+                  value={customSenderPhone}
+                  onChange={(e) => setCustomSenderPhone(e.target.value)}
+                  className="w-full px-2 py-1 bg-white border border-amber-300 rounded text-xs"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-[10px] text-amber-900 font-semibold mb-0.5">
+                Return / Store Address:
+              </label>
+              <input
+                type="text"
+                value={customSenderAddress}
+                onChange={(e) => setCustomSenderAddress(e.target.value)}
+                className="w-full px-2 py-1 bg-white border border-amber-300 rounded text-xs"
+              />
+            </div>
+          </div>
+        )}
 
         <div className="bg-white p-3 rounded-2xl border border-neutral-300 shadow-sm flex items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-xs text-neutral-600 font-medium">
@@ -206,18 +283,29 @@ export default function OrderShippingLabelPage({
               boxSizing: "border-box",
             }}
           >
-            {/* 1. Brand Header */}
+            {/* 1. Brand Header with Real Store Logo */}
             <div className="flex items-center justify-between border-b border-black pb-1 mb-1">
-              <div className="flex items-center gap-1">
-                <div className="w-4 h-4 rounded bg-black text-white font-bold flex items-center justify-center text-[10px] leading-none">
-                  E
-                </div>
+              <div className="flex items-center gap-1.5">
+                {brandLogo ? (
+                  <div className="relative w-5 h-5 shrink-0">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={getSafeImageUrl(brandLogo)}
+                      alt={brandName}
+                      className="w-5 h-5 object-contain"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-4 h-4 rounded bg-black text-white font-bold flex items-center justify-center text-[10px] leading-none">
+                    E
+                  </div>
+                )}
                 <div>
-                  <h1 className="text-[11px] font-black uppercase tracking-tight leading-none">
+                  <h1 className="text-[10.5px] font-black uppercase tracking-tight leading-none">
                     {brandName}
                   </h1>
                   <span className="text-[6.5px] uppercase font-bold text-neutral-700 tracking-wider block leading-none">
-                    Pure Organic Food
+                    {settings.brandTagline || "Pure Organic Food"}
                   </span>
                 </div>
               </div>
@@ -272,6 +360,12 @@ export default function OrderShippingLabelPage({
                 <MapPin className="w-2.5 h-2.5 inline mr-0.5 stroke-[2]" />
                 {order.shippingAddress}
               </div>
+
+              {order.customerNotes && (
+                <div className="text-[6.5px] text-neutral-600 italic leading-tight pt-0.5">
+                  <strong>Note:</strong> {order.customerNotes}
+                </div>
+              )}
             </div>
 
             {/* 4. Payment & COD Amount Box (Crucial for Courier Delivery) */}
@@ -329,10 +423,11 @@ export default function OrderShippingLabelPage({
                 Return if Undelivered To: {brandName}
               </div>
               <div>
-                {brandAddress} &bull; ☎ {brandPhone}
+                {brandAddress}
+                {brandPhone ? ` • ☎ ${brandPhone}` : ""}
               </div>
               <div className="text-[5.5px] font-semibold text-neutral-500 pt-0.5">
-                🌿 100% Organic &bull; Handle with Care
+                🌿 100% Organic • Handle with Care
               </div>
             </div>
           </div>
