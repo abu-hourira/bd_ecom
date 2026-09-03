@@ -58,20 +58,44 @@ export async function getStorefrontHomeData() {
 }
 
 export async function getStorefrontProductBySlug(slug: string) {
-  const CACHE_KEY = `server_product_${slug}`;
+  const rawSlug = String(slug || "").trim();
+  let decodedSlug = rawSlug;
+  try {
+    decodedSlug = decodeURIComponent(rawSlug).trim();
+  } catch (e) {}
+
+  const isNumeric = !isNaN(Number(rawSlug)) && Number(rawSlug) > 0;
+  const numericId = isNumeric ? Number(rawSlug) : null;
+
+  const CACHE_KEY = `server_product_${decodedSlug}`;
   const cached = serverCache.get<any>(CACHE_KEY);
   if (cached) return cached;
 
+  // 1. Instant Snapshot RAM/Disk Lookup (0.1ms)
   try {
-    const rawSlug = String(slug || "").trim();
-    let decodedSlug = rawSlug;
-    try {
-      decodedSlug = decodeURIComponent(rawSlug).trim();
-    } catch (e) {}
+    const allProducts = await getStorefrontSnapshot<any[]>("products");
+    if (allProducts && Array.isArray(allProducts)) {
+      const found = allProducts.find(
+        (p) =>
+          p.slug === rawSlug ||
+          p.slug === decodedSlug ||
+          (numericId && p.id === numericId)
+      );
 
-    const isNumeric = !isNaN(Number(rawSlug)) && Number(rawSlug) > 0;
-    const numericId = isNumeric ? Number(rawSlug) : null;
+      if (found) {
+        const related = allProducts
+          .filter((p) => p.categoryId === found.categoryId && p.id !== found.id)
+          .slice(0, 4);
 
+        const payload = { product: found, related };
+        serverCache.set(CACHE_KEY, payload, 300, ["products"]);
+        return payload;
+      }
+    }
+  } catch (e) {}
+
+  // 2. Database Fallback
+  try {
     const product = await prisma.product.findFirst({
       where: {
         OR: [
@@ -105,7 +129,7 @@ export async function getStorefrontProductBySlug(slug: string) {
       related,
     });
 
-    serverCache.set(CACHE_KEY, payload, 120, ["products"]);
+    serverCache.set(CACHE_KEY, payload, 300, ["products"]);
     return payload;
   } catch (error) {
     console.error(`[getStorefrontProductBySlug ${slug} Error]:`, error);

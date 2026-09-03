@@ -51,8 +51,9 @@ export default function ProductDetailClient({
   const [added, setAdded] = useState(false);
 
   useEffect(() => {
+    if (!slug) return;
     // Background SWR sync for real-time stock/price accuracy
-    fetch(`/api/storefront/products/${slug}`)
+    fetch(`/api/storefront/products/${encodeURIComponent(slug)}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.product) {
@@ -132,7 +133,7 @@ export default function ProductDetailClient({
   const handleBuyNow = () => {
     if (isOutOfStock) return;
     addToCart(product, quantity);
-    setIsCartOpen(true);
+    setIsCartOpen(false);
     router.push("/checkout");
   };
 

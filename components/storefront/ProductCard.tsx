@@ -36,12 +36,12 @@ export default function ProductCard({ product }: ProductCardProps) {
       )
     : 0;
 
-  const productHref = `/products/${encodeURIComponent(product.slug || String(product.id))}`;
+  const productSlug = product.slug || String(product.id);
+  const productHref = `/products/${productSlug}`;
 
   const handleCardClick = (e: React.MouseEvent) => {
-    // If clicked on an interactive element, let its own handler execute
     const target = e.target as HTMLElement;
-    if (target.closest("button") || target.closest("a")) return;
+    if (target.closest("button")) return;
     router.push(productHref);
   };
 
@@ -56,10 +56,11 @@ export default function ProductCard({ product }: ProductCardProps) {
   return (
     <div
       onClick={handleCardClick}
+      onMouseEnter={() => router.prefetch(productHref)}
       className="group bg-white rounded-2xl sm:rounded-3xl border border-stone-200/90 hover:border-forest/40 p-2.5 sm:p-4 flex flex-col justify-between shadow-xs hover:shadow-md transition-all duration-300 relative overflow-hidden active:scale-[0.99] cursor-pointer"
     >
       {/* 1. Product Image & Badges */}
-      <Link href={productHref} className="block">
+      <Link href={productHref} className="block cursor-pointer">
         <div className="relative w-full aspect-square rounded-xl sm:rounded-2xl overflow-hidden bg-[#FAF8F5] border border-stone-100 mb-2.5 sm:mb-3 group-hover:scale-[1.02] transition-transform duration-300">
           <Image
             src={imageSrc}

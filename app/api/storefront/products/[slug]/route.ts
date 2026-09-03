@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { serverCache } from "@/lib/serverCache";
 
+import { getStorefrontSnapshot } from "@/lib/snapshotEngine";
+
 export const dynamic = "force-dynamic";
 
 export async function GET(
@@ -11,20 +13,6 @@ export async function GET(
 ) {
   try {
     const { slug } = await params;
-    const cacheKey = `storefront_product_${slug}`;
-    const cached = serverCache.get<any>(cacheKey);
-
-    if (cached) {
-      return NextResponse.json(
-        { success: true, ...cached },
-        {
-          headers: {
-            "Cache-Control": "public, s-maxage=120, stale-while-revalidate=600",
-          },
-        }
-      );
-    }
-
     const rawSlug = String(slug || "").trim();
     let decodedSlug = rawSlug;
     try {
@@ -33,6 +21,50 @@ export async function GET(
 
     const isNumeric = !isNaN(Number(rawSlug)) && Number(rawSlug) > 0;
     const numericId = isNumeric ? Number(rawSlug) : null;
+
+    const cacheKey = `storefront_product_${decodedSlug}`;
+    const cached = serverCache.get<any>(cacheKey);
+
+    if (cached) {
+      return NextResponse.json(
+        { success: true, ...cached },
+        {
+          headers: {
+            "Cache-Control": "public, s-maxage=300, stale-while-revalidate=1800",
+          },
+        }
+      );
+    }
+
+    // 1. Snapshot engine lookup (0.1ms)
+    try {
+      const allProducts = await getStorefrontSnapshot<any[]>("products");
+      if (allProducts && Array.isArray(allProducts)) {
+        const found = allProducts.find(
+          (p) =>
+            p.slug === rawSlug ||
+            p.slug === decodedSlug ||
+            (numericId && p.id === numericId)
+        );
+
+        if (found) {
+          const relatedProducts = allProducts
+            .filter((p) => p.categoryId === found.categoryId && p.id !== found.id)
+            .slice(0, 4);
+
+          const payload = { product: found, relatedProducts };
+          serverCache.set(cacheKey, payload, 300, ["products"]);
+          return NextResponse.json(
+            { success: true, ...payload },
+            {
+              headers: {
+                "Cache-Control": "public, s-maxage=300, stale-while-revalidate=1800",
+              },
+            }
+          );
+        }
+      }
+    } catch (e) {}
 
     const product = await prisma.product.findFirst({
       where: {
