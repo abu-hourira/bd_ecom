@@ -3,7 +3,7 @@
 
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
-import { ArrowLeft, Printer, Leaf, ShieldCheck, CheckCircle2, Loader2 } from "lucide-react";
+import { ArrowLeft, Printer, Leaf, ShieldCheck, CheckCircle2, Loader2, Tag } from "lucide-react";
 import { formatTaka } from "@/lib/utils";
 
 export default function OrderInvoicePrintPage({
@@ -95,13 +95,23 @@ export default function OrderInvoicePrintPage({
           <span>Back to Order Details</span>
         </Link>
 
-        <button
-          onClick={handlePrint}
-          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-forest hover:bg-forest-deep text-white text-xs font-bold shadow-md transition-all hover:scale-105 cursor-pointer"
-        >
-          <Printer className="w-4 h-4" />
-          <span>Print / Save as 1-Page PDF</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/admin/orders/${order.id}/label`}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-forest/30 bg-forest-soft text-forest hover:bg-forest hover:text-white text-xs font-bold transition-all shadow-xs"
+          >
+            <Tag className="w-4 h-4" />
+            <span>Shipping Label (2&quot;&times;3&quot;)</span>
+          </Link>
+
+          <button
+            onClick={handlePrint}
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-forest hover:bg-forest-deep text-white text-xs font-bold shadow-md transition-all hover:scale-105 cursor-pointer"
+          >
+            <Printer className="w-4 h-4" />
+            <span>Print / Save as 1-Page PDF</span>
+          </button>
+        </div>
       </div>
 
       {/* Invoice Document Sheet (1-Page Fitted) */}

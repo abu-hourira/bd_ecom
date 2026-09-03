@@ -20,6 +20,7 @@ import {
   Calendar,
   Save,
   Loader2,
+  Tag,
 } from "lucide-react";
 import { formatTaka } from "@/lib/utils";
 import StatusBadge from "@/components/admin/StatusBadge";
@@ -263,6 +264,13 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               Cancel Order
             </button>
           )}
+          <Link
+            href={`/admin/orders/${order.id}/label`}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-forest/30 bg-forest-soft text-forest hover:bg-forest hover:text-white text-sm font-semibold transition-colors shadow-xs"
+          >
+            <Tag className="w-4 h-4" />
+            <span>Shipping Label (2&quot;&times;3&quot;)</span>
+          </Link>
           <Link
             href={`/admin/orders/${order.id}/invoice`}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-line bg-paper text-ink hover:bg-bg text-sm font-semibold transition-colors shadow-xs"
