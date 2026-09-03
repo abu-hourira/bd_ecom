@@ -171,6 +171,16 @@ export async function POST(req: NextRequest) {
     const orderNumber = generateOrderNumber();
     const trackingId = generateTrackingId();
 
+    const orderItemsForDb = validatedItems.map((it) => ({
+      productId: it.productId,
+      productName: it.productName,
+      unitPrice: it.unitPrice,
+      quantity: it.quantity,
+      unit: it.unit,
+      itemImage: it.itemImage || null,
+      totalPrice: it.totalPrice,
+    }));
+
     const order = await prisma.$transaction(async (tx) => {
       const createdOrder = await tx.order.create({
         data: {
@@ -193,7 +203,7 @@ export async function POST(req: NextRequest) {
           userId: userId ? Number(userId) : null,
           customerNotes: customerNotes || null,
           items: {
-            create: validatedItems,
+            create: orderItemsForDb,
           },
         },
       });
