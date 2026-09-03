@@ -449,9 +449,21 @@ export default function CheckoutPage() {
                         onChange={() => setFormData({ ...formData, deliveryZone: "Inside Dhaka" })}
                         className="w-4 h-4 text-forest"
                       />
-                      <span className="text-xs font-bold text-stone-900">{t("checkout.insideDhaka")}</span>
+                      <div>
+                        <span className="text-xs font-bold text-stone-900 block">
+                          {locale === "bn" ? "ঢাকার ভেতরে" : "Inside Dhaka"}
+                        </span>
+                        <span className="text-[11px] text-stone-500 font-mono block mt-0.5">
+                          {deliveryFee === 0 ? "ফ্রি ডেলিভারি" : `চার্জ: ${formatTaka(deliveryFee)}`}
+                        </span>
+                      </div>
                     </div>
-                    <Truck className="w-4 h-4 text-forest" />
+                    <div className="text-right flex items-center gap-1.5">
+                      <span className="font-mono font-bold text-xs text-forest">
+                        {deliveryFee === 0 ? "ফ্রি" : formatTaka(deliveryFee)}
+                      </span>
+                      <Truck className="w-4 h-4 text-forest" />
+                    </div>
                   </label>
 
                   <label
@@ -469,9 +481,21 @@ export default function CheckoutPage() {
                         onChange={() => setFormData({ ...formData, deliveryZone: "Outside Dhaka" })}
                         className="w-4 h-4 text-forest"
                       />
-                      <span className="text-xs font-bold text-stone-900">{t("checkout.outsideDhaka")}</span>
+                      <div>
+                        <span className="text-xs font-bold text-stone-900 block">
+                          {locale === "bn" ? "ঢাকার বাইরে" : "Outside Dhaka"}
+                        </span>
+                        <span className="text-[11px] text-stone-500 font-mono block mt-0.5">
+                          {deliveryFee === 0 ? "ফ্রি ডেলিভারি" : `চার্জ: ${formatTaka(deliveryFee)}`}
+                        </span>
+                      </div>
                     </div>
-                    <Truck className="w-4 h-4 text-forest" />
+                    <div className="text-right flex items-center gap-1.5">
+                      <span className="font-mono font-bold text-xs text-forest">
+                        {deliveryFee === 0 ? "ফ্রি" : formatTaka(deliveryFee)}
+                      </span>
+                      <Truck className="w-4 h-4 text-forest" />
+                    </div>
                   </label>
                 </div>
               </div>
