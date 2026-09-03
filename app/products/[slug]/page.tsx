@@ -274,6 +274,27 @@ export default function ProductDetailPage({
               )}
             </div>
 
+            {/* Delivery Discount Offer Banner */}
+            {Number(product.deliveryDiscountMinQty) > 0 && Number(product.deliveryDiscountAmount) > 0 && (
+              <div className="p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center shrink-0 text-amber-800">
+                  <Truck className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-amber-950">
+                    {locale === "bn"
+                      ? `স্পেশাল ডেলিভারি অফার: ${product.deliveryDiscountMinQty}+ টি কিনলে ডেলিভারি চার্জে ৳${Number(product.deliveryDiscountAmount)} ছাড়!`
+                      : `Special Offer: Buy ${product.deliveryDiscountMinQty}+ units & get ৳${Number(product.deliveryDiscountAmount)} OFF on delivery!`}
+                  </div>
+                  <div className="text-[11px] text-amber-800 mt-0.5">
+                    {locale === "bn"
+                      ? `কার্টে ${product.deliveryDiscountMinQty} বা তার বেশি পরিমাণ যোগ করলে স্বয়ংক্রিয়ভাবে ডেলিভারি বিল থেকে ৳${Number(product.deliveryDiscountAmount)} কমে যাবে।`
+                      : `Delivery charge will be automatically discounted at checkout.`}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Desktop Quantity & Action Buttons */}
             <div className="hidden md:flex items-center gap-3">
               {/* Stepper */}

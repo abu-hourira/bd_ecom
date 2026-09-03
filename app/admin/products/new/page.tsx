@@ -29,6 +29,9 @@ export default function NewProductPage() {
     unitQuantity: "",
     unit: "piece",
     weightInGrams: "100",
+    deliveryDiscountMinQty: "0",
+    deliveryDiscountAmount: "0",
+    deliveryDiscountType: "FIXED",
     images: [] as string[],
     description: "",
     shortDescription: "",
@@ -282,6 +285,48 @@ export default function NewProductPage() {
               <p className="text-[11px] text-ink-soft">
                 প্রতি ইউনিটের ওজন গ্রামে লিখুন (যেমন: ১ পিস রুটি = ১০০ গ্রাম, ১ লিটার তেল = ১০০০ গ্রাম)। ১০ পিস নিলে কার্টের ওজন স্বয়ংক্রিয়ভাবে ১ কেজি হবে।
               </p>
+            </div>
+
+            {/* Product-Level Delivery Discount Promotion */}
+            <div className="sm:col-span-2 p-4 rounded-2xl bg-amber-50/50 border border-amber-200/70 space-y-4">
+              <div className="flex items-center gap-2 text-amber-900 font-bold text-sm">
+                <span>🚚 ওজনের ওপর ভিত্তি করে ডেলিভারি ডিসকাউন্ট (ঐচ্ছিক)</span>
+              </div>
+              <p className="text-xs text-amber-800/80">
+                নির্দিষ্ট পরিমাণ বা ওজনে এই পণ্য কিনলে ডেলিভারি চার্জে বিশেষ ছাড় সেট করুন। (যেমন: ৩ পিস বা ৩ কেজি নিলে ডেলিভারি চার্জে ৳৩০ ছাড়)।
+              </p>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-stone-800">
+                    মিনিমাম ক্রয়ের পরিমাণ (পিস/প্যাক)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 3 (0 = কোনো অফার নেই)"
+                    value={formData.deliveryDiscountMinQty}
+                    onChange={(e) => setFormData({ ...formData, deliveryDiscountMinQty: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl bg-white border border-amber-200 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                  />
+                  <p className="text-[10px] text-stone-500">গ্রাহক এই সংখ্যা বা এর বেশি অর্ডার করলে ছাড় পাবে</p>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-stone-800">
+                    ডেলিভারি চার্জে ছাড়ের পরিমাণ (৳)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="e.g. 30 (টাকা ছাড়)"
+                    value={formData.deliveryDiscountAmount}
+                    onChange={(e) => setFormData({ ...formData, deliveryDiscountAmount: e.target.value })}
+                    className="w-full px-3.5 py-2 rounded-xl bg-white border border-amber-200 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                  />
+                  <p className="text-[10px] text-stone-500">ডেলিভারি বিল থেকে যত টাকা ছাড় পাবে</p>
+                </div>
+              </div>
             </div>
 
             <div className="space-y-2 sm:col-span-2">

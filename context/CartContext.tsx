@@ -14,6 +14,9 @@ export interface CartItem {
   unit: string;
   unitQuantity?: number | string | null;
   weightInGrams?: number | null;
+  deliveryDiscountMinQty?: number | null;
+  deliveryDiscountAmount?: number | null;
+  deliveryDiscountType?: string | null;
   image: string;
   quantity: number;
 }
@@ -133,6 +136,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             unit: formatProductUnit(product.unitQuantity, product.unit),
             unitQuantity: product.unitQuantity || null,
             weightInGrams: product.weightInGrams !== undefined && product.weightInGrams !== null ? Number(product.weightInGrams) : null,
+            deliveryDiscountMinQty: product.deliveryDiscountMinQty ? Number(product.deliveryDiscountMinQty) : null,
+            deliveryDiscountAmount: product.deliveryDiscountAmount ? Number(product.deliveryDiscountAmount) : null,
+            deliveryDiscountType: product.deliveryDiscountType || "FIXED",
             image: imageSrc,
             quantity,
           },

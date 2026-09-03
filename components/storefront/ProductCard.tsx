@@ -99,6 +99,12 @@ export default function ProductCard({ product }: ProductCardProps) {
               {formattedUnit}
             </span>
           )}
+
+          {Number(product.deliveryDiscountMinQty) > 0 && Number(product.deliveryDiscountAmount) > 0 && (
+            <div className="mt-1 inline-flex items-center gap-1 text-[9px] sm:text-[10px] text-amber-800 bg-amber-50/80 px-1.5 py-0.5 rounded-md font-semibold border border-amber-200/70 truncate">
+              <span>🚚 {product.deliveryDiscountMinQty}+ টিতে ৳{Number(product.deliveryDiscountAmount)} ডেলিভারি ছাড়</span>
+            </div>
+          )}
         </div>
       </Link>
 

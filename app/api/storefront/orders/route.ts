@@ -87,6 +87,9 @@ export async function POST(req: NextRequest) {
           quantity: qty,
           unit: product.unit || item.unit || "piece",
           weightInGrams: product.weightInGrams || 100,
+          deliveryDiscountMinQty: product.deliveryDiscountMinQty ? Number(product.deliveryDiscountMinQty) : 0,
+          deliveryDiscountAmount: product.deliveryDiscountAmount ? Number(product.deliveryDiscountAmount) : 0,
+          deliveryDiscountType: product.deliveryDiscountType || "FIXED",
           itemImage: imageSrc,
           totalPrice: itemTotal,
         });
