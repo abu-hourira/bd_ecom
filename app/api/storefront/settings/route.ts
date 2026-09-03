@@ -7,20 +7,6 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const cacheKey = "storefront_settings";
-    const cached = serverCache.get<any>(cacheKey);
-
-    if (cached) {
-      return NextResponse.json(
-        { success: true, ...cached },
-        {
-          headers: {
-            "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
-          },
-        }
-      );
-    }
-
     const [settingsList, theme] = await Promise.all([
       prisma.siteSetting.findMany({
         where: { isSecret: false },
@@ -52,13 +38,14 @@ export async function GET() {
     });
 
     const payload = { settings, theme };
-    serverCache.set(cacheKey, payload, 300, ["settings"]);
 
     return NextResponse.json(
       { success: true, ...payload },
       {
         headers: {
-          "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
         },
       }
     );

@@ -22,7 +22,7 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   const fetchDynamicTranslations = async () => {
     try {
-      const res = await fetch("/api/storefront/i18n");
+      const res = await fetch("/api/storefront/i18n", { cache: "no-store" });
       const data = await res.json();
       if (data.success && data.translations) {
         setActiveTranslations(data.translations);
@@ -51,6 +51,15 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       setIsLoaded(true);
       fetchDynamicTranslations();
     }
+
+    const handleFocus = () => fetchDynamicTranslations();
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleFocus);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleFocus);
+    };
   }, []);
 
   const setLocale = (newLocale: Locale) => {

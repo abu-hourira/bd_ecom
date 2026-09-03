@@ -57,35 +57,66 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [deliveryBaseWeightKg, setDeliveryBaseWeightKg] = useState(1.0);
 
   // Fetch live settings from database
-  useEffect(() => {
-    fetch("/api/storefront/settings")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && data.settings) {
-          if (data.settings.freeShippingThreshold || data.settings.delivery_free_shipping_threshold) {
-            const parsed = Number(
-              data.settings.delivery_free_shipping_threshold || data.settings.freeShippingThreshold
-            );
-            if (!isNaN(parsed) && parsed > 0) setFreeShippingThreshold(parsed);
-          }
-          if (data.settings.delivery_base_fee || data.settings.shippingFlat) {
-            const parsedFee = Number(data.settings.delivery_base_fee || data.settings.shippingFlat);
-            if (!isNaN(parsedFee) && parsedFee >= 0) {
-              setFlatDeliveryFee(parsedFee);
-              setDeliveryBaseFee(parsedFee);
-            }
-          }
-          if (data.settings.delivery_per_extra_kg) {
-            const parsedExtra = Number(data.settings.delivery_per_extra_kg);
-            if (!isNaN(parsedExtra) && parsedExtra >= 0) setDeliveryPerExtraKg(parsedExtra);
-          }
-          if (data.settings.delivery_base_weight_kg) {
-            const parsedBaseKg = Number(data.settings.delivery_base_weight_kg);
-            if (!isNaN(parsedBaseKg) && parsedBaseKg > 0) setDeliveryBaseWeightKg(parsedBaseKg);
+  const fetchLiveSettings = async () => {
+    try {
+      const res = await fetch("/api/storefront/settings", { cache: "no-store" });
+      const data = await res.json();
+      if (data.success && data.settings) {
+        if (data.settings.freeShippingThreshold || data.settings.delivery_free_shipping_threshold) {
+          const parsed = Number(
+            data.settings.delivery_free_shipping_threshold || data.settings.freeShippingThreshold
+          );
+          if (!isNaN(parsed) && parsed > 0) setFreeShippingThreshold(parsed);
+        }
+        if (data.settings.delivery_base_fee || data.settings.shippingFlat) {
+          const parsedFee = Number(data.settings.delivery_base_fee || data.settings.shippingFlat);
+          if (!isNaN(parsedFee) && parsedFee >= 0) {
+            setFlatDeliveryFee(parsedFee);
+            setDeliveryBaseFee(parsedFee);
           }
         }
-      })
-      .catch(() => {});
+        if (data.settings.delivery_per_extra_kg) {
+          const parsedExtra = Number(data.settings.delivery_per_extra_kg);
+          if (!isNaN(parsedExtra) && parsedExtra >= 0) setDeliveryPerExtraKg(parsedExtra);
+        }
+        if (data.settings.delivery_base_weight_kg) {
+          const parsedBaseKg = Number(data.settings.delivery_base_weight_kg);
+          if (!isNaN(parsedBaseKg) && parsedBaseKg > 0) setDeliveryBaseWeightKg(parsedBaseKg);
+        }
+      }
+    } catch (e) {}
+  };
+
+  // Initial load and real-time interval pulse
+  useEffect(() => {
+    fetchLiveSettings();
+
+    // Auto sync on window focus and visibility change (instant when switching back to tab)
+    const handleFocus = () => fetchLiveSettings();
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleFocus);
+
+    // Background interval pulse every 8 seconds
+    const interval = setInterval(fetchLiveSettings, 8000);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleFocus);
+      clearInterval(interval);
+    };
+  }, []);
+
+  // Multi-tab real-time storage sync
+  useEffect(() => {
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "enmar_cart_v1" && e.newValue) {
+        try {
+          setCart(JSON.parse(e.newValue));
+        } catch (err) {}
+      }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
   // Load from localStorage on mount
