@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import AdminSidebar from "@/components/admin/Sidebar";
 import AlertModal from "@/components/ui/AlertModal";
-import { AI_PROVIDER_DEFAULTS } from "@/lib/ai-provider";
+import { AI_PROVIDER_DEFAULTS } from "@/lib/ai-constants";
 
 export default function AdminAiPage() {
   const [activeTab, setActiveTab] = useState<"assistant" | "settings">("assistant");

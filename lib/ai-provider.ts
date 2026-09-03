@@ -1,6 +1,7 @@
 // lib/ai-provider.ts
 import { decryptAES } from "@/lib/crypto";
 import { prisma } from "@/lib/prisma";
+import { ensureGeminiServerRunning } from "@/lib/gemini-server-manager";
 
 export interface ChatMessage {
   role: "system" | "user" | "assistant";
@@ -336,9 +337,13 @@ export async function callLLM(
     else if (provider === "anthropic") apiKey = process.env.ANTHROPIC_API_KEY || "";
     else if (provider === "groq") apiKey = process.env.GROQ_API_KEY || "";
     else if (provider === "deepseek") apiKey = process.env.DEEPSEEK_API_KEY || "";
+    else if (provider === "gemini_web2api" || provider === "gemini-web2api") apiKey = "sk-gemini";
   }
 
   apiKey = apiKey.trim();
+  if ((provider === "gemini_web2api" || provider === "gemini-web2api") && !apiKey) {
+    apiKey = "sk-gemini";
+  }
 
   // Smart provider auto-detection if generic
   if (provider === "openai" || !provider) {
@@ -504,12 +509,21 @@ export async function callLLM(
         case "together":
           endpoint = "https://api.together.xyz/v1/chat/completions";
           break;
+        case "gemini_web2api":
+        case "gemini-web2api":
+          endpoint = "http://localhost:8081/v1/chat/completions";
+          break;
         case "ollama":
           endpoint = "http://localhost:11434/v1/chat/completions";
           break;
         default:
           endpoint = "https://api.openai.com/v1/chat/completions";
       }
+    }
+
+    // Auto-spawn local Python Gemini server if targeting port 8081
+    if (endpoint.includes("8081") || provider === "gemini_web2api" || provider === "gemini-web2api") {
+      await ensureGeminiServerRunning();
     }
 
     const headers: Record<string, string> = {
