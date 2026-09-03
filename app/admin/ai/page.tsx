@@ -564,24 +564,41 @@ export default function AdminAiPage() {
 
                 <div>
                   <label className="block text-xs font-bold text-ink uppercase tracking-wider mb-2 flex items-center justify-between">
-                    <span>API Key (AES-256 Encrypted)</span>
+                    <span>
+                      {provider === "gemini_web"
+                        ? "Gemini Cookie (__Secure-1PSID)"
+                        : "API Key (AES-256 Encrypted)"}
+                    </span>
                     {hasApiKey && (
                       <span className="text-emerald-700 font-normal text-[11px] flex items-center gap-1">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Key Saved
+                        <CheckCircle2 className="w-3.5 h-3.5" /> {provider === "gemini_web" ? "Cookie Saved" : "Key Saved"}
                       </span>
                     )}
                   </label>
                   <input
-                    type="password"
+                    type={provider === "gemini_web" ? "text" : "password"}
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
                     placeholder={
                       hasApiKey
-                        ? "•••••••••••••••••••••••• (Leave blank to keep saved key)"
-                        : activeProviderInfo.placeholderKey || "Enter your API Key"
+                        ? "•••••••••••••••••••••••• (Leave blank to keep saved credential)"
+                        : activeProviderInfo.placeholderKey || "Enter your API Key / Cookie"
                     }
                     className="w-full px-4 py-3 rounded-2xl bg-bg border border-line text-xs font-mono text-ink focus:outline-none focus:border-forest"
                   />
+                  {provider === "gemini_web" && (
+                    <div className="mt-2.5 p-3 rounded-xl bg-blue-50/70 border border-blue-200/60 text-[11px] text-blue-900 space-y-1">
+                      <p className="font-bold flex items-center gap-1 text-blue-800">
+                        <Sparkles className="w-3.5 h-3.5" />
+                        <span>কুকি পাওয়ার সহজ ৩টি ধাপ (How to get Gemini Cookie):</span>
+                      </p>
+                      <ol className="list-decimal pl-4 space-y-0.5 text-[10.5px] text-blue-950/80">
+                        <li>ব্রাউজারে <a href="https://gemini.google.com" target="_blank" rel="noreferrer" className="underline font-bold text-blue-700">gemini.google.com</a>-এ লগইন করুন।</li>
+                        <li>কিবোর্ডে <strong>F12</strong> (বা Right Click &gt; Inspect) চেপে <strong>Application</strong> ট্যাবে যান (Firefox-এ Storage)।</li>
+                        <li>বামে <strong>Cookies &gt; https://gemini.google.com</strong>-এ ক্লিক করে <strong>__Secure-1PSID</strong>-এর মানটি কপি করে এখানে পেস্ট করুন।</li>
+                      </ol>
+                    </div>
+                  )}
                 </div>
               </div>
 

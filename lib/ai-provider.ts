@@ -37,6 +37,12 @@ export const AI_PROVIDER_DEFAULTS: Record<
     defaultModel: "gemini-2.0-flash",
     placeholderKey: "AIzaSy...",
   },
+  gemini_web: {
+    name: "Gemini Web (Free Cookie Auth)",
+    baseUrl: "https://gemini.google.com",
+    defaultModel: "gemini-web",
+    placeholderKey: "__Secure-1PSID=...; __Secure-1PSIDTS=...;",
+  },
   anthropic: {
     name: "Anthropic Claude",
     baseUrl: "https://api.anthropic.com/v1",
@@ -356,6 +362,16 @@ export async function callLLM(
 
   try {
     // ─────────────────────────────────────────────────────────────
+    // 0. Gemini Web (Free Cookie Reverse-Engineering Auth)
+    // ─────────────────────────────────────────────────────────────
+    if (provider === "gemini_web" || provider === "gemini-web") {
+      const systemMessage = messages.find((m) => m.role === "system")?.content;
+      const result = await callGeminiWeb(apiKey, messages, systemMessage);
+      await recordAiRequest();
+      return result;
+    }
+
+    // ─────────────────────────────────────────────────────────────
     // 1. Google Gemini Native Endpoint (if not using custom OpenAI proxy)
     // ─────────────────────────────────────────────────────────────
     if ((provider === "gemini" || provider === "google") && !customBaseUrl.includes("/chat/completions")) {
@@ -544,4 +560,174 @@ export async function callLLM(
     }
     throw error;
   }
+}
+
+/**
+ * Reverse-Engineered Gemini Web Client using __Secure-1PSID Cookie
+ */
+async function callGeminiWeb(
+  cookies: string,
+  messages: ChatMessage[],
+  systemPrompt?: string
+): Promise<{ text: string; tokensUsed: number }> {
+  let cookieHeader = cookies.trim();
+  if (!cookieHeader.includes("=")) {
+    cookieHeader = `__Secure-1PSID=${cookieHeader};`;
+  }
+
+  // 1. Obtain session and SNlM0e token from gemini.google.com/app
+  const initRes = await fetch("https://gemini.google.com/app", {
+    method: "GET",
+    headers: {
+      Cookie: cookieHeader,
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
+      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "Accept-Language": "en-US,en;q=0.9",
+    },
+  });
+
+  const html = await initRes.text();
+
+  if (html.includes("accounts.google.com/ServiceLogin") || html.includes("Sign in - Google Accounts")) {
+    throw new Error(
+      "Gemini Web Cookie expired or invalid! Please log in to gemini.google.com and copy a fresh __Secure-1PSID cookie."
+    );
+  }
+
+  const snlmMatch =
+    html.match(/"SNlM0e":"([^"]+)"/) ||
+    html.match(/WIZ_global_data[\s\S]*?"SNlM0e":"([^"]+)"/);
+  const atValue = snlmMatch ? snlmMatch[1] : "";
+
+  if (!atValue) {
+    throw new Error(
+      "Failed to extract session token from Gemini Web. Please ensure you copied both __Secure-1PSID and __Secure-1PSIDTS cookies."
+    );
+  }
+
+  const blMatch = html.match(/"cfb2h":"([^"]+)"/) || html.match(/"bl":"([^"]+)"/);
+  const blValue = blMatch ? blMatch[1] : "boq_assistant-bard-web-server_20240507.08_p0";
+
+  // 2. Build conversation context
+  let fullPrompt = "";
+  if (systemPrompt) fullPrompt += `[System Instructions: ${systemPrompt}]\n\n`;
+  for (const m of messages) {
+    if (m.role === "system") continue;
+    fullPrompt += `${m.role === "assistant" ? "Assistant" : "Customer"}: ${m.content}\n`;
+  }
+  fullPrompt += "\nAssistant: ";
+
+  // 3. Google Gemini Internal Web RPC Payload
+  const rpcPayload = [
+    null,
+    JSON.stringify([
+      [fullPrompt, 0, null, [], null, null, 0],
+      ["en"],
+      ["", "", ""],
+      null,
+      null,
+      null,
+      [1],
+      0,
+      [],
+      [],
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      1,
+    ]),
+  ];
+
+  const reqId = Math.floor(100000 + Math.random() * 900000);
+  const streamUrl = `https://gemini.google.com/_/BardChatUi/data/assistant.lamda.BardFrontendService/StreamGenerate?bl=${encodeURIComponent(
+    blValue
+  )}&_reqid=${reqId}&rt=c`;
+
+  const bodyData = new URLSearchParams();
+  bodyData.append("f.req", JSON.stringify(rpcPayload));
+  bodyData.append("at", atValue);
+
+  const res = await fetch(streamUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+      Cookie: cookieHeader,
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36",
+      Origin: "https://gemini.google.com",
+      Referer: "https://gemini.google.com/app",
+      "X-Same-Domain": "1",
+    },
+    body: bodyData.toString(),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Gemini Web HTTP error (${res.status}): ${errText.slice(0, 180)}`);
+  }
+
+  const responseText = await res.text();
+
+  // 4. Parse Google RPC Chunks
+  const lines = responseText.split("\n");
+  let parsedText = "";
+
+  for (const line of lines) {
+    if (!line.includes("wrb.fr")) continue;
+    try {
+      const cleanLine = line.replace(/^\)\]\}'/, "").trim();
+      const parsed = JSON.parse(cleanLine);
+      for (const item of parsed) {
+        if (Array.isArray(item) && item[0] === "wrb.fr" && typeof item[2] === "string") {
+          const inner = JSON.parse(item[2]);
+          if (Array.isArray(inner) && Array.isArray(inner[4]) && inner[4][0]) {
+            const candidate = inner[4][0];
+            if (Array.isArray(candidate) && typeof candidate[1] === "string") {
+              parsedText = candidate[1];
+            } else if (Array.isArray(candidate) && Array.isArray(candidate[1])) {
+              parsedText = candidate[1][0] || "";
+            }
+          }
+        }
+      }
+    } catch {
+      // Continue parsing next chunk
+    }
+  }
+
+  // Fallback regex extraction
+  if (!parsedText) {
+    const match = responseText.match(/\["rc_[a-z0-9]+",\["([^"\\]*(?:\\.[^"\\]*)*)"/);
+    if (match && match[1]) {
+      try {
+        parsedText = JSON.parse(`"${match[1]}"`);
+      } catch {
+        parsedText = match[1];
+      }
+    }
+  }
+
+  if (!parsedText) {
+    throw new Error("Could not extract reply from Gemini Web. Please verify your cookie or try asking again.");
+  }
+
+  return {
+    text: parsedText.trim(),
+    tokensUsed: Math.ceil(parsedText.length / 4),
+  };
 }
