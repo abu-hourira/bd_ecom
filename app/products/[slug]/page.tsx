@@ -352,35 +352,49 @@ export default function ProductDetailPage({
               );
             })()}
 
-            {/* Desktop Quantity & Action Buttons */}
-            <div className="hidden md:flex items-center gap-3">
-              {/* Stepper */}
-              <div className="flex items-center border border-stone-200 rounded-xl bg-white p-1">
+            {/* Main Quantity Stepper & Action Buttons (Mobile + Desktop Visible) */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 pt-1">
+              <div className="flex items-center gap-2">
+                {/* Stepper */}
+                <div className="flex items-center border border-stone-200 rounded-xl bg-white p-1 shadow-2xs">
+                  <button
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    className="w-9 h-9 flex items-center justify-center text-stone-700 hover:bg-stone-100 active:bg-stone-200 rounded-lg cursor-pointer transition-colors"
+                    aria-label="Decrease quantity"
+                  >
+                    <Minus className="w-4 h-4" />
+                  </button>
+                  <span className="w-10 text-center font-mono font-bold text-sm text-stone-900">
+                    {quantity}
+                  </span>
+                  <button
+                    onClick={() => setQuantity(quantity + 1)}
+                    className="w-9 h-9 flex items-center justify-center text-stone-700 hover:bg-stone-100 active:bg-stone-200 rounded-lg cursor-pointer transition-colors"
+                    aria-label="Increase quantity"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Mobile Buy Now Button (Inline for instant 1-tap checkout) */}
                 <button
-                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  className="w-8 h-8 flex items-center justify-center text-stone-600 hover:bg-stone-100 rounded-lg cursor-pointer transition-colors"
+                  onClick={handleBuyNow}
+                  disabled={isOutOfStock}
+                  className="flex-1 sm:hidden py-3 px-4 rounded-xl font-bold text-xs bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-stone-950 shadow-sm transition-all cursor-pointer flex items-center justify-center gap-1.5"
                 >
-                  <Minus className="w-3.5 h-3.5" />
-                </button>
-                <span className="w-10 text-center font-mono font-bold text-sm">
-                  {quantity}
-                </span>
-                <button
-                  onClick={() => setQuantity(quantity + 1)}
-                  className="w-8 h-8 flex items-center justify-center text-stone-600 hover:bg-stone-100 rounded-lg cursor-pointer transition-colors"
-                >
-                  <Plus className="w-3.5 h-3.5" />
+                  <Zap className="w-4 h-4 text-stone-950 fill-stone-950" />
+                  <span>{locale === "bn" ? "অর্ডার করুন" : "Buy Now"}</span>
                 </button>
               </div>
 
-              {/* Add to Cart */}
+              {/* Add to Cart Button */}
               <button
                 onClick={handleAddToCart}
                 disabled={isOutOfStock}
-                className={`flex-1 py-3 px-5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer active:scale-95 ${
+                className={`flex-1 py-3 px-5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer active:scale-98 ${
                   added
                     ? "bg-emerald-600 text-white"
-                    : "bg-forest hover:bg-forest-deep text-white"
+                    : "bg-forest hover:bg-forest-deep active:bg-forest-deep text-white"
                 }`}
               >
                 {added ? (
@@ -396,13 +410,13 @@ export default function ProductDetailPage({
                 )}
               </button>
 
-              {/* Buy Now */}
+              {/* Desktop Buy Now */}
               <button
                 onClick={handleBuyNow}
                 disabled={isOutOfStock}
-                className="py-3 px-6 rounded-xl font-bold text-sm bg-amber-500 hover:bg-amber-400 text-stone-950 shadow-xs transition-all cursor-pointer active:scale-95 flex items-center gap-1.5"
+                className="hidden sm:flex py-3 px-6 rounded-xl font-bold text-sm bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-stone-950 shadow-sm transition-all cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
               >
-                <Zap className="w-4 h-4 text-stone-950" />
+                <Zap className="w-4 h-4 text-stone-950 fill-stone-950" />
                 <span>{locale === "bn" ? "অর্ডার করুন" : "Buy Now"}</span>
               </button>
             </div>
@@ -456,62 +470,6 @@ export default function ProductDetailPage({
           </section>
         )}
       </main>
-
-      {/* 4. Sticky Mobile Bottom Action Bar (Fixed on phones) */}
-      <div className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white/95 backdrop-blur-md border-t border-stone-200 p-2.5 px-3 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] flex items-center justify-between gap-2">
-        {/* Left: Quantity & Price */}
-        <div className="flex items-center gap-1.5 border border-stone-200 rounded-xl bg-stone-50 p-1 shrink-0">
-          <button
-            onClick={() => setQuantity(Math.max(1, quantity - 1))}
-            className="w-6 h-6 flex items-center justify-center text-stone-600 active:bg-stone-200 rounded"
-          >
-            <Minus className="w-3 h-3" />
-          </button>
-          <span className="w-5 text-center font-mono font-bold text-xs">
-            {quantity}
-          </span>
-          <button
-            onClick={() => setQuantity(quantity + 1)}
-            className="w-6 h-6 flex items-center justify-center text-stone-600 active:bg-stone-200 rounded"
-          >
-            <Plus className="w-3 h-3" />
-          </button>
-        </div>
-
-        {/* Right: Action Buttons */}
-        <div className="flex items-center gap-1.5 flex-1 min-w-0">
-          <button
-            onClick={handleAddToCart}
-            disabled={isOutOfStock}
-            className={`flex-1 py-2.5 px-2 rounded-xl font-bold text-xs flex items-center justify-center gap-1 transition-all active:scale-95 truncate ${
-              added
-                ? "bg-emerald-600 text-white"
-                : "bg-forest text-white"
-            }`}
-          >
-            {added ? (
-              <>
-                <Check className="w-3.5 h-3.5" />
-                <span>{locale === "bn" ? "যোগ হয়েছে" : "Added"}</span>
-              </>
-            ) : (
-              <>
-                <ShoppingBag className="w-3.5 h-3.5 text-amber-400" />
-                <span>{locale === "bn" ? "কার্ট" : "Cart"}</span>
-              </>
-            )}
-          </button>
-
-          <button
-            onClick={handleBuyNow}
-            disabled={isOutOfStock}
-            className="flex-1 py-2.5 px-2 rounded-xl font-bold text-xs bg-amber-500 text-stone-950 flex items-center justify-center gap-1 active:scale-95 truncate"
-          >
-            <Zap className="w-3.5 h-3.5" />
-            <span>{locale === "bn" ? "অর্ডার করুন" : "Buy Now"}</span>
-          </button>
-        </div>
-      </div>
 
       <StorefrontFooter />
     </div>

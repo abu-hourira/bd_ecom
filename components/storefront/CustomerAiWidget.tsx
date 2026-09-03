@@ -164,28 +164,22 @@ export default function CustomerAiWidget() {
 
   return (
     <>
-      {/* Floating Trigger Button */}
+      {/* Floating Trigger Button (Compact, Non-Intrusive Circle) */}
       {!open && (
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="fixed bottom-36 md:bottom-22 right-4 sm:right-6 z-40 flex items-center gap-2.5 px-4 py-3 rounded-full bg-forest hover:bg-forest-deep text-white shadow-2xl border-2 border-amber-400/40 transition-all duration-300 hover:scale-105 active:scale-95 group cursor-pointer"
+          className="fixed bottom-20 left-3.5 sm:bottom-6 sm:left-6 z-40 p-2.5 sm:p-3 rounded-full bg-forest hover:bg-forest-deep text-white shadow-xl border-2 border-amber-400/50 transition-all duration-300 hover:scale-110 active:scale-95 group cursor-pointer flex items-center gap-1.5"
           aria-label="Open Organic AI Chat"
           title={locale === "bn" ? "অর্গানিক এআই বিশেষজ্ঞের সাথে চ্যাট করুন" : "Chat with ENMAR AI Assistant"}
         >
-          <div className="relative">
+          <div className="relative flex items-center justify-center">
             <Bot className="w-5 h-5 text-amber-300 group-hover:rotate-12 transition-transform" />
-            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
           </div>
-          <div className="flex flex-col text-left">
-            <span className="text-xs font-bold font-display tracking-wide text-amber-300 flex items-center gap-1">
-              <span>{locale === "bn" ? "এআই সহকারী" : "AI Advisor"}</span>
-              <Sparkles className="w-3 h-3 text-amber-400" />
-            </span>
-            <span className="text-[9.5px] text-emerald-200/80 font-mono hidden sm:inline">
-              {locale === "bn" ? "অনলাইন ২৪/৭" : "Online 24/7"}
-            </span>
-          </div>
+          <span className="hidden md:inline text-xs font-bold font-display text-amber-300 pr-1">
+            {locale === "bn" ? "এআই সহকারী" : "AI Advisor"}
+          </span>
         </button>
       )}
 
