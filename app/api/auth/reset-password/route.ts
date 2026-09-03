@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
 
     // 1. Match by direct Token (from email link)
     if (token && token.trim()) {
-      user = await prisma.user.findFirst({
+      user = await (prisma.user as any).findFirst({
         where: {
           resetPasswordToken: token.trim(),
           resetPasswordExpiresAt: { gt: now },
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       const cleanEmail = email.trim().toLowerCase();
       const cleanOtp = otpCode.trim();
 
-      user = await prisma.user.findFirst({
+      user = await (prisma.user as any).findFirst({
         where: {
           email: cleanEmail,
           resetPasswordOtp: cleanOtp,
