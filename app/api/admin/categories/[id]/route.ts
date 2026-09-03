@@ -3,6 +3,8 @@ import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
+import { serverCache } from "@/lib/serverCache";
+import { triggerSnapshotRebuild } from "@/lib/snapshotEngine";
 
 export async function PUT(
   req: NextRequest,
@@ -45,6 +47,10 @@ export async function PUT(
 
     revalidatePath("/", "layout");
     revalidatePath("/products");
+    serverCache.invalidateTag("categories");
+    serverCache.invalidateTag("home");
+    triggerSnapshotRebuild();
+
     return NextResponse.json({ success: true, category: updated });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -77,6 +83,12 @@ export async function DELETE(
     });
 
     await prisma.category.delete({ where: { id: catId } });
+
+    revalidatePath("/", "layout");
+    revalidatePath("/products");
+    serverCache.invalidateTag("categories");
+    serverCache.invalidateTag("home");
+    triggerSnapshotRebuild();
 
     return NextResponse.json({ success: true, message: "Category moved to recycle bin." });
   } catch (error: any) {

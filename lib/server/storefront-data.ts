@@ -41,96 +41,20 @@ function serializePrisma(obj: any): any {
   );
 }
 
+import { getStorefrontSnapshot } from "@/lib/snapshotEngine";
+
 export async function getStorefrontHomeData() {
-  const CACHE_KEY = "server_storefront_home_data_v1";
-  const cached = serverCache.get<any>(CACHE_KEY);
-  if (cached) return cached;
+  const snapshot = await getStorefrontSnapshot<any>("home");
+  if (snapshot) return snapshot;
 
-  try {
-    const [categories, featuredProducts, comboDeals, siteSettings, theme, banners] =
-      await Promise.all([
-        prisma.category.findMany({
-          where: { isActive: true },
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            icon: true,
-            image: true,
-            displayOrder: true,
-            _count: { select: { products: true } },
-          },
-          orderBy: { displayOrder: "asc" },
-        }),
-        prisma.product.findMany({
-          where: { isActive: true },
-          select: PRODUCT_CARD_SELECT,
-          orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
-          take: 36,
-        }),
-        prisma.product.findMany({
-          where: { isActive: true, isCombo: true },
-          select: PRODUCT_CARD_SELECT,
-          orderBy: { createdAt: "desc" },
-          take: 8,
-        }),
-        prisma.siteSetting.findMany({
-          where: { isSecret: false },
-          select: { key: true, value: true },
-        }),
-        prisma.themeSetting.findFirst(),
-        prisma.promotionBanner.findMany({
-          where: { isActive: true },
-          orderBy: { displayOrder: "asc" },
-        }),
-      ]);
-
-    const settingsMap: Record<string, string> = {};
-    siteSettings.forEach((s) => {
-      settingsMap[s.key] = s.value;
-    });
-
-    const sanitizeCards = (list: any[]) =>
-      list.map((p) => {
-        let imgs: any[] = [];
-        if (Array.isArray(p.images)) {
-          imgs = p.images.slice(0, 1);
-        } else if (typeof p.images === "string") {
-          try {
-            const parsed = JSON.parse(p.images);
-            imgs = Array.isArray(parsed) ? parsed.slice(0, 1) : [p.images];
-          } catch (e) {
-            imgs = [p.images];
-          }
-        }
-        return {
-          ...p,
-          images: imgs,
-        };
-      });
-
-    const payload = serializePrisma({
-      categories,
-      featuredProducts: sanitizeCards(featuredProducts),
-      comboDeals: sanitizeCards(comboDeals),
-      settings: settingsMap,
-      theme,
-      banners,
-    });
-
-    serverCache.set(CACHE_KEY, payload, 300, ["products", "categories", "banners", "settings"]);
-    return payload;
-  } catch (error) {
-    console.error("[getStorefrontHomeData Error]:", error);
-    return {
-      categories: [],
-      featuredProducts: [],
-      comboDeals: [],
-      settings: {},
-      theme: null,
-      banners: [],
-    };
-  }
+  return {
+    categories: [],
+    featuredProducts: [],
+    comboDeals: [],
+    settings: {},
+    theme: null,
+    banners: [],
+  };
 }
 
 export async function getStorefrontProductBySlug(slug: string) {

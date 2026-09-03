@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
 import { serverCache } from "@/lib/serverCache";
+import { triggerSnapshotRebuild } from "@/lib/snapshotEngine";
 
 export async function GET(
   req: NextRequest,
@@ -122,6 +123,7 @@ export async function PUT(
     revalidatePath(`/products/${updated.slug}`);
     serverCache.invalidateTag("products");
     serverCache.invalidateTag("home");
+    triggerSnapshotRebuild();
     return NextResponse.json({ success: true, product: updated });
   } catch (error: any) {
     console.error("[Product PUT Error]:", error);
@@ -174,6 +176,7 @@ export async function DELETE(
     revalidatePath("/products");
     serverCache.invalidateTag("products");
     serverCache.invalidateTag("home");
+    triggerSnapshotRebuild();
     return NextResponse.json({
       success: true,
       message: "Product safely moved to recycle bin and deleted",

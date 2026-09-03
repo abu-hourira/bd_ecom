@@ -1,6 +1,8 @@
 // app/api/admin/settings/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { serverCache } from "@/lib/serverCache";
+import { triggerSnapshotRebuild } from "@/lib/snapshotEngine";
 
 export async function GET() {
   try {
@@ -36,8 +38,6 @@ export async function GET() {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
-
-import { serverCache } from "@/lib/serverCache";
 
 export async function POST(req: NextRequest) {
   try {
@@ -80,6 +80,7 @@ export async function POST(req: NextRequest) {
     // Invalidate server cache so storefront updates immediately
     serverCache.invalidateTag("settings");
     serverCache.invalidateAll();
+    triggerSnapshotRebuild();
 
     return NextResponse.json({ success: true, message: "Settings saved successfully." });
   } catch (error: any) {

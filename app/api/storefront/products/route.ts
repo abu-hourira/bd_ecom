@@ -2,9 +2,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { serverCache } from "@/lib/serverCache";
+import { getStorefrontSnapshot } from "@/lib/snapshotEngine";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 60; // Edge CDN ISR Cache
 
 export async function GET(req: NextRequest) {
   try {
@@ -38,12 +38,82 @@ export async function GET(req: NextRequest) {
         { success: true, ...cachedResponse },
         {
           headers: {
-            "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+            "Cache-Control": "public, s-maxage=300, stale-while-revalidate=1800",
           },
         }
       );
     }
 
+    // 1. High-Speed Snapshot Engine (0.1ms memory / 0.5ms disk)
+    const allProducts = await getStorefrontSnapshot<any[]>("products");
+    if (allProducts && Array.isArray(allProducts)) {
+      let filtered = [...allProducts];
+
+      if (category && category !== "all") {
+        filtered = filtered.filter(
+          (p) => p.category?.slug === category || String(p.categoryId) === category
+        );
+      }
+
+      if (search) {
+        const s = search.toLowerCase();
+        filtered = filtered.filter(
+          (p) =>
+            p.name?.toLowerCase().includes(s) ||
+            p.shortDescription?.toLowerCase().includes(s) ||
+            p.description?.toLowerCase().includes(s)
+        );
+      }
+
+      if (minPrice) {
+        filtered = filtered.filter((p) => (p.discountPrice || p.price) >= Number(minPrice));
+      }
+      if (maxPrice) {
+        filtered = filtered.filter((p) => (p.discountPrice || p.price) <= Number(maxPrice));
+      }
+      if (organicOnly) {
+        filtered = filtered.filter((p) => p.organicCertified);
+      }
+      if (inStockOnly) {
+        filtered = filtered.filter((p) => (p.stockQuantity || 0) > 0);
+      }
+
+      if (sort === "price-asc" || sort === "price_asc") {
+        filtered.sort((a, b) => (a.discountPrice || a.price) - (b.discountPrice || b.price));
+      } else if (sort === "price-desc" || sort === "price_desc") {
+        filtered.sort((a, b) => (b.discountPrice || b.price) - (a.discountPrice || a.price));
+      } else if (sort === "newest") {
+        filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      } else {
+        filtered.sort((a, b) => (b.featured ? 1 : 0) - (a.featured ? 1 : 0));
+      }
+
+      const total = filtered.length;
+      const paginated = filtered.slice(skip, skip + limit);
+      const totalPages = Math.ceil(total / limit) || 1;
+
+      const pagination = {
+        total,
+        page,
+        limit,
+        totalPages,
+        hasMore: page < totalPages,
+      };
+
+      const result = { products: paginated, pagination };
+      serverCache.set(cacheKey, result, 300, ["products"]);
+
+      return NextResponse.json(
+        { success: true, ...result },
+        {
+          headers: {
+            "Cache-Control": "public, s-maxage=300, stale-while-revalidate=1800",
+          },
+        }
+      );
+    }
+
+    // 2. Database Fallback (if snapshot unavailable)
     const where: any = { isActive: true };
 
     if (category && category !== "all") {
@@ -116,21 +186,28 @@ export async function GET(req: NextRequest) {
       prisma.product.count({ where }),
     ]);
 
+    const totalPages = Math.ceil(total / limit);
+
     const pagination = {
       total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit),
-      hasMore: skip + products.length < total,
+      totalPages,
+      hasMore: page < totalPages,
     };
 
-    serverCache.set(cacheKey, { products, pagination }, 60, ["products"]);
+    const responsePayload = {
+      products,
+      pagination,
+    };
+
+    serverCache.set(cacheKey, responsePayload, 300, ["products"]);
 
     return NextResponse.json(
-      { success: true, products, pagination },
+      { success: true, ...responsePayload },
       {
         headers: {
-          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+          "Cache-Control": "public, s-maxage=300, stale-while-revalidate=1800",
         },
       }
     );

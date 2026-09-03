@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
 import { serverCache } from "@/lib/serverCache";
+import { triggerSnapshotRebuild } from "@/lib/snapshotEngine";
 
 export async function GET(req: NextRequest) {
   try {
@@ -119,6 +120,7 @@ export async function POST(req: NextRequest) {
     revalidatePath("/products");
     serverCache.invalidateTag("products");
     serverCache.invalidateTag("home");
+    triggerSnapshotRebuild();
     return NextResponse.json({ success: true, product }, { status: 201 });
   } catch (error: any) {
     console.error("[Products API POST Error]:", error);
