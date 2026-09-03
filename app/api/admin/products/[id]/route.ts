@@ -91,6 +91,7 @@ export async function PUT(
       discountPrice: discountPrice !== undefined ? (discountPrice ? Number(discountPrice) : null) : existing.discountPrice,
       stockQuantity: stockQuantity !== undefined ? Number(stockQuantity) : existing.stockQuantity,
       unit: unit !== undefined ? unit : existing.unit,
+      weightInGrams: body.weightInGrams !== undefined && body.weightInGrams !== null && body.weightInGrams !== "" ? Number(body.weightInGrams) : existing.weightInGrams,
       images: images !== undefined ? (Array.isArray(images) ? images : []) : (existing.images as any),
       description: description !== undefined ? description : existing.description,
       shortDescription: shortDescription !== undefined ? shortDescription : existing.shortDescription,

@@ -39,8 +39,12 @@ export async function GET() {
       whatsappDefaultMessage: "",
       siteLogo: "",
       siteFavicon: "",
-      freeShippingThreshold: "",
-      shippingFlat: "",
+      freeShippingThreshold: "1500",
+      shippingFlat: "100",
+      delivery_base_fee: "100",
+      delivery_base_weight_kg: "1.0",
+      delivery_per_extra_kg: "20",
+      delivery_free_shipping_threshold: "1500",
     };
 
     settingsList.forEach((s) => {

@@ -19,6 +19,9 @@ export default function CartDrawer() {
     freeShippingThreshold,
     amountNeededForFreeShipping,
     hasFreeShipping,
+    totalCartWeightKg,
+    deliveryFee,
+    deliveryBreakdownText,
   } = useCart();
 
   const { t, locale } = useLanguage();
@@ -175,6 +178,16 @@ export default function CartDrawer() {
                 <span className="text-stone-600">{locale === "bn" ? "মোট মূল্য (Subtotal):" : "Subtotal:"}</span>
                 <span className="font-mono font-extrabold text-base text-forest">
                   {formatTaka(cartSubtotal)}
+                </span>
+              </div>
+
+              {/* Weight & Delivery Preview */}
+              <div className="flex items-center justify-between text-[11px] bg-white px-2.5 py-1.5 rounded-lg border border-stone-200">
+                <span className="text-stone-600 flex items-center gap-1 font-medium">
+                  📦 পার্সেল ওজন: <strong className="text-stone-900 font-mono">{totalCartWeightKg} কেজি</strong>
+                </span>
+                <span className="text-stone-700 font-medium">
+                  ডেলিভারি: <strong className="text-stone-900 font-mono">{deliveryFee === 0 ? "ফ্রি" : formatTaka(deliveryFee)}</strong>
                 </span>
               </div>
 

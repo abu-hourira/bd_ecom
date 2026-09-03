@@ -32,7 +32,16 @@ import { formatTaka } from "@/lib/utils";
 
 export default function CheckoutPage() {
   const router = useRouter();
-  const { cart, cartSubtotal, clearCart, hasFreeShipping, flatDeliveryFee } = useCart();
+  const {
+    cart,
+    cartSubtotal,
+    clearCart,
+    hasFreeShipping,
+    totalCartWeightKg,
+    deliveryFee: cartDeliveryFee,
+    deliveryBreakdownText,
+    deliveryResult,
+  } = useCart();
   const { t, locale } = useLanguage();
   const { isFeatureEnabled } = useFeatures();
   const { user: authUser, isLoaded: authLoaded } = useAuth();
@@ -118,13 +127,12 @@ export default function CheckoutPage() {
     }));
   };
 
-  const deliveryFee = hasFreeShipping
-    ? 0
-    : formData.deliveryZone === "Outside Dhaka"
-    ? 130
-    : (flatDeliveryFee || 70);
-
-  const discountAmount = appliedPromo ? Number(appliedPromo.discountAmount || 0) : 0;
+  const isPromoFreeShipping =
+    appliedPromo &&
+    (appliedPromo.discountType === "FREE_SHIPPING" || appliedPromo.discountType === "free_shipping");
+  const deliveryFee = isPromoFreeShipping ? 0 : cartDeliveryFee;
+  const discountAmount =
+    appliedPromo && !isPromoFreeShipping ? Number(appliedPromo.discountAmount || 0) : 0;
   const grandTotal = Math.max(0, cartSubtotal - discountAmount + deliveryFee);
 
   const handleApplyPromo = async (e: React.FormEvent) => {
@@ -602,21 +610,45 @@ export default function CheckoutPage() {
               </form>
 
               {/* Calculations */}
-              <div className="space-y-2 text-xs pt-4 border-t border-stone-200">
+              <div className="space-y-2.5 text-xs pt-4 border-t border-stone-200">
                 <div className="flex items-center justify-between text-stone-600">
                   <span>{t("cart.subtotal")}</span>
                   <span className="font-mono font-semibold text-stone-900">{formatTaka(cartSubtotal)}</span>
                 </div>
+
+                {/* Parcel Total Weight */}
+                <div className="flex items-center justify-between text-stone-600 bg-stone-50 px-2.5 py-1.5 rounded-lg border border-stone-200/80">
+                  <span className="flex items-center gap-1.5 font-medium text-stone-700">
+                    📦 মোট পার্সেল ওজন
+                  </span>
+                  <span className="font-mono font-bold text-stone-900">
+                    {totalCartWeightKg} কেজি {totalCartWeightKg < 1 ? `(${Math.round(totalCartWeightKg * 1000)} গ্রাম)` : ""}
+                  </span>
+                </div>
+
                 {discountAmount > 0 && (
                   <div className="flex items-center justify-between text-emerald-700 font-semibold">
                     <span>ছাড় (Discount)</span>
                     <span className="font-mono">- {formatTaka(discountAmount)}</span>
                   </div>
                 )}
-                <div className="flex items-center justify-between text-stone-600">
-                  <span>ডেলিভারি চার্জ ({formData.deliveryZone})</span>
-                  <span className="font-mono">{deliveryFee === 0 ? "ফ্রি" : formatTaka(deliveryFee)}</span>
+
+                <div className="pt-1">
+                  <div className="flex items-center justify-between text-stone-700 font-medium">
+                    <span>ডেলিভারি চার্জ</span>
+                    <span className="font-mono font-bold text-stone-900">
+                      {deliveryFee === 0 ? (
+                        <span className="text-emerald-700 font-bold">ফ্রি</span>
+                      ) : (
+                        formatTaka(deliveryFee)
+                      )}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-stone-500 mt-0.5">
+                    {deliveryBreakdownText}
+                  </div>
                 </div>
+
                 <div className="flex items-center justify-between text-base font-bold text-stone-900 pt-3 border-t border-stone-200">
                   <span>{t("cart.total")}</span>
                   <span className="font-mono text-forest text-xl">{formatTaka(grandTotal)}</span>

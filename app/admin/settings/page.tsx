@@ -351,39 +351,92 @@ export default function AdminSettingsPage() {
           </div>
         </div>
 
-        {/* 3. Shipping Rates & Contact Details */}
+        {/* 3. Shipping Rates & Logistics (Weight-Based Tiers) */}
         <div className="bg-paper p-6 sm:p-8 rounded-3xl border border-line shadow-card space-y-6">
           <h2 className="text-lg font-bold font-display text-ink border-b border-line pb-3 flex items-center gap-2">
             <Truck className="w-5 h-5 text-forest" />
-            <span>Shipping Rates & Contact Information</span>
+            <span>Weight-Based Delivery Charges & Logistics (ওজন-ভিত্তিক ডেলিভারি চার্জ)</span>
           </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 text-xs text-emerald-900 space-y-1.5">
+            <div className="font-bold flex items-center gap-1.5 text-sm text-emerald-950">
+              <Sparkles className="w-4 h-4 text-accent" />
+              <span>স্মার্ট ওজন-ভিত্তিক ডেলিভারি ফর্মুলা:</span>
+            </div>
+            <p>
+              কার্টের মোট ওজন হিসাব করে ডেলিভারি চার্জ স্বয়ংক্রিয়ভাবে নির্ধারণ করা হয়। ১ কেজি পর্যন্ত ন্যূনতম বেস চার্জ এবং ১ কেজির বেশি হলে প্রতি অতিরিক্ত কেজির জন্য রেট যোগ হবে।
+            </p>
+            <div className="font-mono font-bold bg-white/80 px-3 py-1.5 rounded-lg border border-emerald-200 inline-block text-emerald-800 mt-1">
+              ডেলিভারি চার্জ = ৳{settings.delivery_base_fee || "100"} (১ম {settings.delivery_base_weight_kg || "1.0"} কেজি পর্যন্ত) + (অতিরিক্ত কেজি × ৳{settings.delivery_per_extra_kg || "20"})
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="space-y-2">
               <label className="block text-xs font-bold text-ink uppercase tracking-wider">
-                Flat Delivery Fee (৳)
+                Base Delivery Fee (৳)
               </label>
               <input
                 type="number"
-                value={settings.shippingFlat || "70"}
-                onChange={(e) => setSettings({ ...settings, shippingFlat: e.target.value })}
+                value={settings.delivery_base_fee || "100"}
+                onChange={(e) => setSettings({ ...settings, delivery_base_fee: e.target.value, shippingFlat: e.target.value })}
                 className="w-full px-4 py-2.5 rounded-xl bg-bg border border-line text-sm font-mono focus:outline-none focus:border-forest"
+                placeholder="100"
               />
+              <span className="text-[11px] text-ink-soft block">১ম ১ কেজির জন্য বেস চার্জ (যেমন: ১০০)</span>
             </div>
 
             <div className="space-y-2">
               <label className="block text-xs font-bold text-ink uppercase tracking-wider">
-                Free Delivery Order Threshold (৳)
+                Included Base Weight (KG)
               </label>
               <input
                 type="number"
-                value={settings.freeShippingThreshold || "1500"}
+                step="0.1"
+                value={settings.delivery_base_weight_kg || "1.0"}
+                onChange={(e) => setSettings({ ...settings, delivery_base_weight_kg: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-xl bg-bg border border-line text-sm font-mono focus:outline-none focus:border-forest"
+                placeholder="1.0"
+              />
+              <span className="text-[11px] text-ink-soft block">বেস চার্জে অন্তর্ভুক্ত ওজন (ডিফল্ট: ১.০ কেজি)</span>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-ink uppercase tracking-wider">
+                Extra Charge / Additional KG (৳)
+              </label>
+              <input
+                type="number"
+                value={settings.delivery_per_extra_kg || "20"}
+                onChange={(e) => setSettings({ ...settings, delivery_per_extra_kg: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-xl bg-bg border border-line text-sm font-mono focus:outline-none focus:border-forest"
+                placeholder="20"
+              />
+              <span className="text-[11px] text-ink-soft block">১ কেজির বেশি হলে প্রতি কেজিতে (যেমন: ২০)</span>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-bold text-ink uppercase tracking-wider">
+                Free Delivery Threshold (৳)
+              </label>
+              <input
+                type="number"
+                value={settings.delivery_free_shipping_threshold || settings.freeShippingThreshold || "1500"}
                 onChange={(e) =>
-                  setSettings({ ...settings, freeShippingThreshold: e.target.value })
+                  setSettings({
+                    ...settings,
+                    delivery_free_shipping_threshold: e.target.value,
+                    freeShippingThreshold: e.target.value,
+                  })
                 }
                 className="w-full px-4 py-2.5 rounded-xl bg-bg border border-line text-sm font-mono focus:outline-none focus:border-forest"
+                placeholder="1500"
               />
+              <span className="text-[11px] text-ink-soft block">যত টাকার অর্ডারে ফ্রি ডেলিভারি (যেমন: ১৫০০)</span>
             </div>
+          </div>
+
+          <div className="pt-4 border-t border-line grid grid-cols-1 sm:grid-cols-2 gap-6">
 
             <div className="space-y-2">
               <label className="block text-xs font-bold text-ink uppercase tracking-wider">

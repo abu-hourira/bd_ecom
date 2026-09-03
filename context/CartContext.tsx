@@ -3,6 +3,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { formatProductUnit } from "@/lib/utils";
+import { calculateDeliveryFee, DeliveryCalculationResult } from "@/lib/delivery-calculator";
 
 export interface CartItem {
   id: number;
@@ -12,6 +13,7 @@ export interface CartItem {
   discountPrice?: number | null;
   unit: string;
   unitQuantity?: number | string | null;
+  weightInGrams?: number | null;
   image: string;
   quantity: number;
 }
@@ -28,8 +30,14 @@ interface CartContextType {
   setIsCartOpen: (open: boolean) => void;
   freeShippingThreshold: number;
   flatDeliveryFee: number;
+  deliveryBaseFee: number;
+  deliveryPerExtraKg: number;
   amountNeededForFreeShipping: number;
   hasFreeShipping: boolean;
+  totalCartWeightKg: number;
+  deliveryFee: number;
+  deliveryBreakdownText: string;
+  deliveryResult: DeliveryCalculationResult;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -39,7 +47,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [freeShippingThreshold, setFreeShippingThreshold] = useState(1500);
-  const [flatDeliveryFee, setFlatDeliveryFee] = useState(70);
+  const [flatDeliveryFee, setFlatDeliveryFee] = useState(100);
+  const [deliveryBaseFee, setDeliveryBaseFee] = useState(100);
+  const [deliveryPerExtraKg, setDeliveryPerExtraKg] = useState(20);
+  const [deliveryBaseWeightKg, setDeliveryBaseWeightKg] = useState(1.0);
 
   // Fetch live settings from database
   useEffect(() => {
@@ -47,13 +58,26 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       .then((res) => res.json())
       .then((data) => {
         if (data.success && data.settings) {
-          if (data.settings.freeShippingThreshold) {
-            const parsed = Number(data.settings.freeShippingThreshold);
+          if (data.settings.freeShippingThreshold || data.settings.delivery_free_shipping_threshold) {
+            const parsed = Number(
+              data.settings.delivery_free_shipping_threshold || data.settings.freeShippingThreshold
+            );
             if (!isNaN(parsed) && parsed > 0) setFreeShippingThreshold(parsed);
           }
-          if (data.settings.shippingFlat) {
-            const parsedFee = Number(data.settings.shippingFlat);
-            if (!isNaN(parsedFee) && parsedFee >= 0) setFlatDeliveryFee(parsedFee);
+          if (data.settings.delivery_base_fee || data.settings.shippingFlat) {
+            const parsedFee = Number(data.settings.delivery_base_fee || data.settings.shippingFlat);
+            if (!isNaN(parsedFee) && parsedFee >= 0) {
+              setFlatDeliveryFee(parsedFee);
+              setDeliveryBaseFee(parsedFee);
+            }
+          }
+          if (data.settings.delivery_per_extra_kg) {
+            const parsedExtra = Number(data.settings.delivery_per_extra_kg);
+            if (!isNaN(parsedExtra) && parsedExtra >= 0) setDeliveryPerExtraKg(parsedExtra);
+          }
+          if (data.settings.delivery_base_weight_kg) {
+            const parsedBaseKg = Number(data.settings.delivery_base_weight_kg);
+            if (!isNaN(parsedBaseKg) && parsedBaseKg > 0) setDeliveryBaseWeightKg(parsedBaseKg);
           }
         }
       })
@@ -108,6 +132,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             discountPrice: product.discountPrice ? Number(product.discountPrice) : null,
             unit: formatProductUnit(product.unitQuantity, product.unit),
             unitQuantity: product.unitQuantity || null,
+            weightInGrams: product.weightInGrams !== undefined && product.weightInGrams !== null ? Number(product.weightInGrams) : null,
             image: imageSrc,
             quantity,
           },
@@ -139,8 +164,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const cartSubtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
+  const deliveryResult = calculateDeliveryFee({
+    items: cart,
+    subtotal: cartSubtotal,
+    baseDeliveryFee: deliveryBaseFee,
+    baseWeightKg: deliveryBaseWeightKg,
+    perExtraKgFee: deliveryPerExtraKg,
+    freeShippingThreshold: freeShippingThreshold,
+  });
+
   const amountNeededForFreeShipping = Math.max(0, freeShippingThreshold - cartSubtotal);
-  const hasFreeShipping = cartSubtotal >= freeShippingThreshold;
+  const hasFreeShipping = deliveryResult.isFreeShipping;
+  const totalCartWeightKg = deliveryResult.totalWeightKg;
+  const deliveryFee = deliveryResult.finalDeliveryFee;
+  const deliveryBreakdownText = deliveryResult.breakdownText;
 
   return (
     <CartContext.Provider
@@ -156,8 +193,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         setIsCartOpen,
         freeShippingThreshold,
         flatDeliveryFee,
+        deliveryBaseFee,
+        deliveryPerExtraKg,
         amountNeededForFreeShipping,
         hasFreeShipping,
+        totalCartWeightKg,
+        deliveryFee,
+        deliveryBreakdownText,
+        deliveryResult,
       }}
     >
       {children}

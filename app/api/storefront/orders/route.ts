@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { generateOrderNumber, generateTrackingId } from "@/lib/utils";
 import { PaymentMethod, PaymentStatus, OrderStatus } from "@prisma/client";
 import { notifyOrderPlaced } from "@/lib/notifications";
+import { calculateDeliveryFee } from "@/lib/delivery-calculator";
 
 export async function POST(req: NextRequest) {
   try {
@@ -85,6 +86,7 @@ export async function POST(req: NextRequest) {
           unitPrice,
           quantity: qty,
           unit: product.unit || item.unit || "piece",
+          weightInGrams: product.weightInGrams || 100,
           itemImage: imageSrc,
           totalPrice: itemTotal,
         });
@@ -98,30 +100,37 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Dynamic free shipping threshold and flat shipping fee
+    // Dynamic weight-based delivery fee settings
     let freeShippingThreshold = 1500;
-    let flatShippingFee = 70;
+    let baseDeliveryFee = 100;
+    let perExtraKgFee = 20;
+    let baseWeightKg = 1.0;
+
     try {
-      const [thresholdSetting, flatSetting] = await Promise.all([
-        prisma.siteSetting.findUnique({ where: { key: "freeShippingThreshold" } }),
-        prisma.siteSetting.findUnique({ where: { key: "shippingFlat" } }),
+      const [thresholdSetting, baseFeeSetting, extraKgSetting, baseWeightSetting] = await Promise.all([
+        prisma.siteSetting.findUnique({ where: { key: "delivery_free_shipping_threshold" } }),
+        prisma.siteSetting.findUnique({ where: { key: "delivery_base_fee" } }),
+        prisma.siteSetting.findUnique({ where: { key: "delivery_per_extra_kg" } }),
+        prisma.siteSetting.findUnique({ where: { key: "delivery_base_weight_kg" } }),
       ]);
       if (thresholdSetting && Number(thresholdSetting.value) > 0) {
         freeShippingThreshold = Number(thresholdSetting.value);
       }
-      if (flatSetting && Number(flatSetting.value) >= 0) {
-        flatShippingFee = Number(flatSetting.value);
+      if (baseFeeSetting && Number(baseFeeSetting.value) >= 0) {
+        baseDeliveryFee = Number(baseFeeSetting.value);
+      }
+      if (extraKgSetting && Number(extraKgSetting.value) >= 0) {
+        perExtraKgFee = Number(extraKgSetting.value);
+      }
+      if (baseWeightSetting && Number(baseWeightSetting.value) > 0) {
+        baseWeightKg = Number(baseWeightSetting.value);
       }
     } catch (e) {}
 
-    let shippingFee = 0;
-    if (subtotal >= freeShippingThreshold) {
-      shippingFee = 0;
-    } else {
-      shippingFee = deliveryZone === "Outside Dhaka" ? 130 : flatShippingFee;
-    }
-
+    // Check Promo Code first to detect Free Shipping promo
     let discountAmount = 0;
+    let hasFreeShippingPromo = false;
+
     if (promoCodeId) {
       try {
         const promo = await prisma.promoCode.findUnique({
@@ -136,11 +145,23 @@ export async function POST(req: NextRequest) {
           } else if (promo.discountType === "FIXED") {
             discountAmount = Number(promo.discountValue);
           } else if (promo.discountType === "FREE_SHIPPING") {
-            discountAmount = shippingFee;
+            hasFreeShippingPromo = true;
           }
         }
       } catch (e) {}
     }
+
+    const deliveryCalc = calculateDeliveryFee({
+      items: validatedItems,
+      subtotal,
+      hasFreeShippingPromo,
+      baseDeliveryFee,
+      baseWeightKg,
+      perExtraKgFee,
+      freeShippingThreshold,
+    });
+
+    const shippingFee = deliveryCalc.finalDeliveryFee;
 
     const totalAmount = Math.max(0, subtotal - discountAmount + shippingFee);
     const orderNumber = generateOrderNumber();

@@ -90,6 +90,7 @@ export async function POST(req: NextRequest) {
       discountPrice: discountPrice ? Number(discountPrice) : null,
       stockQuantity: Number(stockQuantity || 0),
       unit: unit || "piece",
+      weightInGrams: body.weightInGrams !== undefined && body.weightInGrams !== null && body.weightInGrams !== "" ? Number(body.weightInGrams) : 100,
       images: Array.isArray(images) ? images : [],
       description: description || "",
       shortDescription: shortDescription || null,

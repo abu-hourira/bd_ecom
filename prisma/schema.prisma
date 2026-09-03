@@ -163,6 +163,7 @@ model Product {
   stockQuantity     Int         @default(0)
   unitQuantity      Decimal?    @map("unit_quantity") @db.Decimal(10, 3)
   unit              String      @default("kg") // kg, g, ml, L, piece, bundle
+  weightInGrams     Int?        @default(100) @map("weight_in_grams") // Weight per unit in grams for shipping calculations
   images            Json        // Array of image URLs
   description       String      @db.LongText
   shortDescription  String?     @db.Text

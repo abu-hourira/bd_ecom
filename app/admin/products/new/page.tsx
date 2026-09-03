@@ -28,6 +28,7 @@ export default function NewProductPage() {
     stockQuantity: "50",
     unitQuantity: "",
     unit: "piece",
+    weightInGrams: "100",
     images: [] as string[],
     description: "",
     shortDescription: "",
@@ -262,6 +263,25 @@ export default function NewProductPage() {
                 <option value="bundle">Bundle / Combo Pack</option>
               </select>
               <p className="text-[11px] text-ink-soft">Unit metric (e.g. g, kg, L)</p>
+            </div>
+
+            {/* Shipping Weight in Grams */}
+            <div className="space-y-2 sm:col-span-2">
+              <label className="block text-sm font-semibold text-ink">
+                Shipping Weight in Grams (গ্রামে ওজন) <span className="text-emerald-700 font-normal text-xs">• ব্যবহৃত হবে ডেলিভারি চার্জ নির্ধারণে</span>
+              </label>
+              <input
+                type="number"
+                min="1"
+                step="1"
+                placeholder="e.g. 100 for a ruti, 500 for honey jar, 1000 for 1L oil"
+                value={formData.weightInGrams}
+                onChange={(e) => setFormData({ ...formData, weightInGrams: e.target.value })}
+                className="w-full px-4 py-2.5 rounded-xl bg-bg border border-line text-sm font-mono focus:outline-none focus:ring-2 focus:ring-forest/20"
+              />
+              <p className="text-[11px] text-ink-soft">
+                প্রতি ইউনিটের ওজন গ্রামে লিখুন (যেমন: ১ পিস রুটি = ১০০ গ্রাম, ১ লিটার তেল = ১০০০ গ্রাম)। ১০ পিস নিলে কার্টের ওজন স্বয়ংক্রিয়ভাবে ১ কেজি হবে।
+              </p>
             </div>
 
             <div className="space-y-2 sm:col-span-2">

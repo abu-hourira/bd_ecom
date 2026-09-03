@@ -1,7 +1,7 @@
-// app/api/storefront/ai/chat/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { callLLM, ChatMessage } from "@/lib/ai-provider";
+import { calculateDeliveryFee } from "@/lib/delivery-calculator";
 
 export async function POST(request: NextRequest) {
   try {
@@ -62,9 +62,10 @@ export async function POST(request: NextRequest) {
     const contactPhone = settingsMap.contactPhone || settingsMap.whatsappNumber || settingsMap.contact_phone || "+880 1614 113082";
     const contactEmail = settingsMap.contactEmail || settingsMap.contact_email || "support@enmar.shop";
     const contactAddress = settingsMap.contactAddress || settingsMap.contact_address || "House 14, Road 7, Sector 3, Uttara, Dhaka-1230, Bangladesh";
-    const insideDhakaFee = settingsMap.shippingFlat || settingsMap.delivery_charge_inside_dhaka || "70";
-    const outsideDhakaFee = settingsMap.shippingOutside || settingsMap.delivery_charge_outside_dhaka || "130";
-    const freeDeliveryMin = settingsMap.freeShippingThreshold || settingsMap.free_delivery_threshold || "1500";
+    const baseDeliveryFee = settingsMap.delivery_base_fee || settingsMap.shippingFlat || "100";
+    const baseWeightKg = settingsMap.delivery_base_weight_kg || "1.0";
+    const extraKgFee = settingsMap.delivery_per_extra_kg || "20";
+    const freeDeliveryMin = settingsMap.delivery_free_shipping_threshold || settingsMap.freeShippingThreshold || "1500";
 
     // Format Categories
     const categoriesSummary = categoriesList.length > 0
@@ -125,10 +126,16 @@ export async function POST(request: NextRequest) {
           const rawPrice = Number(matchedProduct.discountPrice || matchedProduct.price || 0);
           const isOutside = /(বাইরে|outside|chittagong|sylhet|rajshahi|khulna|barishal|rangpur|mymensingh|গ্রাম|থানা|জেলা)/i.test(fullConversationText);
           const zone = isOutside ? "Outside Dhaka" : "Inside Dhaka";
-          const shippingFeeNum = isOutside ? Number(outsideDhakaFee) : Number(insideDhakaFee);
+          const deliveryCalc = calculateDeliveryFee({
+            items: [{ quantity: 1, weightInGrams: matchedProduct.weightInGrams || 100 }],
+            subtotal: rawPrice,
+            baseDeliveryFee: Number(baseDeliveryFee),
+            perExtraKgFee: Number(extraKgFee),
+            freeShippingThreshold: Number(freeDeliveryMin),
+          });
+          const appliedShipping = deliveryCalc.finalDeliveryFee;
           const subtotalNum = rawPrice;
-          const totalNum = subtotalNum >= Number(freeDeliveryMin) ? subtotalNum : subtotalNum + shippingFeeNum;
-          const appliedShipping = subtotalNum >= Number(freeDeliveryMin) ? 0 : shippingFeeNum;
+          const totalNum = rawPrice + appliedShipping;
 
           const ordNumber = `ORD-${new Date().toISOString().slice(2, 10).replace(/-/g, "")}-${Math.floor(1000 + Math.random() * 9000)}`;
           const trkId = `ENM-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
@@ -232,7 +239,9 @@ export async function POST(request: NextRequest) {
 ${customInstructions ? `ADMIN CUSTOM INSTRUCTIONS:\n${customInstructions}\n` : ""}
 LIVE STORE DATABASE & POLICIES (REAL-TIME DATA FROM DATABASE):
 - Store Name: ${siteName}
-- Delivery Charges: Inside Dhaka: ৳${insideDhakaFee} | Outside Dhaka: ৳${outsideDhakaFee}
+- Delivery Charges (Weight-Based Tiers):
+  * Minimum Base Delivery Charge: ৳${baseDeliveryFee} (covers up to ${baseWeightKg} KG).
+  * For weight above ${baseWeightKg} KG: +৳${extraKgFee} per additional KG (e.g., 2 KG = ৳120, 3 KG = ৳140, 4 KG = ৳160, 5 KG = ৳180).
 - Free Delivery: Automatically applied on orders of ৳${freeDeliveryMin} and above!
 - Customer Hotline / WhatsApp: ${contactPhone}
 - Payment Methods: Cash on Delivery (COD) & Online Payment (bKash, Nagad, Rocket, Card via SSLCommerz).
