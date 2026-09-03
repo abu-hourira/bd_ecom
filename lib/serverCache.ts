@@ -50,8 +50,6 @@ const globalForCache = globalThis as unknown as {
 export const serverCache =
   globalForCache.serverCacheInstance ?? new MemoryCache();
 
-if (process.env.NODE_ENV !== "production") {
-  globalForCache.serverCacheInstance = serverCache;
-}
+globalForCache.serverCacheInstance = serverCache;
 
 export default serverCache;

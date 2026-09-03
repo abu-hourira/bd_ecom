@@ -22,10 +22,13 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   const fetchDynamicTranslations = async () => {
     try {
-      const res = await fetch("/api/storefront/i18n", { cache: "no-store" });
+      const res = await fetch("/api/storefront/i18n");
       const data = await res.json();
       if (data.success && data.translations) {
         setActiveTranslations(data.translations);
+        try {
+          localStorage.setItem("enmar_i18n_cache", JSON.stringify(data.translations));
+        } catch (err) {}
       }
     } catch (e) {
       console.warn("[LanguageContext] Dynamic i18n fallback to local seed:", e);
@@ -34,15 +37,23 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("enmar_lang") as Locale;
-      if (saved && (saved === "bn" || saved === "en")) {
-        setLocaleState(saved);
+      const savedLang = localStorage.getItem("enmar_lang") as Locale;
+      if (savedLang && (savedLang === "bn" || savedLang === "en")) {
+        setLocaleState(savedLang);
         if (typeof document !== "undefined") {
-          document.documentElement.lang = saved;
+          document.documentElement.lang = savedLang;
         }
       } else {
         if (typeof document !== "undefined") {
           document.documentElement.lang = "bn";
+        }
+      }
+
+      const cachedI18n = localStorage.getItem("enmar_i18n_cache");
+      if (cachedI18n) {
+        const parsed = JSON.parse(cachedI18n);
+        if (parsed.bn && parsed.en) {
+          setActiveTranslations(parsed);
         }
       }
     } catch (e) {
@@ -51,15 +62,6 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       setIsLoaded(true);
       fetchDynamicTranslations();
     }
-
-    const handleFocus = () => fetchDynamicTranslations();
-    window.addEventListener("focus", handleFocus);
-    document.addEventListener("visibilitychange", handleFocus);
-
-    return () => {
-      window.removeEventListener("focus", handleFocus);
-      document.removeEventListener("visibilitychange", handleFocus);
-    };
   }, []);
 
   const setLocale = (newLocale: Locale) => {

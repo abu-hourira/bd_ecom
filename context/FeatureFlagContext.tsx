@@ -35,6 +35,9 @@ export function FeatureFlagProvider({ children }: { children: React.ReactNode })
       const data = await res.json();
       if (data.success && data.features) {
         setFeatures(data.features);
+        try {
+          localStorage.setItem("enmar_features_cache", JSON.stringify(data.features));
+        } catch (err) {}
       }
     } catch (e) {
       console.warn("[FeatureFlagContext] Fallback to default flags:", e);
@@ -42,6 +45,12 @@ export function FeatureFlagProvider({ children }: { children: React.ReactNode })
   };
 
   useEffect(() => {
+    try {
+      const cached = localStorage.getItem("enmar_features_cache");
+      if (cached) {
+        setFeatures(JSON.parse(cached));
+      }
+    } catch (e) {}
     fetchFeatures();
   }, []);
 

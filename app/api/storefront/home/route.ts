@@ -102,8 +102,8 @@ export async function GET() {
       banners,
     };
 
-    // Cache in high-speed memory for 60 seconds with tags for instant admin invalidation
-    serverCache.set(CACHE_KEY, payload, 60, [
+    // Cache in high-speed memory for 300 seconds with tags for instant admin invalidation
+    serverCache.set(CACHE_KEY, payload, 300, [
       "home",
       "products",
       "categories",
@@ -118,7 +118,7 @@ export async function GET() {
       },
       {
         headers: {
-          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+          "Cache-Control": "public, s-maxage=300, stale-while-revalidate=1800",
         },
       }
     );

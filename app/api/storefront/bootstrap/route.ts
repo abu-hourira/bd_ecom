@@ -74,13 +74,13 @@ export async function GET() {
       features,
     };
 
-    serverCache.set(cacheKey, payload, 120, ["settings", "categories", "features"]);
+    serverCache.set(cacheKey, payload, 300, ["settings", "categories", "features"]);
 
     return NextResponse.json(
       { success: true, ...payload },
       {
         headers: {
-          "Cache-Control": "public, s-maxage=120, stale-while-revalidate=600",
+          "Cache-Control": "public, s-maxage=300, stale-while-revalidate=1800",
         },
       }
     );

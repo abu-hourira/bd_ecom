@@ -59,7 +59,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // Fetch live settings from database
   const fetchLiveSettings = async () => {
     try {
-      const res = await fetch("/api/storefront/settings", { cache: "no-store" });
+      const res = await fetch("/api/storefront/settings");
       const data = await res.json();
       if (data.success && data.settings) {
         if (data.settings.freeShippingThreshold || data.settings.delivery_free_shipping_threshold) {

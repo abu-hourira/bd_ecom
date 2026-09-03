@@ -26,11 +26,13 @@ export default function HomePageClient({ initialData }: { initialData: any }) {
   const { t, locale } = useLanguage();
 
   useEffect(() => {
-    if (initialData) {
+    if (initialData?.featuredProducts?.length) {
       setCachedHomeData(initialData);
+      setLoading(false);
+      return;
     }
 
-    // Background SWR revalidation
+    // Fallback fetch if initialData was not server-rendered
     fetch("/api/storefront/home")
       .then((res) => res.json())
       .then((json) => {
