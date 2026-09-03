@@ -23,13 +23,29 @@ import {
   Cpu,
   Terminal,
   HelpCircle,
+  Cookie,
+  Plus,
+  Trash,
+  FileText,
+  Edit,
 } from "lucide-react";
 import AdminSidebar from "@/components/admin/Sidebar";
 import AlertModal from "@/components/ui/AlertModal";
 import { AI_PROVIDER_DEFAULTS } from "@/lib/ai-constants";
 
+export interface CookieAccountItem {
+  id: string;
+  fileName: string;
+  name: string;
+  sizeBytes: number;
+  modifiedAt: string;
+  hasPsid: boolean;
+  hasPsidts: boolean;
+  preview: string;
+}
+
 export default function AdminAiPage() {
-  const [activeTab, setActiveTab] = useState<"assistant" | "settings">("assistant");
+  const [activeTab, setActiveTab] = useState<"assistant" | "settings" | "cookies">("assistant");
 
   // Chat State
   const [messages, setMessages] = useState<
@@ -43,6 +59,18 @@ export default function AdminAiPage() {
   ]);
   const [inputMessage, setInputMessage] = useState("");
   const [sending, setSending] = useState(false);
+
+  // Cookie Pool State
+  const [cookieAccounts, setCookieAccounts] = useState<CookieAccountItem[]>([]);
+  const [loadingCookies, setLoadingCookies] = useState(false);
+  const [cookieModalOpen, setCookieModalOpen] = useState(false);
+  const [cookieForm, setCookieForm] = useState<{ fileName?: string; accountName: string; rawCookie: string }>({
+    accountName: "",
+    rawCookie: "",
+  });
+  const [savingCookie, setSavingCookie] = useState(false);
+  const [deletingCookieName, setDeletingCookieName] = useState<string | null>(null);
+  const [testingPool, setTestingPool] = useState(false);
 
   // Settings State
   const [provider, setProvider] = useState("openai");
@@ -303,6 +331,124 @@ export default function AdminAiPage() {
     }
   };
 
+  const fetchCookieAccounts = async () => {
+    setLoadingCookies(true);
+    try {
+      const res = await fetch("/api/admin/ai/cookies");
+      const json = await res.json();
+      if (json.success && json.accounts) {
+        setCookieAccounts(json.accounts);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingCookies(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCookieAccounts();
+  }, []);
+
+  const handleSaveCookie = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cookieForm.rawCookie.trim()) {
+      setAlertState({
+        isOpen: true,
+        title: "Validation Error",
+        message: "Please paste your cookie string or JSON content.",
+        type: "error",
+      });
+      return;
+    }
+
+    setSavingCookie(true);
+    try {
+      const res = await fetch("/api/admin/ai/cookies", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(cookieForm),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setCookieModalOpen(false);
+        setCookieForm({ accountName: "", rawCookie: "" });
+        setAlertState({
+          isOpen: true,
+          title: "Cookie Account Saved",
+          message: json.message || "Cookie account added to rotation pool successfully!",
+          type: "success",
+        });
+        fetchCookieAccounts();
+      } else {
+        setAlertState({
+          isOpen: true,
+          title: "Failed to Save Cookie",
+          message: json.error || "Could not save cookie account.",
+          type: "error",
+        });
+      }
+    } catch (e: any) {
+      setAlertState({ isOpen: true, title: "Error", message: e.message, type: "error" });
+    } finally {
+      setSavingCookie(false);
+    }
+  };
+
+  const handleDeleteCookie = async (fileName: string) => {
+    try {
+      const res = await fetch(`/api/admin/ai/cookies?fileName=${encodeURIComponent(fileName)}`, {
+        method: "DELETE",
+      });
+      const json = await res.json();
+      if (json.success) {
+        setDeletingCookieName(null);
+        setAlertState({
+          isOpen: true,
+          title: "Account Deleted",
+          message: json.message || "Cookie account removed from pool.",
+          type: "success",
+        });
+        fetchCookieAccounts();
+      } else {
+        setAlertState({ isOpen: true, title: "Error", message: json.error, type: "error" });
+      }
+    } catch (e: any) {
+      setAlertState({ isOpen: true, title: "Error", message: e.message, type: "error" });
+    }
+  };
+
+  const handleTestCookiePool = async () => {
+    setTestingPool(true);
+    try {
+      const res = await fetch("/api/admin/ai/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: "Test connection: respond with 'OK 200'" }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setAlertState({
+          isOpen: true,
+          title: "Cookie Pool Active & Healthy!",
+          message: `Live response received from Gemini: "${json.reply?.slice(0, 120)}..."`,
+          type: "success",
+        });
+      } else {
+        setAlertState({
+          isOpen: true,
+          title: "Connection Failed",
+          message: json.reply || "Could not reach Gemini with current cookies.",
+          type: "error",
+        });
+      }
+    } catch (e: any) {
+      setAlertState({ isOpen: true, title: "Error", message: e.message, type: "error" });
+    } finally {
+      setTestingPool(false);
+    }
+  };
+
   const activeProviderInfo = AI_PROVIDER_DEFAULTS[provider] || AI_PROVIDER_DEFAULTS.custom;
 
   return (
@@ -322,7 +468,7 @@ export default function AdminAiPage() {
         </div>
 
         {/* Top Tab Bar */}
-        <div className="flex items-center gap-2 bg-bg p-1 rounded-2xl border border-line">
+        <div className="flex flex-wrap items-center gap-2 bg-bg p-1.5 rounded-2xl border border-line">
           <button
             onClick={() => setActiveTab("assistant")}
             className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
@@ -344,6 +490,27 @@ export default function AdminAiPage() {
           >
             <Sliders className="w-3.5 h-3.5" />
             <span>AI Gateway & API Settings</span>
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab("cookies");
+              fetchCookieAccounts();
+            }}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+              activeTab === "cookies"
+                ? "bg-forest text-white shadow-xs"
+                : "text-ink hover:text-forest"
+            }`}
+          >
+            <Cookie className="w-3.5 h-3.5 text-amber-500" />
+            <span>Gemini Cookie Accounts</span>
+            {cookieAccounts.length > 0 && (
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                activeTab === "cookies" ? "bg-white/20 text-white" : "bg-forest-soft text-forest"
+              }`}>
+                {cookieAccounts.length}
+              </span>
+            )}
           </button>
         </div>
       </div>
@@ -804,6 +971,261 @@ export default function AdminAiPage() {
                 <li><strong>Local / Offline:</strong> Ollama (`http://localhost:11434/v1`), LM Studio, vLLM.</li>
                 <li><strong>Custom Proxies:</strong> Any custom OpenAI-compatible endpoint URL.</li>
               </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 3: Gemini Multi-Account Cookie Pool Manager */}
+      {activeTab === "cookies" && (
+        <div className="space-y-6">
+          {/* Header Card */}
+          <div className="bg-paper p-6 sm:p-8 rounded-3xl border border-line shadow-card flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="p-2 rounded-xl bg-amber-50 text-amber-700">
+                  <Cookie className="w-5 h-5" />
+                </span>
+                <h3 className="text-lg font-bold font-display text-ink">
+                  Gemini Multi-Account Cookie Pool
+                </h3>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-forest-soft text-forest font-mono">
+                  Round-Robin Auto Rotation
+                </span>
+              </div>
+              <p className="text-xs text-ink-soft">
+                এখানে আপনি ১টি, ৫টি, ১০টি বা যতখুশি গুগল অ্যাকাউন্টের কুকি যোগ করতে পারেন। কোনো অ্যাকাউন্টের লিমিট শেষ হলে বা মেয়াদ চলে গেলে সিস্টেম স্বয়ংক্রিয়ভাবে পরবর্তী সচল অ্যাকাউন্ট দিয়ে কাজ চালাবে।
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={handleTestCookiePool}
+                disabled={testingPool || cookieAccounts.length === 0}
+                className="px-4 py-2.5 rounded-xl border border-line bg-bg hover:bg-line text-xs font-bold text-ink transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {testingPool ? <Loader2 className="w-3.5 h-3.5 animate-spin text-forest" /> : <Zap className="w-3.5 h-3.5 text-amber-500" />}
+                <span>Test Pool Live</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setCookieForm({ accountName: `Account ${cookieAccounts.length + 1}`, rawCookie: "" });
+                  setCookieModalOpen(true);
+                }}
+                className="px-5 py-2.5 rounded-xl bg-forest hover:bg-forest-deep text-white text-xs font-bold shadow-premium transition-all flex items-center gap-2 cursor-pointer"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add New Cookie Account</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Accounts Grid */}
+          {loadingCookies ? (
+            <div className="p-12 text-center text-ink-soft flex items-center justify-center gap-2">
+              <Loader2 className="w-5 h-5 animate-spin text-forest" />
+              <span>Loading cookie accounts...</span>
+            </div>
+          ) : cookieAccounts.length === 0 ? (
+            <div className="p-12 rounded-3xl border border-dashed border-line text-center space-y-3 bg-paper">
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto">
+                <Cookie className="w-6 h-6" />
+              </div>
+              <h4 className="text-sm font-bold text-ink">No Cookie Accounts Added Yet</h4>
+              <p className="text-xs text-ink-soft max-w-md mx-auto">
+                Add your first Google Gemini account cookie to enable free unlimited round-robin AI reasoning for your store.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setCookieForm({ accountName: "Account 1", rawCookie: "" });
+                  setCookieModalOpen(true);
+                }}
+                className="px-5 py-2.5 rounded-xl bg-forest text-white text-xs font-bold cursor-pointer inline-flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Account 1</span>
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {cookieAccounts.map((acc, index) => (
+                <div
+                  key={acc.id}
+                  className="bg-paper p-5 rounded-3xl border border-line shadow-card hover:border-forest/50 transition-all space-y-4"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-forest-soft text-forest flex items-center justify-center text-xs font-bold font-mono">
+                        #{index + 1}
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-ink truncate max-w-[150px]">{acc.name}</h4>
+                        <p className="text-[10px] text-ink-soft font-mono">{acc.fileName}</p>
+                      </div>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3" /> Ready
+                    </span>
+                  </div>
+
+                  {/* Cookie Preview */}
+                  <div className="p-2.5 rounded-xl bg-bg border border-line text-[10.5px] font-mono text-ink-soft break-all line-clamp-2">
+                    {acc.preview || "••••••••••••••••••••••••"}
+                  </div>
+
+                  {/* Badges */}
+                  <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                    <span className={`px-2 py-0.5 rounded-md font-mono ${
+                      acc.hasPsid ? "bg-emerald-50 text-emerald-700" : "bg-rose-50 text-rose-700"
+                    }`}>
+                      {acc.hasPsid ? "✓ __Secure-1PSID" : "✗ Missing PSID"}
+                    </span>
+                    {acc.hasPsidts && (
+                      <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-mono">
+                        ✓ 1PSIDTS
+                      </span>
+                    )}
+                    <span className="text-ink-soft ml-auto text-[10px]">
+                      {(acc.sizeBytes / 1024).toFixed(1)} KB
+                    </span>
+                  </div>
+
+                  {/* Card Actions */}
+                  <div className="pt-2 border-t border-line flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCookieForm({
+                          fileName: acc.fileName,
+                          accountName: acc.name,
+                          rawCookie: "",
+                        });
+                        setCookieModalOpen(true);
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-bg hover:bg-line text-ink text-[11px] font-bold flex items-center gap-1.5 cursor-pointer transition-all"
+                    >
+                      <Edit className="w-3 h-3 text-forest" />
+                      <span>Update Cookie</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setDeletingCookieName(acc.fileName)}
+                      className="p-1.5 rounded-lg text-ink-soft hover:text-rose-600 hover:bg-rose-50 transition-all cursor-pointer"
+                      title="Delete account"
+                    >
+                      <Trash className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Add / Edit Cookie Account Modal */}
+      {cookieModalOpen && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-paper rounded-3xl p-6 max-w-lg w-full border border-line shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-line pb-3">
+              <h3 className="text-base font-bold text-ink flex items-center gap-2">
+                <Cookie className="w-5 h-5 text-amber-500" />
+                <span>{cookieForm.fileName ? `Update ${cookieForm.fileName}` : "Add New Cookie Account"}</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setCookieModalOpen(false)}
+                className="text-ink-soft hover:text-ink text-sm font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCookie} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-ink uppercase tracking-wider mb-1.5">
+                  Account Label / Name
+                </label>
+                <input
+                  type="text"
+                  value={cookieForm.accountName}
+                  onChange={(e) => setCookieForm({ ...cookieForm, accountName: e.target.value })}
+                  placeholder="e.g. Account 6, Personal Gmail, Office Account"
+                  required
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-bg border border-line text-xs text-ink focus:outline-none focus:border-forest font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-ink uppercase tracking-wider mb-1.5">
+                  Paste Cookie String or JSON (Chrome / EditThisCookie / Cookie-Editor)
+                </label>
+                <textarea
+                  rows={5}
+                  value={cookieForm.rawCookie}
+                  onChange={(e) => setCookieForm({ ...cookieForm, rawCookie: e.target.value })}
+                  placeholder="Paste your __Secure-1PSID=... or full cookie string, or Cookie-Editor JSON here..."
+                  required
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-bg border border-line text-xs font-mono text-ink focus:outline-none focus:border-forest"
+                />
+                <p className="text-[10.5px] text-ink-soft mt-1">
+                  💡 <strong>টিপ:</strong> <a href="https://gemini.google.com" target="_blank" rel="noreferrer" className="text-blue-600 underline font-semibold">gemini.google.com</a>-এ লগইন করে F12 চেপে Application &gt; Cookies থেকে <code className="bg-bg px-1 py-0.5 rounded font-mono">__Secure-1PSID</code> কপি করে এখানে পেস্ট করুন।
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-line">
+                <button
+                  type="button"
+                  onClick={() => setCookieModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-bg border border-line text-xs font-bold text-ink cursor-pointer hover:bg-line"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingCookie || !cookieForm.rawCookie.trim()}
+                  className="px-5 py-2 rounded-xl bg-forest hover:bg-forest-deep text-white text-xs font-bold flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {savingCookie ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ShieldCheck className="w-3.5 h-3.5" />}
+                  <span>Save to Account Pool</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Cookie Confirmation Modal */}
+      {deletingCookieName && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-paper rounded-3xl p-6 max-w-sm w-full border border-line shadow-2xl space-y-4">
+            <h3 className="text-sm font-bold text-rose-600 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" />
+              <span>Delete {deletingCookieName}?</span>
+            </h3>
+            <p className="text-xs text-ink-soft">
+              Are you sure you want to remove this account cookie file from the rotation pool?
+            </p>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setDeletingCookieName(null)}
+                className="px-3.5 py-1.5 rounded-lg bg-bg border border-line text-xs font-bold text-ink hover:bg-line cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDeleteCookie(deletingCookieName)}
+                className="px-4 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold cursor-pointer"
+              >
+                Confirm Delete
+              </button>
             </div>
           </div>
         </div>
