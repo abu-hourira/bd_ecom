@@ -5,6 +5,7 @@
   "description": "ENMAR — Full-Stack Organic E-Commerce Storefront & Admin Platform",
   "scripts": {
     "dev": "next dev",
+    "ai:server": "python gemini/gemini_web2api.py",
     "build": "prisma generate && prisma db push --accept-data-loss && next build",
     "start": "node server.js",
     "db:push": "prisma db push",

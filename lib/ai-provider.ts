@@ -43,6 +43,12 @@ export const AI_PROVIDER_DEFAULTS: Record<
     defaultModel: "gemini-web",
     placeholderKey: "__Secure-1PSID=...; __Secure-1PSIDTS=...;",
   },
+  gemini_web2api: {
+    name: "Gemini Web2API (Local Server :8081)",
+    baseUrl: "http://localhost:8081/v1",
+    defaultModel: "gemini-2.0-flash",
+    placeholderKey: "sk-gemini",
+  },
   anthropic: {
     name: "Anthropic Claude",
     baseUrl: "https://api.anthropic.com/v1",
