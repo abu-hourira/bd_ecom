@@ -82,7 +82,7 @@ export function calculateDeliveryFee(params: DeliveryCalculationParams): Deliver
       const discType = item.deliveryDiscountType || "FIXED";
 
       if (minQty > 0 && qty >= minQty) {
-        if (discType === "FREE_SHIPPING" || discountAmt >= baseFee) {
+        if (discType === "FREE_SHIPPING") {
           hasFreeShippingProduct = true;
           if (item.name && !discountedProductNames.includes(item.name)) {
             discountedProductNames.push(item.name);
@@ -123,10 +123,10 @@ export function calculateDeliveryFee(params: DeliveryCalculationParams): Deliver
     freeShippingReason = `${discountedProductNames.join(", ")} স্পেশাল ফ্রি ডেলিভারি`;
     finalDeliveryFee = 0;
   } else {
-    // Apply product delivery discounts capped at raw delivery fee
+    // Apply product delivery discounts strictly as subtraction
     const appliedDiscount = Math.min(rawDeliveryFee, totalProductDeliveryDiscount);
     finalDeliveryFee = Math.max(0, rawDeliveryFee - appliedDiscount);
-    if (finalDeliveryFee === 0) {
+    if (finalDeliveryFee === 0 && totalProductDeliveryDiscount > 0) {
       isFreeShipping = true;
       freeShippingReason = "প্রোডাক্ট ডেলিভারি ছাড়";
     }
