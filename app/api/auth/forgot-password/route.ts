@@ -121,11 +121,15 @@ export async function POST(request: NextRequest) {
     `;
 
     // 6. Send Email via Gmail SMTP
-    await sendEmail(
+    const emailResult = await sendEmail(
       cleanEmail,
       `🔑 ${otpCode} is your ENMAR Password Reset Code`,
       emailHtml
     );
+
+    if (!emailResult.success && emailResult.error) {
+      console.warn("[Forgot Password Email Warning]:", emailResult.error);
+    }
 
     return NextResponse.json({
       success: true,

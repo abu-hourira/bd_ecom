@@ -148,23 +148,35 @@ export async function sendEmail(
       return { success: true, messageId: "SIMULATED-EMAIL" };
     }
 
+    const isGmail = host.toLowerCase().includes("gmail.com") || user.toLowerCase().endsWith("@gmail.com");
     const isSecure = port === 465;
 
     // Create Nodemailer Transporter
-    const transporter = nodemailer.createTransport({
-      host,
-      port,
-      secure: isSecure,
-      auth: {
-        user,
-        pass,
-      },
-      tls: {
-        rejectUnauthorized: false,
-      },
-    });
+    const transporter = isGmail
+      ? nodemailer.createTransport({
+          service: "gmail",
+          auth: {
+            user,
+            pass,
+          },
+          tls: {
+            rejectUnauthorized: false,
+          },
+        })
+      : nodemailer.createTransport({
+          host,
+          port,
+          secure: isSecure,
+          auth: {
+            user,
+            pass,
+          },
+          tls: {
+            rejectUnauthorized: false,
+          },
+        });
 
-    // Send real email via Google SMTP
+    // Send real email
     const senderName = gateway?.senderId || process.env.SMTP_SENDER_NAME || "ENMAR Organic Food";
     const mailOptions = {
       from: `"${senderName}" <${user}>`,
