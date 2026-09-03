@@ -122,7 +122,10 @@ ACTION & SAFETY MODEL:
         const llmRes = await callLLM(messages, {
           provider: aiSetting.provider,
           apiKeyEncrypted: aiSetting.apiKeyEncrypted,
+          baseUrl: aiSetting.baseUrl || undefined,
           modelName: aiSetting.modelName,
+          temperature: aiSetting.temperature ?? 0.7,
+          maxTokens: aiSetting.maxTokens ?? 1000,
         });
         reply = llmRes.text;
         tokensUsed = llmRes.tokensUsed || 0;

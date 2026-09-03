@@ -8,13 +8,96 @@ export interface ChatMessage {
 }
 
 export interface LLMConfig {
-  provider: string; // "openai" | "anthropic" | "gemini" | "deepseek" | "openrouter" | "groq"
+  provider: string; // "openai" | "anthropic" | "gemini" | "deepseek" | "openrouter" | "groq" | "mistral" | "xai" | "perplexity" | "ollama" | "together" | "custom"
   apiKeyEncrypted?: string;
   apiKey?: string;
+  baseUrl?: string;
   modelName: string;
   systemPrompt?: string;
-  baseUrl?: string;
+  temperature?: number;
+  maxTokens?: number;
 }
+
+/**
+ * Default base URLs and models for popular AI providers
+ */
+export const AI_PROVIDER_DEFAULTS: Record<
+  string,
+  { name: string; baseUrl: string; defaultModel: string; placeholderKey: string }
+> = {
+  openai: {
+    name: "OpenAI (ChatGPT)",
+    baseUrl: "https://api.openai.com/v1",
+    defaultModel: "gpt-4o",
+    placeholderKey: "sk-proj-...",
+  },
+  gemini: {
+    name: "Google Gemini",
+    baseUrl: "https://generativelanguage.googleapis.com/v1beta",
+    defaultModel: "gemini-2.0-flash",
+    placeholderKey: "AIzaSy...",
+  },
+  anthropic: {
+    name: "Anthropic Claude",
+    baseUrl: "https://api.anthropic.com/v1",
+    defaultModel: "claude-3-5-sonnet-20241022",
+    placeholderKey: "sk-ant-...",
+  },
+  deepseek: {
+    name: "DeepSeek AI",
+    baseUrl: "https://api.deepseek.com",
+    defaultModel: "deepseek-chat",
+    placeholderKey: "sk-...",
+  },
+  groq: {
+    name: "Groq (High-Speed Llama)",
+    baseUrl: "https://api.groq.com/openai/v1",
+    defaultModel: "llama-3.3-70b-versatile",
+    placeholderKey: "gsk_...",
+  },
+  openrouter: {
+    name: "OpenRouter (All Models Gateway)",
+    baseUrl: "https://openrouter.ai/api/v1",
+    defaultModel: "openai/gpt-4o-mini",
+    placeholderKey: "sk-or-v1-...",
+  },
+  mistral: {
+    name: "Mistral AI",
+    baseUrl: "https://api.mistral.ai/v1",
+    defaultModel: "mistral-large-latest",
+    placeholderKey: "...",
+  },
+  xai: {
+    name: "xAI (Grok)",
+    baseUrl: "https://api.x.ai/v1",
+    defaultModel: "grok-2-latest",
+    placeholderKey: "xai-...",
+  },
+  perplexity: {
+    name: "Perplexity AI",
+    baseUrl: "https://api.perplexity.ai",
+    defaultModel: "sonar-pro",
+    placeholderKey: "pplx-...",
+  },
+  together: {
+    name: "Together AI",
+    baseUrl: "https://api.together.xyz/v1",
+    defaultModel: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+    placeholderKey: "...",
+  },
+  ollama: {
+    name: "Ollama (Local Offline LLM)",
+    baseUrl: "http://localhost:11434/v1",
+    defaultModel: "llama3.2",
+    placeholderKey: "Optional (ollama)",
+  },
+  custom: {
+    name: "Custom (Any OpenAI-Compatible Endpoint)",
+    baseUrl: "https://your-custom-ai-endpoint.com/v1",
+    defaultModel: "custom-model",
+    placeholderKey: "Your API Key",
+  },
+};
 
 /**
  * Check if AI Quota is currently marked as exhausted, with automatic monthly & limit resets
@@ -44,7 +127,7 @@ export async function getAiQuotaStatus() {
     let requestsCount = Number(countSetting?.value || "0");
     const limit = Number(limitSetting?.value || "1000");
     const savedMonth = monthSetting?.value || currentMonthKey;
-    const autoResetEnabled = autoResetSetting ? autoResetSetting.value === "true" : true; // Default ON
+    const autoResetEnabled = autoResetSetting ? autoResetSetting.value === "true" : true;
 
     // 1. Monthly Calendar Auto-Rollover
     if (savedMonth !== currentMonthKey) {
@@ -68,7 +151,7 @@ export async function getAiQuotaStatus() {
       ]);
     }
 
-    // 2. Limit-reached Auto-Reset (User Request: "limit ses hoye gele jeno quata auto matic reset ney")
+    // 2. Limit-reached Auto-Reset
     if (limit > 0 && requestsCount >= limit && autoResetEnabled) {
       requestsCount = 0;
       await Promise.all([
@@ -91,7 +174,6 @@ export async function getAiQuotaStatus() {
       const exhaustedTime = new Date(lastExhaustedSetting.value).getTime();
       const elapsedMinutes = (Date.now() - exhaustedTime) / (1000 * 60);
       if (elapsedMinutes >= 5) {
-        // Auto-recover after 5 min
         isExhausted = false;
         await resetAiQuotaStatus();
       }
@@ -131,7 +213,6 @@ export async function recordAiRequest() {
     const autoReset = autoResetSetting ? autoResetSetting.value === "true" : true;
 
     if (limit > 0 && current >= limit && autoReset) {
-      // Auto reset counter back to 1 on limit reach
       await prisma.siteSetting.upsert({
         where: { key: "ai_requests_this_month" },
         update: { value: "1" },
@@ -225,7 +306,7 @@ export async function resetAiRequestCount() {
 }
 
 /**
- * Call the configured LLM provider directly via native HTTP fetch
+ * Universal LLM Execution Engine — Supports ANY AI Provider, Custom Base URL & Model
  */
 export async function callLLM(
   messages: ChatMessage[],
@@ -233,6 +314,7 @@ export async function callLLM(
 ): Promise<{ text: string; tokensUsed?: number }> {
   let apiKey = config.apiKey || (config.apiKeyEncrypted ? decryptAES(config.apiKeyEncrypted) : "");
   let provider = (config.provider || "openai").toLowerCase();
+  let customBaseUrl = config.baseUrl?.trim() || "";
 
   // Environment variable fallback if not set in DB
   if (!apiKey || apiKey.trim() === "") {
@@ -241,48 +323,46 @@ export async function callLLM(
     else if (provider === "gemini" || provider === "google") apiKey = process.env.GEMINI_API_KEY || "";
     else if (provider === "anthropic") apiKey = process.env.ANTHROPIC_API_KEY || "";
     else if (provider === "groq") apiKey = process.env.GROQ_API_KEY || "";
+    else if (provider === "deepseek") apiKey = process.env.DEEPSEEK_API_KEY || "";
   }
 
   apiKey = apiKey.trim();
 
-  // Smart provider auto-detection based on API key prefix to prevent mismatched settings
-  if (apiKey.startsWith("sk-or-")) {
-    provider = "openrouter";
-  } else if (apiKey.startsWith("AIzaSy") || apiKey.startsWith("AIza")) {
-    provider = "gemini";
-  } else if (apiKey.startsWith("gsk_")) {
-    provider = "groq";
-  } else if (apiKey.startsWith("sk-ant-")) {
-    provider = "anthropic";
+  // Smart provider auto-detection if generic
+  if (provider === "openai" || !provider) {
+    if (apiKey.startsWith("sk-or-")) provider = "openrouter";
+    else if (apiKey.startsWith("AIzaSy") || apiKey.startsWith("AIza")) provider = "gemini";
+    else if (apiKey.startsWith("gsk_")) provider = "groq";
+    else if (apiKey.startsWith("sk-ant-")) provider = "anthropic";
+    else if (apiKey.startsWith("pplx-")) provider = "perplexity";
+    else if (apiKey.startsWith("xai-")) provider = "xai";
   }
 
-  if (!apiKey) {
+  // Ollama or local endpoint doesn't strictly require API key
+  const isLocalOrOllama = provider === "ollama" || customBaseUrl.includes("localhost") || customBaseUrl.includes("127.0.0.1");
+  if (!apiKey && !isLocalOrOllama) {
     throw new Error(`No API key configured for ${provider}. Please enter your API key in the AI Settings tab.`);
   }
 
+  // Model resolution with provider-specific smart fallbacks
   let model = config.modelName?.trim() || "";
-  if (!model || ((provider === "gemini" || provider === "google") && (model === "gemini-1.5-flash" || model === "gemini-2.0-flash" || model === "gemini-1.5-pro"))) {
-    if (provider === "anthropic") model = "claude-3-5-sonnet-20241022";
-    else if (provider === "gemini" || provider === "google") model = "gemini-3.6-flash";
-    else if (provider === "openrouter") model = "nvidia/nemotron-3.5-lightning:free";
-    else if (provider === "groq") model = "llama3-8b-8192";
-    else model = "gpt-4o-mini";
-  } else if (!model) {
-    if (provider === "anthropic") model = "claude-3-5-sonnet-20241022";
-    else if (provider === "gemini" || provider === "google") model = "gemini-3.6-flash";
-    else if (provider === "openrouter") model = "nvidia/nemotron-3.5-lightning:free";
-    else if (provider === "groq") model = "llama3-8b-8192";
-    else model = "gpt-4o-mini";
+  if (!model) {
+    const defaultInfo = AI_PROVIDER_DEFAULTS[provider] || AI_PROVIDER_DEFAULTS.openai;
+    model = defaultInfo.defaultModel;
   }
 
+  const temperature = config.temperature !== undefined ? Number(config.temperature) : 0.7;
+  const maxTokens = config.maxTokens !== undefined ? Number(config.maxTokens) : 1000;
+
   try {
-    // 1. Google Gemini Provider
-    if (provider === "gemini" || provider === "google") {
+    // ─────────────────────────────────────────────────────────────
+    // 1. Google Gemini Native Endpoint (if not using custom OpenAI proxy)
+    // ─────────────────────────────────────────────────────────────
+    if ((provider === "gemini" || provider === "google") && !customBaseUrl.includes("/chat/completions")) {
       const cleanModel = model.replace(/^models\//, "");
-      
       const contents: Array<{ role: string; parts: Array<{ text: string }> }> = [];
       const nonSystemMessages = messages.filter((m) => m.role !== "system" && m.content?.trim());
-      
+
       for (const m of nonSystemMessages) {
         const role = m.role === "assistant" ? "model" : "user";
         contents.push({
@@ -296,8 +376,9 @@ export async function callLLM(
       }
 
       const systemInstruction = messages.find((m) => m.role === "system" && m.content?.trim());
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${apiKey}`;
-      const payload: any = { contents };
+      const base = customBaseUrl ? customBaseUrl.replace(/\/$/, "") : "https://generativelanguage.googleapis.com/v1beta";
+      const endpoint = `${base}/models/${cleanModel}:generateContent?key=${apiKey}`;
+      const payload: any = { contents, generationConfig: { temperature, maxOutputTokens: maxTokens } };
 
       if (systemInstruction) {
         payload.systemInstruction = {
@@ -325,61 +406,19 @@ export async function callLLM(
       return { text, tokensUsed: data.usageMetadata?.totalTokenCount || 0 };
     }
 
-    // 2. OpenAI / OpenRouter / Groq / DeepSeek Provider
-    if (provider === "openai" || provider === "groq" || provider === "deepseek" || provider === "openrouter") {
-      const endpoint =
-        provider === "groq"
-          ? "https://api.groq.com/openai/v1/chat/completions"
-          : provider === "openrouter"
-          ? "https://openrouter.ai/api/v1/chat/completions"
-          : "https://api.openai.com/v1/chat/completions";
-
-      const headers: Record<string, string> = {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      };
-
-      if (provider === "openrouter") {
-        headers["HTTP-Referer"] = process.env.NEXTAUTH_URL || "https://enmar.shop";
-        headers["X-Title"] = "ENMAR Organic Food";
-      }
-
-      const cleanMessages = messages
-        .filter((m) => m.content?.trim())
-        .map((m) => ({ role: m.role, content: m.content.trim() }));
-
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          model,
-          messages: cleanMessages,
-          temperature: 0.7,
-        }),
-      });
-
-      if (!res.ok) {
-        const errText = await res.text();
-        if (res.status === 429 || errText.includes("insufficient_quota") || errText.includes("rate_limit")) {
-          await recordAiQuotaExhausted(`${provider} Quota Exhausted: ` + errText.slice(0, 150));
-        }
-        throw new Error(`${provider.toUpperCase()} API error (${res.status}): ${errText}`);
-      }
-
-      const data = await res.json();
-      const text = data.choices?.[0]?.message?.content || "";
-      await recordAiRequest();
-      return { text, tokensUsed: data.usage?.total_tokens || 0 };
-    }
-
-    // 3. Anthropic Claude Provider
-    if (provider === "anthropic") {
+    // ─────────────────────────────────────────────────────────────
+    // 2. Anthropic Claude Native Endpoint
+    // ─────────────────────────────────────────────────────────────
+    if (provider === "anthropic" || provider === "claude") {
       const systemMessage = messages.find((m) => m.role === "system")?.content || "";
       const nonSystemMessages = messages
         .filter((m) => m.role !== "system")
         .map((m) => ({ role: m.role, content: m.content }));
 
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
+      const base = customBaseUrl ? customBaseUrl.replace(/\/$/, "") : "https://api.anthropic.com/v1";
+      const endpoint = `${base}/messages`;
+
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -388,7 +427,8 @@ export async function callLLM(
         },
         body: JSON.stringify({
           model,
-          max_tokens: 1024,
+          max_tokens: maxTokens,
+          temperature,
           system: systemMessage,
           messages: nonSystemMessages,
         }),
@@ -408,9 +448,98 @@ export async function callLLM(
       return { text, tokensUsed: (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0) };
     }
 
-    throw new Error(`Unsupported AI provider: ${provider}`);
+    // ─────────────────────────────────────────────────────────────
+    // 3. Universal OpenAI-Compatible Engine (OpenAI, DeepSeek, Groq, OpenRouter, Mistral, xAI, Perplexity, Ollama, Custom URL)
+    // ─────────────────────────────────────────────────────────────
+    let endpoint = "";
+    if (customBaseUrl) {
+      const cleanBase = customBaseUrl.replace(/\/$/, "");
+      if (cleanBase.endsWith("/chat/completions")) {
+        endpoint = cleanBase;
+      } else {
+        endpoint = `${cleanBase}/chat/completions`;
+      }
+    } else {
+      switch (provider) {
+        case "deepseek":
+          endpoint = "https://api.deepseek.com/chat/completions";
+          break;
+        case "groq":
+          endpoint = "https://api.groq.com/openai/v1/chat/completions";
+          break;
+        case "openrouter":
+          endpoint = "https://openrouter.ai/api/v1/chat/completions";
+          break;
+        case "mistral":
+          endpoint = "https://api.mistral.ai/v1/chat/completions";
+          break;
+        case "xai":
+          endpoint = "https://api.x.ai/v1/chat/completions";
+          break;
+        case "perplexity":
+          endpoint = "https://api.perplexity.ai/chat/completions";
+          break;
+        case "together":
+          endpoint = "https://api.together.xyz/v1/chat/completions";
+          break;
+        case "ollama":
+          endpoint = "http://localhost:11434/v1/chat/completions";
+          break;
+        default:
+          endpoint = "https://api.openai.com/v1/chat/completions";
+      }
+    }
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    if (apiKey) {
+      headers["Authorization"] = `Bearer ${apiKey}`;
+    }
+
+    if (provider === "openrouter" || endpoint.includes("openrouter.ai")) {
+      headers["HTTP-Referer"] = process.env.NEXTAUTH_URL || "https://enmar.shop";
+      headers["X-Title"] = "ENMAR Organic Food";
+    }
+
+    const cleanMessages = messages
+      .filter((m) => m.content?.trim())
+      .map((m) => ({ role: m.role, content: m.content.trim() }));
+
+    const payload: any = {
+      model,
+      messages: cleanMessages,
+      temperature,
+    };
+    if (maxTokens) {
+      payload.max_tokens = maxTokens;
+    }
+
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      if (res.status === 429 || errText.includes("insufficient_quota") || errText.includes("rate_limit")) {
+        await recordAiQuotaExhausted(`${provider} Quota Exhausted: ` + errText.slice(0, 150));
+      }
+      throw new Error(`${provider.toUpperCase()} API error (${res.status}): ${errText}`);
+    }
+
+    const data = await res.json();
+    const text = data.choices?.[0]?.message?.content || "";
+    await recordAiRequest();
+    return { text, tokensUsed: data.usage?.total_tokens || 0 };
   } catch (error: any) {
-    if (error.message?.includes("429") || error.message?.includes("quota") || error.message?.includes("RESOURCE_EXHAUSTED")) {
+    if (
+      error.message?.includes("429") ||
+      error.message?.includes("quota") ||
+      error.message?.includes("RESOURCE_EXHAUSTED")
+    ) {
       await recordAiQuotaExhausted(error.message.slice(0, 150));
     }
     throw error;

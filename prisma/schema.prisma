@@ -521,7 +521,10 @@ model AISetting {
   id               Int      @id @default(autoincrement())
   provider         String   @default("openai")
   apiKeyEncrypted  String   @db.Text
+  baseUrl          String?  @db.Text
   modelName        String   @default("gpt-4o")
+  temperature      Float?   @default(0.7)
+  maxTokens        Int?     @default(1000)
   systemPrompt     String   @db.LongText
   adminPrompt      String?  @db.LongText
   rateLimitPerMin  Int      @default(30)

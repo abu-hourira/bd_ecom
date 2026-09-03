@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { encryptAES } from "@/lib/crypto";
-import { getAiQuotaStatus, resetAiQuotaStatus, resetAiRequestCount } from "@/lib/ai-provider";
+import { getAiQuotaStatus, resetAiQuotaStatus, resetAiRequestCount, AI_PROVIDER_DEFAULTS } from "@/lib/ai-provider";
 
 export async function GET() {
   try {
@@ -16,12 +16,16 @@ export async function GET() {
         success: true,
         setting: {
           provider: "openai",
+          baseUrl: "https://api.openai.com/v1",
           modelName: "gpt-4o",
+          temperature: 0.7,
+          maxTokens: 1000,
           systemPrompt: "You are the helpful, polite customer support assistant for ENMAR Organic Food in Bangladesh.",
           adminPrompt: "You are the internal operations assistant for ENMAR store admins.",
           isActive: false,
           hasApiKey: false,
         },
+        providers: AI_PROVIDER_DEFAULTS,
         quotaStatus,
       });
     }
@@ -31,13 +35,17 @@ export async function GET() {
       setting: {
         id: setting.id,
         provider: setting.provider,
+        baseUrl: setting.baseUrl || "",
         modelName: setting.modelName,
+        temperature: setting.temperature ?? 0.7,
+        maxTokens: setting.maxTokens ?? 1000,
         systemPrompt: setting.systemPrompt,
         adminPrompt: setting.adminPrompt,
         isActive: setting.isActive,
         rateLimitPerMin: setting.rateLimitPerMin,
         hasApiKey: Boolean(setting.apiKeyEncrypted),
       },
+      providers: AI_PROVIDER_DEFAULTS,
       quotaStatus,
     });
   } catch (error: any) {
@@ -51,7 +59,10 @@ export async function POST(request: NextRequest) {
     const {
       provider,
       apiKey,
+      baseUrl,
       modelName,
+      temperature,
+      maxTokens,
       systemPrompt,
       adminPrompt,
       isActive,
@@ -116,7 +127,10 @@ export async function POST(request: NextRequest) {
         data: {
           provider: provider || existing.provider,
           apiKeyEncrypted: encryptedKey !== undefined ? encryptedKey : existing.apiKeyEncrypted,
+          baseUrl: baseUrl !== undefined ? baseUrl : existing.baseUrl,
           modelName: modelName || existing.modelName,
+          temperature: temperature !== undefined ? Number(temperature) : existing.temperature,
+          maxTokens: maxTokens !== undefined ? Number(maxTokens) : existing.maxTokens,
           systemPrompt: systemPrompt || existing.systemPrompt,
           adminPrompt: adminPrompt || existing.adminPrompt,
           isActive: isActive !== undefined ? Boolean(isActive) : existing.isActive,
@@ -127,7 +141,10 @@ export async function POST(request: NextRequest) {
         data: {
           provider: provider || "openai",
           apiKeyEncrypted: encryptedKey || "",
+          baseUrl: baseUrl || null,
           modelName: modelName || "gpt-4o",
+          temperature: temperature !== undefined ? Number(temperature) : 0.7,
+          maxTokens: maxTokens !== undefined ? Number(maxTokens) : 1000,
           systemPrompt: systemPrompt || "You are ENMAR's customer assistant.",
           adminPrompt: adminPrompt || "You are ENMAR's admin assistant.",
           isActive: Boolean(isActive),
@@ -137,7 +154,22 @@ export async function POST(request: NextRequest) {
 
     const quotaStatus = await getAiQuotaStatus();
 
-    return NextResponse.json({ success: true, setting: updated, quotaStatus });
+    return NextResponse.json({
+      success: true,
+      setting: {
+        id: updated.id,
+        provider: updated.provider,
+        baseUrl: updated.baseUrl || "",
+        modelName: updated.modelName,
+        temperature: updated.temperature ?? 0.7,
+        maxTokens: updated.maxTokens ?? 1000,
+        systemPrompt: updated.systemPrompt,
+        adminPrompt: updated.adminPrompt,
+        isActive: updated.isActive,
+        hasApiKey: Boolean(updated.apiKeyEncrypted),
+      },
+      quotaStatus,
+    });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -145,10 +177,7 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE() {
   try {
-    // Delete all AI setting records
     await prisma.aISetting.deleteMany({});
-
-    // Reset quota-related site settings
     const keysToReset = [
       "ai_requests_this_month",
       "ai_quota_exhausted",

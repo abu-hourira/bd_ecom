@@ -1,5 +1,5 @@
 "use client";
-// app/admin/ai/page.tsx
+// app/admin/ai/page.tsx - Universal Multi-Provider AI Operations & Gateway Management
 
 import { useEffect, useState } from "react";
 import {
@@ -9,8 +9,8 @@ import {
   Sliders,
   ShieldCheck,
   Key,
-  Copy,
-  Check,
+  Globe,
+  Gauge,
   CheckCircle2,
   AlertCircle,
   Loader2,
@@ -20,9 +20,13 @@ import {
   Activity,
   RotateCcw,
   Trash2,
+  Cpu,
+  Terminal,
+  HelpCircle,
 } from "lucide-react";
 import AdminSidebar from "@/components/admin/Sidebar";
 import AlertModal from "@/components/ui/AlertModal";
+import { AI_PROVIDER_DEFAULTS } from "@/lib/ai-provider";
 
 export default function AdminAiPage() {
   const [activeTab, setActiveTab] = useState<"assistant" | "settings">("assistant");
@@ -33,7 +37,7 @@ export default function AdminAiPage() {
   >([
     {
       sender: "ai",
-      text: "🌿 **Hello Abu Hourira!** I am your internal ENMAR AI operations assistant. Ask me to draft product copy, analyze low-stock inventory, or generate promotional slogans.",
+      text: "🌿 **Hello!** I am your internal ENMAR AI operations assistant. Ask me to draft product copy, analyze low-stock inventory, or generate promotional slogans.",
       time: "Just now",
     },
   ]);
@@ -43,7 +47,10 @@ export default function AdminAiPage() {
   // Settings State
   const [provider, setProvider] = useState("openai");
   const [apiKey, setApiKey] = useState("");
+  const [baseUrl, setBaseUrl] = useState("https://api.openai.com/v1");
   const [modelName, setModelName] = useState("gpt-4o");
+  const [temperature, setTemperature] = useState(0.7);
+  const [maxTokens, setMaxTokens] = useState(1000);
   const [systemPrompt, setSystemPrompt] = useState("");
   const [adminPrompt, setAdminPrompt] = useState("");
   const [isActive, setIsActive] = useState(false);
@@ -90,7 +97,10 @@ export default function AdminAiPage() {
         if (json.success && json.setting) {
           const s = json.setting;
           setProvider(s.provider || "openai");
-          setModelName(s.modelName || "gpt-4o");
+          setBaseUrl(s.baseUrl || AI_PROVIDER_DEFAULTS[s.provider]?.baseUrl || "");
+          setModelName(s.modelName || AI_PROVIDER_DEFAULTS[s.provider]?.defaultModel || "gpt-4o");
+          setTemperature(s.temperature ?? 0.7);
+          setMaxTokens(s.maxTokens ?? 1000);
           setSystemPrompt(s.systemPrompt || "");
           setAdminPrompt(s.adminPrompt || "");
           setIsActive(Boolean(s.isActive));
@@ -107,6 +117,13 @@ export default function AdminAiPage() {
   useEffect(() => {
     fetchAiData();
   }, []);
+
+  const handleProviderSelect = (selectedProvider: string) => {
+    setProvider(selectedProvider);
+    const defaults = AI_PROVIDER_DEFAULTS[selectedProvider] || AI_PROVIDER_DEFAULTS.custom;
+    setBaseUrl(defaults.baseUrl);
+    setModelName(defaults.defaultModel);
+  };
 
   const handleSendMessage = async (customText?: string) => {
     const textToSend = customText || inputMessage;
@@ -175,7 +192,10 @@ export default function AdminAiPage() {
         body: JSON.stringify({
           provider,
           apiKey,
+          baseUrl,
           modelName,
+          temperature,
+          maxTokens,
           systemPrompt,
           adminPrompt,
           isActive,
@@ -190,10 +210,23 @@ export default function AdminAiPage() {
         if (apiKey) setHasApiKey(true);
         setApiKey("");
         fetchAiData();
+        setAlertState({
+          isOpen: true,
+          title: "AI Settings Saved",
+          message: `Your AI agent configuration for ${provider.toUpperCase()} (${modelName}) has been securely saved and tested!`,
+          type: "success",
+        });
         setTimeout(() => setSaveSuccess(false), 3000);
+      } else {
+        setAlertState({
+          isOpen: true,
+          title: "Save Failed",
+          message: json.error || "Failed to update AI settings.",
+          type: "error",
+        });
       }
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      setAlertState({ isOpen: true, title: "Error", message: e.message, type: "error" });
     } finally {
       setSavingSettings(false);
     }
@@ -246,29 +279,22 @@ export default function AdminAiPage() {
   const handleDeleteConfig = async () => {
     setDeletingConfig(true);
     try {
-      const res = await fetch("/api/admin/ai", { method: "DELETE" });
+      const res = await fetch("/api/admin/ai", {
+        method: "DELETE",
+      });
       const json = await res.json();
       if (json.success) {
-        // Reset all local state
-        setProvider("openai");
-        setApiKey("");
-        setModelName("gpt-4o");
-        setSystemPrompt("");
-        setAdminPrompt("");
-        setIsActive(false);
         setHasApiKey(false);
-        setMonthlyLimit(1000);
-        setAutoResetOnLimit(true);
+        setApiKey("");
+        setIsActive(false);
         setShowDeleteConfirm(false);
         setAlertState({
           isOpen: true,
-          title: "Configuration Deleted",
-          message: "AI model credentials and quota counters have been wiped successfully. You can set up a new configuration anytime.",
+          title: "AI Configuration Deleted",
+          message: "All AI keys and custom settings have been erased safely.",
           type: "success",
         });
         fetchAiData();
-      } else {
-        setAlertState({ isOpen: true, title: "Error", message: json.error || "Deletion failed.", type: "error" });
       }
     } catch (e: any) {
       setAlertState({ isOpen: true, title: "Error", message: e.message, type: "error" });
@@ -277,233 +303,271 @@ export default function AdminAiPage() {
     }
   };
 
+  const activeProviderInfo = AI_PROVIDER_DEFAULTS[provider] || AI_PROVIDER_DEFAULTS.custom;
+
   return (
-    <div className="flex min-h-screen bg-bg text-ink">
-      <AdminSidebar />
-
-      <main className="flex-1 p-6 sm:p-10 max-w-7xl mx-auto space-y-8 lg:ml-64">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line pb-6">
-          <div>
-            <div className="inline-flex items-center gap-2 text-xs font-bold text-forest uppercase tracking-wider mb-1">
-              <Bot className="w-4 h-4 text-accent" />
-              <span>AI Operations & Intelligence</span>
-            </div>
-            <h1 className="text-3xl font-bold font-display text-ink">
-              Admin AI Automation Agent
-            </h1>
-            <p className="text-xs sm:text-sm text-ink-soft mt-1">
-              Accelerate daily store operations: draft SEO descriptions, restock velocity alerts, and promo copy.
-            </p>
-          </div>
-
-          {/* Tab Switcher */}
-          <div className="flex items-center p-1 rounded-2xl bg-paper border border-line shadow-xs">
-            <button
-              onClick={() => setActiveTab("assistant")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                activeTab === "assistant"
-                  ? "bg-forest text-white shadow-xs"
-                  : "text-ink-soft hover:text-ink"
-              }`}
-            >
-              Operations Assistant
-            </button>
-            <button
-              onClick={() => setActiveTab("settings")}
-              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                activeTab === "settings"
-                  ? "bg-forest text-white shadow-xs"
-                  : "text-ink-soft hover:text-ink"
-              }`}
-            >
-              AI Gateway & Quota Settings
-            </button>
-          </div>
+    <div className="flex-1 p-4 sm:p-8 max-w-7xl mx-auto space-y-6">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line pb-6">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold font-display text-ink flex items-center gap-3">
+            <span className="w-10 h-10 rounded-2xl bg-forest text-white flex items-center justify-center text-lg shadow-sm">
+              <Bot className="w-6 h-6" />
+            </span>
+            <span>Universal AI Agent Hub</span>
+          </h1>
+          <p className="text-xs sm:text-sm text-ink-soft mt-1">
+            Configure ANY AI Provider (OpenAI, Gemini, Claude, DeepSeek, Groq, OpenRouter, Mistral, Ollama, Custom URL) to automate store operations & customer support.
+          </p>
         </div>
 
-        {/* Quota Exhaustion Alert Banner */}
-        {quotaStatus.isExhausted && (
-          <div className="bg-rose-50 border border-rose-300 rounded-3xl p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fadeIn">
-            <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-2xl bg-rose-600 text-white flex items-center justify-center font-bold shrink-0 shadow-xs">
-                <AlertTriangle className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="font-bold text-rose-900 text-sm flex items-center gap-2">
-                  <span>AI Agent Limit / Quota Exhausted (এআই লিমিট শেষ)</span>
-                  <span className="px-2 py-0.5 rounded text-[10px] bg-rose-200 text-rose-800 font-mono">Status: Offline</span>
-                </h4>
-                <p className="text-xs text-rose-800 mt-0.5">
-                  {quotaStatus.errorMsg || "Your API provider quota or monthly request limit has been reached. Update your API Key or reset below."}
-                </p>
-              </div>
+        {/* Top Tab Bar */}
+        <div className="flex items-center gap-2 bg-bg p-1 rounded-2xl border border-line">
+          <button
+            onClick={() => setActiveTab("assistant")}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+              activeTab === "assistant"
+                ? "bg-forest text-white shadow-xs"
+                : "text-ink hover:text-forest"
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>AI Operations Chat</span>
+          </button>
+          <button
+            onClick={() => setActiveTab("settings")}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+              activeTab === "settings"
+                ? "bg-forest text-white shadow-xs"
+                : "text-ink hover:text-forest"
+            }`}
+          >
+            <Sliders className="w-3.5 h-3.5" />
+            <span>AI Gateway & API Settings</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Quota Exhaustion Alert Banner */}
+      {quotaStatus.isExhausted && (
+        <div className="bg-rose-50 border border-rose-300 rounded-3xl p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 animate-fadeIn">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-2xl bg-rose-600 text-white flex items-center justify-center font-bold shrink-0 shadow-xs">
+              <AlertTriangle className="w-5 h-5" />
             </div>
+            <div>
+              <h4 className="font-bold text-rose-900 text-sm flex items-center gap-2">
+                <span>AI Agent Limit / Quota Exhausted</span>
+                <span className="px-2 py-0.5 rounded text-[10px] bg-rose-200 text-rose-800 font-mono">Status: Offline</span>
+              </h4>
+              <p className="text-xs text-rose-800 mt-0.5">
+                {quotaStatus.errorMsg || "Your API provider quota or monthly limit has been reached. Update your API Key or reset below."}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleResetQuota}
+            className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold whitespace-nowrap shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Reset & Clear Alert</span>
+          </button>
+        </div>
+      )}
+
+      {/* Tab 1: Operations Assistant */}
+      {activeTab === "assistant" && (
+        <div className="space-y-6">
+          {/* Quick Action Prompt Pills */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2">
             <button
-              type="button"
-              onClick={handleResetQuota}
-              className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold whitespace-nowrap shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+              onClick={() => handleSendMessage("Analyze my low stock products and suggest restock priority.")}
+              className="px-3.5 py-2 rounded-xl bg-paper border border-line hover:border-forest text-xs font-medium text-ink transition-all shrink-0 hover:shadow-xs flex items-center gap-1.5 cursor-pointer"
             >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Reset & Clear Alert</span>
+              <Sparkles className="w-3.5 h-3.5 text-accent" />
+              <span>Restock Check</span>
+            </button>
+            <button
+              onClick={() => handleSendMessage("Write an exciting 2-sentence marketing slogan for an Eid Organic Honey sale in Bengali.")}
+              className="px-3.5 py-2 rounded-xl bg-paper border border-line hover:border-forest text-xs font-medium text-ink transition-all shrink-0 hover:shadow-xs flex items-center gap-1.5 cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-accent" />
+              <span>Eid Sale Copy (Bengali)</span>
+            </button>
+            <button
+              onClick={() => handleSendMessage("Summarize today's order statistics and customer breakdown.")}
+              className="px-3.5 py-2 rounded-xl bg-paper border border-line hover:border-forest text-xs font-medium text-ink transition-all shrink-0 hover:shadow-xs flex items-center gap-1.5 cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-accent" />
+              <span>Store Orders Summary</span>
+            </button>
+            <button
+              onClick={() => handleSendMessage("Draft a polite response to a customer asking about the purity of Sundarban Wild Honey.")}
+              className="px-3.5 py-2 rounded-xl bg-paper border border-line hover:border-forest text-xs font-medium text-ink transition-all shrink-0 hover:shadow-xs flex items-center gap-1.5 cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-accent" />
+              <span>Customer Support Draft</span>
             </button>
           </div>
-        )}
 
-        {/* Tab 1: Operations Assistant */}
-        {activeTab === "assistant" && (
-          <div className="space-y-6">
-            {/* Quick Action Prompt Pills */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-2">
-              <button
-                onClick={() => handleSendMessage("Analyze my low stock products and suggest restock priority.")}
-                className="px-3.5 py-2 rounded-xl bg-paper border border-line hover:border-forest text-xs font-medium text-ink transition-all shrink-0 hover:shadow-xs flex items-center gap-1.5 cursor-pointer"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-accent" />
-                <span>Restock Velocity Check</span>
-              </button>
-              <button
-                onClick={() => handleSendMessage("Write an exciting 2-sentence marketing slogan for an Eid Organic Honey sale in Bengali.")}
-                className="px-3.5 py-2 rounded-xl bg-paper border border-line hover:border-forest text-xs font-medium text-ink transition-all shrink-0 hover:shadow-xs flex items-center gap-1.5 cursor-pointer"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-accent" />
-                <span>Eid Sale Copy (Bengali)</span>
-              </button>
-              <button
-                onClick={() => handleSendMessage("Summarize today's order statistics and customer breakdown.")}
-                className="px-3.5 py-2 rounded-xl bg-paper border border-line hover:border-forest text-xs font-medium text-ink transition-all shrink-0 hover:shadow-xs flex items-center gap-1.5 cursor-pointer"
-              >
-                <Sparkles className="w-3.5 h-3.5 text-accent" />
-                <span>Store Orders Summary</span>
-              </button>
-            </div>
-
-            {/* Chat Box Container */}
-            <div className="bg-paper rounded-3xl border border-line shadow-card flex flex-col h-[520px] overflow-hidden">
-              <div className="flex-1 p-6 overflow-y-auto space-y-4">
-                {messages.map((m, idx) => (
+          {/* Chat Box Container */}
+          <div className="bg-paper rounded-3xl border border-line shadow-card flex flex-col h-[560px] overflow-hidden">
+            <div className="flex-1 p-6 overflow-y-auto space-y-4">
+              {messages.map((m, idx) => (
+                <div
+                  key={idx}
+                  className={`flex gap-3 ${
+                    m.sender === "user" ? "justify-end" : "justify-start"
+                  }`}
+                >
+                  {m.sender === "ai" && (
+                    <div className="w-8 h-8 rounded-xl bg-forest text-white flex items-center justify-center shrink-0 text-xs font-bold">
+                      AI
+                    </div>
+                  )}
                   <div
-                    key={idx}
-                    className={`flex gap-3 ${
-                      m.sender === "user" ? "justify-end" : "justify-start"
+                    className={`max-w-xl rounded-2xl p-4 text-xs sm:text-sm leading-relaxed ${
+                      m.sender === "user"
+                        ? "bg-forest text-white rounded-br-none"
+                        : "bg-bg border border-line text-ink rounded-bl-none shadow-xs whitespace-pre-line"
                     }`}
                   >
-                    {m.sender === "ai" && (
-                      <div className="w-8 h-8 rounded-xl bg-forest text-white flex items-center justify-center shrink-0 text-xs font-bold">
-                        AI
-                      </div>
-                    )}
-                    <div
-                      className={`max-w-xl rounded-2xl p-4 text-xs sm:text-sm leading-relaxed ${
-                        m.sender === "user"
-                          ? "bg-forest text-white rounded-br-none"
-                          : "bg-bg border border-line text-ink rounded-bl-none shadow-xs whitespace-pre-line"
+                    {m.text}
+                    <span
+                      className={`block text-[10px] mt-1.5 ${
+                        m.sender === "user" ? "text-white/60 text-right" : "text-ink-soft"
                       }`}
                     >
-                      {m.text}
-                      <span
-                        className={`block text-[10px] mt-1.5 ${
-                          m.sender === "user" ? "text-white/60 text-right" : "text-ink-soft"
-                        }`}
-                      >
-                        {m.time}
-                      </span>
-                    </div>
+                      {m.time}
+                    </span>
                   </div>
-                ))}
-                {sending && (
-                  <div className="flex items-center gap-2 text-ink-soft text-xs italic">
-                    <Loader2 className="w-4 h-4 animate-spin text-forest" />
-                    <span>ENMAR AI is analyzing store data and drafting response...</span>
-                  </div>
-                )}
-              </div>
+                </div>
+              ))}
+              {sending && (
+                <div className="flex items-center gap-2 text-ink-soft text-xs italic">
+                  <Loader2 className="w-4 h-4 animate-spin text-forest" />
+                  <span>ENMAR AI ({provider.toUpperCase()}) is analyzing store data and drafting response...</span>
+                </div>
+              )}
+            </div>
 
-              {/* Chat Input Bar */}
-              <div className="p-4 bg-bg border-t border-line">
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    handleSendMessage();
-                  }}
-                  className="flex items-center gap-2"
+            {/* Chat Input Bar */}
+            <div className="p-4 bg-bg border-t border-line">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSendMessage();
+                }}
+                className="flex items-center gap-2"
+              >
+                <input
+                  type="text"
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  placeholder="Ask the AI agent to draft descriptions, analyze inventory, or summarize orders..."
+                  className="flex-1 px-4 py-3 rounded-2xl bg-paper border border-line text-sm focus:outline-none focus:border-forest"
+                />
+                <button
+                  type="submit"
+                  disabled={sending || !inputMessage.trim()}
+                  className="px-5 py-3 rounded-2xl bg-forest hover:bg-forest-deep text-white font-bold text-sm shadow-premium transition-all disabled:opacity-50 flex items-center gap-2 cursor-pointer"
                 >
-                  <input
-                    type="text"
-                    value={inputMessage}
-                    onChange={(e) => setInputMessage(e.target.value)}
-                    placeholder="Ask the AI agent to draft descriptions, summarize orders, or write copy..."
-                    className="flex-1 px-4 py-3 rounded-2xl bg-paper border border-line text-sm focus:outline-none focus:border-forest"
-                  />
-                  <button
-                    type="submit"
-                    disabled={sending || !inputMessage.trim()}
-                    className="px-5 py-3 rounded-2xl bg-forest hover:bg-forest-deep text-white font-bold text-sm shadow-premium transition-all disabled:opacity-50 flex items-center gap-2 cursor-pointer"
-                  >
-                    <Send className="w-4 h-4" />
-                    <span>Send</span>
-                  </button>
-                </form>
-              </div>
+                  <Send className="w-4 h-4" />
+                  <span>Send</span>
+                </button>
+              </form>
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Tab 2: AI Gateway & Quota Settings */}
-        {activeTab === "settings" && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left 2 Cols: Form */}
-            <form onSubmit={handleSaveSettings} className="lg:col-span-2 space-y-6">
-              <div className="bg-paper p-6 sm:p-8 rounded-3xl border border-line shadow-card space-y-6">
+      {/* Tab 2: Universal AI Gateway & API Settings */}
+      {activeTab === "settings" && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left 2 Cols: Form */}
+          <form onSubmit={handleSaveSettings} className="lg:col-span-2 space-y-6">
+            <div className="bg-paper p-6 sm:p-8 rounded-3xl border border-line shadow-card space-y-6">
+              <div className="flex items-center justify-between border-b border-line pb-4">
                 <h3 className="text-lg font-bold font-display text-ink flex items-center gap-2">
-                  <Sliders className="w-5 h-5 text-forest" />
-                  <span>AI Model & Credentials</span>
+                  <Cpu className="w-5 h-5 text-forest" />
+                  <span>AI Provider & Custom Model Gateway</span>
                 </h3>
+                <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-forest-soft text-forest font-mono">
+                  Universal Any-AI Engine
+                </span>
+              </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-ink uppercase tracking-wider mb-2">
-                      AI Provider
-                    </label>
-                    <select
-                      value={provider}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setProvider(val);
-                        if (val === "openai") setModelName("gpt-4o");
-                        else if (val === "gemini") setModelName("gemini-3.6-flash");
-                        else if (val === "anthropic") setModelName("claude-3-5-sonnet-20241022");
-                      }}
-                      className="w-full px-4 py-3 rounded-2xl bg-bg border border-line text-xs font-semibold text-ink focus:outline-none focus:border-forest"
-                    >
-                      <option value="openai">OpenAI (ChatGPT / GPT-4o)</option>
-                      <option value="gemini">Google Gemini (Gemini 3.6 Flash)</option>
-                      <option value="anthropic">Anthropic Claude (Claude 3.5 Sonnet)</option>
-                      <option value="groq">Groq (Ultra-Fast Llama 3)</option>
-                      <option value="openrouter">OpenRouter (Multi-Model Gateway)</option>
-                    </select>
-                  </div>
+              {/* 1. Quick One-Click Provider Selection Pills */}
+              <div>
+                <label className="block text-xs font-bold text-ink uppercase tracking-wider mb-2.5">
+                  Select AI Provider Preset (বা আপনার পছন্দমতো কাস্টম প্রোভাইডার নির্বাচন করুন)
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {Object.entries(AI_PROVIDER_DEFAULTS).map(([key, def]) => {
+                    const isSelected = provider === key;
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => handleProviderSelect(key)}
+                        className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                          isSelected
+                            ? "border-forest bg-forest-soft text-forest shadow-xs font-bold"
+                            : "border-line bg-bg hover:border-forest/50 text-ink text-xs font-medium"
+                        }`}
+                      >
+                        <span className="block text-xs truncate">{def.name}</span>
+                        <span className="block text-[10px] text-ink-soft truncate font-mono mt-0.5">
+                          {def.defaultModel}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-                  <div>
-                    <label className="block text-xs font-bold text-ink uppercase tracking-wider mb-2">
-                      Model Name
-                    </label>
-                    <input
-                      type="text"
-                      value={modelName}
-                      onChange={(e) => setModelName(e.target.value)}
-                      placeholder="e.g. gpt-4o, gemini-3.6-flash"
-                      className="w-full px-4 py-3 rounded-2xl bg-bg border border-line text-xs font-mono text-ink focus:outline-none focus:border-forest"
-                    />
-                  </div>
+              {/* 2. Endpoint URL & Model Configuration */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-ink uppercase tracking-wider mb-2 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <Globe className="w-3.5 h-3.5 text-forest" />
+                      <span>API Base URL (যেকোনো AI API Endpoint)</span>
+                    </span>
+                    <span className="text-[11px] text-ink-soft">
+                      OpenAI, DeepSeek, Groq, Ollama, Localhost, etc.
+                    </span>
+                  </label>
+                  <input
+                    type="text"
+                    value={baseUrl}
+                    onChange={(e) => setBaseUrl(e.target.value)}
+                    placeholder="https://api.openai.com/v1 or https://api.deepseek.com or http://localhost:11434/v1"
+                    className="w-full px-4 py-3 rounded-2xl bg-bg border border-line text-xs font-mono text-ink focus:outline-none focus:border-forest"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-ink uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                    <Terminal className="w-3.5 h-3.5 text-forest" />
+                    <span>Model Identifier / Name</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={modelName}
+                    onChange={(e) => setModelName(e.target.value)}
+                    placeholder="e.g. gpt-4o, deepseek-chat, llama-3.3-70b-versatile, gemini-2.0-flash"
+                    className="w-full px-4 py-3 rounded-2xl bg-bg border border-line text-xs font-mono text-ink focus:outline-none focus:border-forest"
+                  />
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-ink uppercase tracking-wider mb-2 flex items-center justify-between">
-                    <span>API Key (Stored with AES-256 Encryption at Rest)</span>
+                    <span>API Key (AES-256 Encrypted)</span>
                     {hasApiKey && (
                       <span className="text-emerald-700 font-normal text-[11px] flex items-center gap-1">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Key is configured & active
+                        <CheckCircle2 className="w-3.5 h-3.5" /> Key Saved
                       </span>
                     )}
                   </label>
@@ -511,45 +575,99 @@ export default function AdminAiPage() {
                     type="password"
                     value={apiKey}
                     onChange={(e) => setApiKey(e.target.value)}
-                    placeholder={hasApiKey ? "•••••••••••••••••••••••• (Leave blank to keep existing key)" : "Enter API Key (sk-... or AIza...)"}
+                    placeholder={
+                      hasApiKey
+                        ? "•••••••••••••••••••••••• (Leave blank to keep saved key)"
+                        : activeProviderInfo.placeholderKey || "Enter your API Key"
+                    }
                     className="w-full px-4 py-3 rounded-2xl bg-bg border border-line text-xs font-mono text-ink focus:outline-none focus:border-forest"
                   />
                 </div>
+              </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-ink uppercase tracking-wider mb-2">
-                    Monthly Request Safety Limit
-                  </label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="number"
-                      value={monthlyLimit}
-                      onChange={(e) => setMonthlyLimit(Number(e.target.value))}
-                      placeholder="1000"
-                      className="w-48 px-4 py-3 rounded-2xl bg-bg border border-line text-xs font-mono text-ink focus:outline-none focus:border-forest"
-                    />
-                    <span className="text-xs text-ink-soft">requests/month (0 for unlimited)</span>
+              {/* 3. Hyperparameters: Temperature & Max Tokens */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                <div className="p-4 rounded-2xl bg-bg border border-line space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-ink uppercase tracking-wider flex items-center gap-1">
+                      <Gauge className="w-3.5 h-3.5 text-forest" />
+                      <span>Temperature (Creativity)</span>
+                    </label>
+                    <span className="text-xs font-mono font-bold text-forest">{temperature}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.0"
+                    max="1.0"
+                    step="0.05"
+                    value={temperature}
+                    onChange={(e) => setTemperature(parseFloat(e.target.value))}
+                    className="w-full accent-forest cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[10px] text-ink-soft">
+                    <span>Precise (0.0)</span>
+                    <span>Balanced (0.7)</span>
+                    <span>Creative (1.0)</span>
                   </div>
                 </div>
 
+                <div className="p-4 rounded-2xl bg-bg border border-line space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-bold text-ink uppercase tracking-wider">
+                      Max Output Tokens
+                    </label>
+                    <span className="text-xs font-mono font-bold text-forest">{maxTokens}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="250"
+                    max="4000"
+                    step="250"
+                    value={maxTokens}
+                    onChange={(e) => setMaxTokens(parseInt(e.target.value))}
+                    className="w-full accent-forest cursor-pointer"
+                  />
+                  <div className="flex justify-between text-[10px] text-ink-soft">
+                    <span>Short (250)</span>
+                    <span>Standard (1000)</span>
+                    <span>Long (4000)</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. Prompts & Toggles */}
+              <div className="space-y-4 pt-2 border-t border-line">
                 <div>
                   <label className="block text-xs font-bold text-ink uppercase tracking-wider mb-2">
-                    Customer Storefront AI System Prompt
+                    Customer Storefront AI System Prompt (Shopper Chatbot)
                   </label>
                   <textarea
                     rows={3}
                     value={systemPrompt}
                     onChange={(e) => setSystemPrompt(e.target.value)}
-                    placeholder="Instructions for the customer-facing chat assistant..."
+                    placeholder="Instructions for how the AI answers customer questions on the storefront..."
+                    className="w-full px-4 py-3 rounded-2xl bg-bg border border-line text-xs text-ink focus:outline-none focus:border-forest"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-ink uppercase tracking-wider mb-2">
+                    Admin Operations AI System Prompt (Internal Assistant)
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={adminPrompt}
+                    onChange={(e) => setAdminPrompt(e.target.value)}
+                    placeholder="Instructions for internal admin operations assistant..."
                     className="w-full px-4 py-3 rounded-2xl bg-bg border border-line text-xs text-ink focus:outline-none focus:border-forest"
                   />
                 </div>
 
                 <div className="flex items-center justify-between p-4 rounded-2xl bg-bg border border-line">
                   <div>
-                    <span className="font-bold text-xs text-ink block">Enable Storefront Customer AI</span>
+                    <span className="font-bold text-xs text-ink block">Enable Storefront Customer AI Widget</span>
                     <span className="text-[11px] text-ink-soft">
-                      Allow customers to chat with the AI assistant on the website for product questions.
+                      Allow website visitors to chat with this AI model for product advice and order assistance.
                     </span>
                   </div>
                   <label className="relative inline-flex items-center cursor-pointer">
@@ -562,176 +680,157 @@ export default function AdminAiPage() {
                     <div className="w-11 h-6 bg-line peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-line after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-forest"></div>
                   </label>
                 </div>
+              </div>
 
-                <div className="flex items-center justify-between pt-4 border-t border-line">
-                  {saveSuccess && (
-                    <span className="text-xs text-emerald-700 font-bold flex items-center gap-1.5">
-                      <CheckCircle2 className="w-4 h-4" />
-                      Settings saved & verified successfully!
-                    </span>
-                  )}
-                  <button
-                    type="submit"
-                    disabled={savingSettings}
-                    className="ml-auto px-6 py-3 rounded-2xl bg-forest hover:bg-forest-deep text-white font-bold text-xs shadow-premium transition-all disabled:opacity-50 flex items-center gap-2 cursor-pointer"
-                  >
-                    {savingSettings ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-                    <span>Save AI Configuration</span>
-                  </button>
+              {/* Bottom Action Bar */}
+              <div className="flex items-center justify-between pt-4 border-t border-line">
+                {saveSuccess ? (
+                  <span className="text-xs text-emerald-700 font-bold flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4" />
+                    Configuration saved & active!
+                  </span>
+                ) : (
+                  <div></div>
+                )}
+                <button
+                  type="submit"
+                  disabled={savingSettings}
+                  className="ml-auto px-6 py-3 rounded-2xl bg-forest hover:bg-forest-deep text-white font-bold text-xs shadow-premium transition-all disabled:opacity-50 flex items-center gap-2 cursor-pointer active:scale-95"
+                >
+                  {savingSettings ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+                  <span>Save Universal AI Configuration</span>
+                </button>
+              </div>
+            </div>
+          </form>
+
+          {/* Right 1 Col: Monitoring, Limits & Reset Card */}
+          <div className="space-y-6">
+            <div className="bg-paper p-6 rounded-3xl border border-line shadow-card space-y-5">
+              <h4 className="text-sm font-bold font-display text-ink flex items-center gap-2">
+                <Activity className="w-4 h-4 text-forest" />
+                <span>AI Telemetry & Usage Limits</span>
+              </h4>
+
+              <div className="space-y-3">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-ink-soft">Current Provider:</span>
+                  <span className="font-bold text-forest uppercase font-mono">{provider}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-ink-soft">Active Model:</span>
+                  <span className="font-bold text-ink font-mono text-[11px] truncate max-w-[140px]">{modelName}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-ink-soft">API Security:</span>
+                  <span className="text-emerald-700 font-bold flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5" /> AES-256 Vault
+                  </span>
                 </div>
               </div>
-            </form>
 
-            {/* Right 1 Col: Live Quota & Usage Monitor Card */}
-            <div className="space-y-6">
-              <div className="bg-paper p-6 rounded-3xl border border-line shadow-card space-y-5">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-bold font-display text-ink text-sm flex items-center gap-2">
-                    <Activity className="w-4 h-4 text-forest" />
-                    <span>AI Quota & Usage</span>
-                  </h4>
-                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                    quotaStatus.isExhausted
-                      ? "bg-rose-100 text-rose-800 border border-rose-300"
-                      : "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                  }`}>
-                    {quotaStatus.isExhausted ? "Quota Exhausted" : "Active & Healthy"}
+              {/* Usage Bar */}
+              <div className="pt-2 border-t border-line space-y-1.5">
+                <div className="flex justify-between text-xs font-semibold">
+                  <span className="text-ink">Monthly Requests</span>
+                  <span className="text-forest font-mono">
+                    {quotaStatus.requestsCount} / {monthlyLimit > 0 ? monthlyLimit : "∞"}
                   </span>
                 </div>
-
-                {/* Progress Meter */}
-                <div className="space-y-2">
-                  <div className="flex justify-between text-xs font-semibold">
-                    <span className="text-ink-soft">Monthly Requests Used</span>
-                    <span className="text-ink font-mono">{quotaStatus.requestsCount} / {quotaStatus.limit}</span>
-                  </div>
-                  <div className="w-full h-3 bg-bg rounded-full overflow-hidden border border-line">
-                    <div
-                      className={`h-full rounded-full transition-all duration-500 ${
-                        quotaStatus.percentage >= 100
-                          ? "bg-rose-600"
-                          : quotaStatus.percentage >= 80
-                          ? "bg-amber-500"
-                          : "bg-forest"
-                      }`}
-                      style={{ width: `${quotaStatus.percentage}%` }}
-                    />
-                  </div>
-                  <div className="flex justify-between text-[11px] text-ink-soft">
-                    <span>{quotaStatus.percentage}% Consumed</span>
-                    <span>{Math.max(0, quotaStatus.limit - quotaStatus.requestsCount)} remaining</span>
-                  </div>
+                <div className="w-full h-2 rounded-full bg-bg overflow-hidden border border-line">
+                  <div
+                    className={`h-full transition-all duration-500 ${
+                      quotaStatus.percentage >= 90
+                        ? "bg-rose-500"
+                        : quotaStatus.percentage >= 70
+                        ? "bg-amber-500"
+                        : "bg-forest"
+                    }`}
+                    style={{ width: `${quotaStatus.percentage}%` }}
+                  />
                 </div>
+              </div>
 
-                {/* Auto Reset on Limit Toggle */}
-                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-bg border border-line">
-                  <div className="pr-2">
-                    <span className="font-bold text-xs text-ink block">Auto-Reset on Limit Reach</span>
-                    <span className="text-[11px] text-ink-soft">
-                      Automatically reset counter to 0 when safety limit is reached so chat never stops.
-                    </span>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer shrink-0">
-                    <input
-                      type="checkbox"
-                      checked={autoResetOnLimit}
-                      onChange={(e) => setAutoResetOnLimit(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-9 h-5 bg-line peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-line after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-forest"></div>
-                  </label>
-                </div>
+              {/* Counter Reset & Safety Actions */}
+              <div className="pt-3 border-t border-line space-y-2">
+                <button
+                  type="button"
+                  onClick={handleResetCounter}
+                  className="w-full py-2.5 px-4 rounded-xl bg-bg hover:bg-line text-ink text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 text-forest" />
+                  <span>Reset Usage Counter to 0</span>
+                </button>
 
-                {/* Quota details */}
-                <div className="p-3.5 rounded-2xl bg-bg border border-line text-xs space-y-1.5">
-                  <span className="font-bold text-ink block text-[11px] uppercase tracking-wider flex items-center justify-between">
-                    <span>Auto-Reset & Guardrails</span>
-                    <span className="text-[10px] text-emerald-700 font-semibold">
-                      {autoResetOnLimit ? "● Auto-Reset Enabled" : "○ Manual Reset Only"}
-                    </span>
-                  </span>
-                  <p className="text-ink-soft text-[11px] leading-relaxed">
-                    {autoResetOnLimit
-                      ? "কোটা লিমিট (যেমন: ১০০০) শেষ হওয়ার সাথে সাথে কাউন্টার স্বয়ংক্রিয়ভাবে ০ থেকে পুনরায় শুরু হবে এবং প্রতি মাসের শুরুতে ক্যালেন্ডার রোল-ওভার ঘটবে।"
-                      : "লিমিট শেষ হলে বা প্রোভাইডারের সাময়িক রেট লিমিট থাকলে কাস্টমার চ্যাট অফলাইন মোডে যাবে এবং এডমিনকে ম্যানুয়ালি রিসেট করতে হবে।"}
-                  </p>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="space-y-2 pt-1">
-                  <button
-                    type="button"
-                    onClick={handleResetCounter}
-                    className="w-full py-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Reset Usage Counter to 0 (কাউন্টার রিসেট)</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleResetQuota}
-                    className="w-full py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                    <span>Reset Quota Alert Status</span>
-                  </button>
-
-                  {/* Delete Configuration */}
-                  <div className="mt-4 pt-3 border-t border-red-100">
-                    {!showDeleteConfirm ? (
-                      <button
-                        type="button"
-                        onClick={() => setShowDeleteConfirm(true)}
-                        className="w-full py-2.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                        <span>Delete AI Configuration & Credentials</span>
-                      </button>
-                    ) : (
-                      <div className="rounded-xl border border-red-300 bg-red-50 p-3 space-y-2">
-                        <p className="text-xs text-red-700 font-semibold text-center">
-                          ⚠️ এই কাজটি Provider, API Key এবং সব Quota ডেটা মুছে দেবে। নিশ্চিত?
-                        </p>
-                        <div className="flex gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setShowDeleteConfirm(false)}
-                            className="flex-1 py-2 rounded-lg bg-white border border-line text-xs font-bold text-ink-soft hover:text-ink transition-colors cursor-pointer"
-                          >
-                            বাতিল করুন
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleDeleteConfig}
-                            disabled={deletingConfig}
-                            className="flex-1 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-60"
-                          >
-                            {deletingConfig ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            ) : (
-                              <Trash2 className="w-3.5 h-3.5" />
-                            )}
-                            <span>{deletingConfig ? "Deleting..." : "হ্যাঁ, মুছে দিন"}</span>
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="w-full py-2.5 px-4 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Erase AI Configuration</span>
+                </button>
               </div>
             </div>
 
+            {/* Provider Guide Info Box */}
+            <div className="bg-forest-soft/60 p-5 rounded-3xl border border-forest/20 space-y-3">
+              <h5 className="text-xs font-bold text-forest flex items-center gap-1.5">
+                <HelpCircle className="w-4 h-4" />
+                <span>Any AI Compatibility Guide</span>
+              </h5>
+              <p className="text-[11px] text-ink-soft leading-relaxed">
+                You can connect <strong>ANY</strong> AI service:
+              </p>
+              <ul className="text-[11px] text-ink-soft space-y-1 list-disc pl-4">
+                <li><strong>Cloud APIs:</strong> OpenAI, DeepSeek, Google Gemini, Claude, Groq, OpenRouter, Mistral, xAI.</li>
+                <li><strong>Local / Offline:</strong> Ollama (`http://localhost:11434/v1`), LM Studio, vLLM.</li>
+                <li><strong>Custom Proxies:</strong> Any custom OpenAI-compatible endpoint URL.</li>
+              </ul>
+            </div>
           </div>
-        )}
-      </main>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-paper rounded-3xl p-6 max-w-md w-full border border-line shadow-2xl space-y-4">
+            <h3 className="text-base font-bold text-ink flex items-center gap-2 text-rose-600">
+              <AlertTriangle className="w-5 h-5" />
+              <span>Delete AI Configuration?</span>
+            </h3>
+            <p className="text-xs text-ink-soft leading-relaxed">
+              This will permanently erase your stored API keys, custom base URLs, and model settings from the database.
+            </p>
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 rounded-xl bg-bg border border-line text-xs font-bold text-ink cursor-pointer hover:bg-line"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteConfig}
+                disabled={deletingConfig}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {deletingConfig ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                <span>Confirm Delete</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <AlertModal
         isOpen={alertState.isOpen}
+        onClose={() => setAlertState((prev) => ({ ...prev, isOpen: false }))}
         title={alertState.title}
         message={alertState.message}
-        type={alertState.type || "info"}
-        onClose={() => setAlertState((prev) => ({ ...prev, isOpen: false }))}
+        type={alertState.type}
       />
     </div>
   );
