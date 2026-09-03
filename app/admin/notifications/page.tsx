@@ -190,11 +190,24 @@ export default function AdminNotificationSettingsPage() {
       const res = await fetch("/api/admin/notifications/test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ channel: "EMAIL", recipient }),
+        body: JSON.stringify({
+          channel: "EMAIL",
+          recipient,
+          smtpHost: emailForm.smtpHost,
+          smtpPort: emailForm.smtpPort,
+          smtpUser: emailForm.smtpUser,
+          smtpPass: emailForm.smtpPass,
+        }),
       });
       const json = await res.json();
       if (json.success) {
         setTestMessage({ text: json.message, type: "success" });
+        // Auto-save verified settings
+        await fetch("/api/admin/notifications", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ channel: "EMAIL", ...emailForm }),
+        }).catch(() => {});
         fetchSettings();
       } else {
         setTestMessage({ text: json.error || "Failed to send test email.", type: "error" });
@@ -335,13 +348,13 @@ export default function AdminNotificationSettingsPage() {
 
               <div>
                 <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1">
-                  Gmail Address (Username)
+                  {emailForm.provider === "SMTP" ? "Gmail Address (Username)" : "Email Address / Username"}
                 </label>
                 <input
                   type="email"
                   value={emailForm.smtpUser}
                   onChange={(e) => setEmailForm({ ...emailForm, smtpUser: e.target.value })}
-                  placeholder="yourname@gmail.com"
+                  placeholder={emailForm.provider === "SMTP" ? "yourname@gmail.com" : "support@enmar.shop"}
                   required
                   className="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-xs focus:outline-none focus:border-forest"
                 />
@@ -349,7 +362,11 @@ export default function AdminNotificationSettingsPage() {
 
               <div>
                 <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider mb-1 flex items-center justify-between">
-                  <span>Google App Password (16-characters)</span>
+                  <span>
+                    {emailForm.provider === "SMTP"
+                      ? "Google App Password (16-characters)"
+                      : "cPanel / SMTP Email Password"}
+                  </span>
                   <span className="text-[10px] text-stone-400 font-normal">Encrypted at rest</span>
                 </label>
                 <input

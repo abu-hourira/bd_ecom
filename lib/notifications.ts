@@ -111,7 +111,13 @@ export async function sendEmail(
   recipientEmail: string,
   subject: string,
   contentHtml: string,
-  orderId?: number
+  orderId?: number,
+  overrideCredentials?: {
+    smtpHost?: string;
+    smtpPort?: string | number;
+    smtpUser?: string;
+    smtpPass?: string;
+  }
 ): Promise<NotificationResult> {
   try {
     const gateway = await prisma.notificationGateway.findFirst({
@@ -128,10 +134,10 @@ export async function sendEmail(
       }
     }
 
-    const host = (creds.smtpHost || process.env.SMTP_HOST || "smtp.gmail.com").trim();
-    const port = Number(creds.smtpPort || process.env.SMTP_PORT) || 587;
-    const user = (creds.smtpUser || process.env.GMAIL_USER || process.env.SMTP_USER || "").trim();
-    const pass = (creds.smtpPass || process.env.GMAIL_APP_PASSWORD || process.env.SMTP_PASS || "").replace(/\s+/g, "").trim();
+    const host = (overrideCredentials?.smtpHost || creds.smtpHost || process.env.SMTP_HOST || "smtp.gmail.com").trim();
+    const port = Number(overrideCredentials?.smtpPort || creds.smtpPort || process.env.SMTP_PORT) || 587;
+    const user = (overrideCredentials?.smtpUser || creds.smtpUser || process.env.GMAIL_USER || process.env.SMTP_USER || "").trim();
+    const pass = (overrideCredentials?.smtpPass || creds.smtpPass || process.env.GMAIL_APP_PASSWORD || process.env.SMTP_PASS || "").replace(/\s+/g, "").trim();
 
     if (!user || !pass) {
       console.log(`[Email Warning] No SMTP Configured. To: ${recipientEmail} | Subject: ${subject}`);
