@@ -39,10 +39,15 @@ model User {
   otpExpiresAt    DateTime?
   
   // 2FA & Security
-  twoFactorEnabled Boolean  @default(false)
-  twoFactorSecret  String?  @db.Text
-  failedAttempts   Int      @default(0)
-  lockedUntil      DateTime?
+  twoFactorEnabled       Boolean   @default(false)
+  twoFactorSecret        String?   @db.Text
+  failedAttempts         Int       @default(0)
+  lockedUntil            DateTime?
+
+  // Password Reset System (Gmail / Email OTP & Token)
+  resetPasswordToken     String?   @db.Text
+  resetPasswordOtp       String?
+  resetPasswordExpiresAt DateTime?
 
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt

@@ -118,23 +118,8 @@ export async function sendEmail(
       where: { channel: "EMAIL", isActive: true },
     });
 
-    if (!gateway) {
-      console.log(`[Email Simulation] To: ${recipientEmail} | Subject: ${subject}`);
-      await prisma.notificationLog.create({
-        data: {
-          channel: "EMAIL",
-          recipient: recipientEmail,
-          subject,
-          content: contentHtml,
-          status: "SENT",
-          errorReason: "Simulation mode (No active EMAIL gateway in DB)",
-        },
-      });
-      return { success: true, messageId: "SIMULATED-EMAIL" };
-    }
-
     let creds: any = {};
-    if (gateway.credentialsEncrypted) {
+    if (gateway?.credentialsEncrypted) {
       try {
         const decrypted = decrypt(gateway.credentialsEncrypted);
         if (decrypted) creds = JSON.parse(decrypted);
@@ -143,13 +128,24 @@ export async function sendEmail(
       }
     }
 
-    const host = (creds.smtpHost || "smtp.gmail.com").trim();
-    const port = Number(creds.smtpPort) || 587;
-    const user = (creds.smtpUser || "").trim();
-    const pass = (creds.smtpPass || "").replace(/\s+/g, "").trim();
+    const host = (creds.smtpHost || process.env.SMTP_HOST || "smtp.gmail.com").trim();
+    const port = Number(creds.smtpPort || process.env.SMTP_PORT) || 587;
+    const user = (creds.smtpUser || process.env.GMAIL_USER || process.env.SMTP_USER || "").trim();
+    const pass = (creds.smtpPass || process.env.GMAIL_APP_PASSWORD || process.env.SMTP_PASS || "").replace(/\s+/g, "").trim();
 
     if (!user || !pass) {
-      throw new Error("Gmail Username and 16-character Google App Password are required. Please configure and save them in Notification Settings.");
+      console.log(`[Email Simulation/Preview] To: ${recipientEmail} | Subject: ${subject}`);
+      await prisma.notificationLog.create({
+        data: {
+          channel: "EMAIL",
+          recipient: recipientEmail,
+          subject,
+          content: contentHtml,
+          status: "SENT",
+          errorReason: "Simulation mode (Configure Gmail in Admin -> Notifications or .env GMAIL_USER/GMAIL_APP_PASSWORD)",
+        },
+      });
+      return { success: true, messageId: "SIMULATED-EMAIL" };
     }
 
     const isSecure = port === 465;
@@ -169,7 +165,7 @@ export async function sendEmail(
     });
 
     // Send real email via Google SMTP
-    const senderName = gateway.senderId || "ENMAR Organic Food";
+    const senderName = gateway?.senderId || process.env.SMTP_SENDER_NAME || "ENMAR Organic Food";
     const mailOptions = {
       from: `"${senderName}" <${user}>`,
       to: recipientEmail,
@@ -182,7 +178,7 @@ export async function sendEmail(
     // Record success log in database
     await prisma.notificationLog.create({
       data: {
-        gatewayId: gateway.id,
+        gatewayId: gateway?.id || null,
         channel: "EMAIL",
         recipient: recipientEmail,
         subject,

@@ -11,6 +11,7 @@ import {
   Leaf,
   Loader2,
   Lock,
+  CheckCircle2,
 } from "lucide-react";
 import StorefrontHeader from "@/components/storefront/Header";
 import StorefrontFooter from "@/components/storefront/Footer";
@@ -199,6 +200,17 @@ function LoginContent() {
             </div>
           )}
 
+          {searchParams.get("reset") === "success" && (
+            <div className="p-3.5 bg-emerald-50 border border-emerald-200 rounded-2xl text-xs text-emerald-800 flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>
+                {locale === "bn"
+                  ? "পাসওয়ার্ড সফলভাবে আপডেট করা হয়েছে। আপনার নতুন পাসওয়ার্ড দিয়ে লগইন করুন।"
+                  : "Password reset successful! Please log in with your new password."}
+              </span>
+            </div>
+          )}
+
           {/* Method 1: Email / Phone & Password */}
           {loginMethod === "password" && (
             <form onSubmit={handlePasswordLogin} className="space-y-4">
@@ -220,9 +232,17 @@ function LoginContent() {
               </div>
 
               <div className="space-y-1">
-                <label className="block text-xs font-semibold text-stone-700">
-                  {t("auth.passLabel")}
-                </label>
+                <div className="flex justify-between items-center">
+                  <label className="block text-xs font-semibold text-stone-700">
+                    {t("auth.passLabel")}
+                  </label>
+                  <Link
+                    href="/auth/forgot-password"
+                    className="text-[11px] font-semibold text-forest hover:underline"
+                  >
+                    {locale === "bn" ? "পাসওয়ার্ড ভুলে গেছেন?" : "Forgot password?"}
+                  </Link>
+                </div>
                 <div className="relative">
                   <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
                   <input
