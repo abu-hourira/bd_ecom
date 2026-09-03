@@ -28,9 +28,6 @@ import {
   Trash,
   FileText,
   Edit,
-  Mic,
-  MicOff,
-  Volume2,
   Copy,
   Check,
 } from "lucide-react";
@@ -79,8 +76,6 @@ export default function AdminAiPage() {
   const [inputMessage, setInputMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
-  const [isListening, setIsListening] = useState(false);
-  const [speechActiveIdx, setSpeechActiveIdx] = useState<number | null>(null);
 
   // Cookie Pool State
   const [cookieAccounts, setCookieAccounts] = useState<CookieAccountItem[]>([]);
@@ -241,56 +236,6 @@ export default function AdminAiPage() {
     navigator.clipboard.writeText(text);
     setCopiedIndex(idx);
     setTimeout(() => setCopiedIndex(null), 2000);
-  };
-
-  const handleSpeakAdmin = (idx: number, text: string) => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    if (speechActiveIdx === idx) {
-      window.speechSynthesis.cancel();
-      setSpeechActiveIdx(null);
-      return;
-    }
-    window.speechSynthesis.cancel();
-    const clean = text.replace(/[*_#`\[\]]/g, "").replace(/\(https?:\/\/[^\)]+\)/g, "");
-    const utterance = new SpeechSynthesisUtterance(clean);
-    utterance.lang = "bn-BD";
-    utterance.rate = 1.0;
-    utterance.onend = () => setSpeechActiveIdx(null);
-    utterance.onerror = () => setSpeechActiveIdx(null);
-    setSpeechActiveIdx(idx);
-    window.speechSynthesis.speak(utterance);
-  };
-
-  const toggleAdminSpeech = () => {
-    if (typeof window === "undefined") return;
-    const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert("Voice recognition is not supported in this browser. Please use Google Chrome or Microsoft Edge.");
-      return;
-    }
-
-    if (isListening) {
-      setIsListening(false);
-    } else {
-      try {
-        const recog = new SpeechRecognition();
-        recog.lang = "bn-BD";
-        recog.onresult = (e: any) => {
-          const trans = e.results[0][0].transcript;
-          if (trans) {
-            setInputMessage((prev) => (prev ? `${prev} ${trans}` : trans));
-          }
-          setIsListening(false);
-        };
-        recog.onerror = () => setIsListening(false);
-        recog.onend = () => setIsListening(false);
-        recog.start();
-        setIsListening(true);
-      } catch (err) {
-        console.error(err);
-      }
-    }
   };
 
   const handleSaveSettings = async (e: React.FormEvent) => {
@@ -786,30 +731,20 @@ export default function AdminAiPage() {
                   <div className="flex items-center gap-2 mt-1 px-11 text-[10.5px] text-ink-soft">
                     <span className="font-mono">{m.time}</span>
                     {m.sender === "ai" && (
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleSpeakAdmin(idx, m.text)}
-                          className={`hover:text-forest transition-colors cursor-pointer p-0.5 rounded ${
-                            speechActiveIdx === idx ? "text-forest font-bold" : ""
-                          }`}
-                          title="Listen / Read aloud"
-                        >
-                          <Volume2 className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleCopyAdmin(idx, m.text)}
-                          className="hover:text-forest transition-colors cursor-pointer p-0.5 rounded"
-                          title="Copy response"
-                        >
-                          {copiedIndex === idx ? (
-                            <Check className="w-3.5 h-3.5 text-emerald-600" />
-                          ) : (
-                            <Copy className="w-3.5 h-3.5" />
-                          )}
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyAdmin(idx, m.text)}
+                        className="hover:text-forest transition-colors cursor-pointer p-0.5 rounded flex items-center gap-1"
+                        title="Copy response"
+                      >
+                        {copiedIndex === idx ? (
+                          <span className="text-emerald-600 flex items-center gap-0.5 font-semibold">
+                            <Check className="w-3 h-3" /> Copied
+                          </span>
+                        ) : (
+                          <Copy className="w-3 h-3" />
+                        )}
+                      </button>
                     )}
                   </div>
                 </div>
@@ -831,29 +766,11 @@ export default function AdminAiPage() {
                 }}
                 className="flex items-center gap-2"
               >
-                {/* Voice Input */}
-                <button
-                  type="button"
-                  onClick={toggleAdminSpeech}
-                  className={`p-3 rounded-2xl border transition-all cursor-pointer ${
-                    isListening
-                      ? "bg-rose-600 text-white border-rose-600 animate-pulse"
-                      : "bg-bg border-line text-ink hover:text-forest hover:bg-line"
-                  }`}
-                  title={isListening ? "Listening... click to stop" : "Voice typing"}
-                >
-                  {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                </button>
-
                 <input
                   type="text"
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
-                  placeholder={
-                    isListening
-                      ? "শুনছি... কথা বলুন..."
-                      : "Ask the AI agent to draft descriptions, analyze inventory, or summarize orders..."
-                  }
+                  placeholder="Ask the AI agent to draft descriptions, analyze inventory, or summarize orders..."
                   className="flex-1 px-4 py-3 rounded-2xl bg-bg border border-line text-sm text-ink focus:outline-none focus:border-forest placeholder:text-ink-soft"
                 />
 

@@ -1,5 +1,5 @@
 "use client";
-// components/storefront/CustomerAiWidget.tsx - Advanced Organic AI Customer Assistant
+// components/storefront/CustomerAiWidget.tsx - Advanced Organic AI Customer Assistant (Text-Based)
 
 import { useState, useEffect, useRef } from "react";
 import {
@@ -8,17 +8,9 @@ import {
   X,
   Loader2,
   Sparkles,
-  Volume2,
-  VolumeX,
-  Mic,
-  MicOff,
   Copy,
   Check,
   RotateCcw,
-  Package,
-  Truck,
-  HeartHandshake,
-  HelpCircle,
 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { useFeatures } from "@/context/FeatureFlagContext";
@@ -36,13 +28,8 @@ export default function CustomerAiWidget() {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [isListening, setIsListening] = useState(false);
-  const [speechSynthesisActive, setSpeechSynthesisActive] = useState<string | null>(null);
-  const [soundEnabled, setSoundEnabled] = useState(true);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const recognitionRef = useRef<any>(null);
-
   const { t, locale } = useLanguage();
   const { isFeatureEnabled } = useFeatures();
 
@@ -93,88 +80,6 @@ export default function CustomerAiWidget() {
     }
   }, [messages, sending, open]);
 
-  // Setup Web Speech Recognition
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const SpeechRecognition =
-        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      if (SpeechRecognition) {
-        const recog = new SpeechRecognition();
-        recog.continuous = false;
-        recog.interimResults = false;
-        recog.lang = locale === "bn" ? "bn-BD" : "en-US";
-
-        recog.onresult = (event: any) => {
-          const transcript = event.results[0][0].transcript;
-          if (transcript) {
-            setInput((prev) => (prev ? `${prev} ${transcript}` : transcript));
-          }
-          setIsListening(false);
-        };
-
-        recog.onerror = (event: any) => {
-          console.error("Speech Recognition Error:", event.error);
-          setIsListening(false);
-        };
-
-        recog.onend = () => {
-          setIsListening(false);
-        };
-
-        recognitionRef.current = recog;
-      }
-    }
-  }, [locale]);
-
-  const toggleSpeechRecognition = () => {
-    if (!recognitionRef.current) {
-      alert(
-        locale === "bn"
-          ? "আপনার ব্রাউজার ভয়েস টাইপিং সাপোর্ট করে না। দয়া করে Chrome বা Edge ব্যবহার করুন।"
-          : "Voice recognition is not supported in your current browser. Please try Chrome or Edge."
-      );
-      return;
-    }
-
-    if (isListening) {
-      recognitionRef.current.stop();
-      setIsListening(false);
-    } else {
-      try {
-        recognitionRef.current.lang = locale === "bn" ? "bn-BD" : "en-US";
-        recognitionRef.current.start();
-        setIsListening(true);
-      } catch (e) {
-        console.error(e);
-      }
-    }
-  };
-
-  // Text to Speech
-  const handleSpeakText = (id: string, text: string) => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-
-    if (speechSynthesisActive === id) {
-      window.speechSynthesis.cancel();
-      setSpeechSynthesisActive(null);
-      return;
-    }
-
-    window.speechSynthesis.cancel();
-    // Clean markdown symbols for cleaner voice
-    const cleanText = text.replace(/[*_#`\[\]]/g, "").replace(/\(https?:\/\/[^\)]+\)/g, "");
-
-    const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.lang = locale === "bn" ? "bn-BD" : "en-US";
-    utterance.rate = 1.0;
-
-    utterance.onend = () => setSpeechSynthesisActive(null);
-    utterance.onerror = () => setSpeechSynthesisActive(null);
-
-    setSpeechSynthesisActive(id);
-    window.speechSynthesis.speak(utterance);
-  };
-
   // Copy to clipboard
   const handleCopy = (id: string, text: string) => {
     navigator.clipboard.writeText(text);
@@ -184,8 +89,6 @@ export default function CustomerAiWidget() {
 
   // Clear chat
   const handleClearChat = () => {
-    if (window.speechSynthesis) window.speechSynthesis.cancel();
-    setSpeechSynthesisActive(null);
     updateMessages(() => [DEFAULT_MESSAGE]);
   };
 
@@ -228,11 +131,6 @@ export default function CustomerAiWidget() {
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         };
         updateMessages((prev) => [...prev, aiMsg]);
-
-        // Auto read aloud if enabled
-        if (soundEnabled && typeof window !== "undefined" && "speechSynthesis" in window) {
-          // Subtle audio alert or text speak
-        }
       } else {
         const errorMsg: ChatMessage = {
           id: `ai-err-${Date.now()}`,
@@ -293,7 +191,7 @@ export default function CustomerAiWidget() {
 
       {/* Expanded Modern Chat Window */}
       {open && (
-        <div className="fixed bottom-20 md:bottom-6 right-3 sm:right-6 left-3 sm:left-auto z-50 sm:w-[410px] w-auto h-[570px] max-h-[85vh] bg-paper rounded-3xl border border-line shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 duration-300">
+        <div className="fixed bottom-20 md:bottom-6 right-3 sm:right-6 left-3 sm:left-auto z-50 sm:w-[410px] w-auto h-[560px] max-h-[85vh] bg-paper rounded-3xl border border-line shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 duration-300">
           {/* Top Header */}
           <div className="p-4 bg-forest text-white flex items-center justify-between shadow-xs border-b border-amber-400/20">
             <div className="flex items-center gap-3">
@@ -315,23 +213,11 @@ export default function CustomerAiWidget() {
             </div>
 
             <div className="flex items-center gap-1">
-              {/* Sound toggle */}
-              <button
-                type="button"
-                onClick={() => setSoundEnabled(!soundEnabled)}
-                className={`p-1.5 rounded-xl transition-colors cursor-pointer ${
-                  soundEnabled ? "text-amber-300 hover:bg-white/10" : "text-stone-400 hover:bg-white/10"
-                }`}
-                title={soundEnabled ? "Sound enabled" : "Sound muted"}
-              >
-                {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-              </button>
-
               {/* Reset / Clear */}
               <button
                 type="button"
                 onClick={handleClearChat}
-                className="p-1.5 rounded-xl text-stone-300 hover:text-rose-300 hover:bg-white/10 transition-colors cursor-pointer"
+                className="p-2 rounded-xl text-stone-300 hover:text-rose-300 hover:bg-white/10 transition-colors cursor-pointer"
                 title={locale === "bn" ? "নতুন চ্যাট শুরু করুন" : "Reset conversation"}
               >
                 <RotateCcw className="w-4 h-4" />
@@ -340,12 +226,8 @@ export default function CustomerAiWidget() {
               {/* Close */}
               <button
                 type="button"
-                onClick={() => {
-                  if (window.speechSynthesis) window.speechSynthesis.cancel();
-                  setSpeechSynthesisActive(null);
-                  setOpen(false);
-                }}
-                className="p-1.5 rounded-xl text-stone-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer ml-1"
+                onClick={() => setOpen(false)}
+                className="p-2 rounded-xl text-stone-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer ml-1"
                 title="Close chat"
               >
                 <X className="w-5 h-5" />
@@ -374,37 +256,24 @@ export default function CustomerAiWidget() {
                   )}
                 </div>
 
-                {/* Message Meta & Action Bar (AI messages) */}
+                {/* Message Meta & Action Bar */}
                 <div className="flex items-center gap-2 mt-1 px-1 text-[10px] text-ink-soft">
                   <span className="font-mono">{m.timestamp}</span>
                   {m.sender === "ai" && (
-                    <div className="flex items-center gap-1.5">
-                      {/* Read Aloud Button */}
-                      <button
-                        type="button"
-                        onClick={() => handleSpeakText(m.id, m.text)}
-                        className={`hover:text-forest transition-colors cursor-pointer p-0.5 rounded ${
-                          speechSynthesisActive === m.id ? "text-forest font-bold" : ""
-                        }`}
-                        title="Listen / Read Aloud"
-                      >
-                        <Volume2 className="w-3 h-3" />
-                      </button>
-
-                      {/* Copy Button */}
-                      <button
-                        type="button"
-                        onClick={() => handleCopy(m.id, m.text)}
-                        className="hover:text-forest transition-colors cursor-pointer p-0.5 rounded"
-                        title="Copy text"
-                      >
-                        {copiedId === m.id ? (
-                          <Check className="w-3 h-3 text-emerald-600" />
-                        ) : (
-                          <Copy className="w-3 h-3" />
-                        )}
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(m.id, m.text)}
+                      className="hover:text-forest transition-colors cursor-pointer p-0.5 rounded flex items-center gap-1"
+                      title="Copy text"
+                    >
+                      {copiedId === m.id ? (
+                        <span className="text-emerald-600 flex items-center gap-0.5 font-semibold">
+                          <Check className="w-3 h-3" /> Copied
+                        </span>
+                      ) : (
+                        <Copy className="w-3 h-3" />
+                      )}
+                    </button>
                   )}
                 </div>
               </div>
@@ -485,31 +354,12 @@ export default function CustomerAiWidget() {
             </button>
           </div>
 
-          {/* Input & Voice Controls */}
+          {/* Input Controls */}
           <div className="p-3 bg-paper border-t border-line flex items-center gap-2">
-            {/* Voice Input Button */}
-            <button
-              type="button"
-              onClick={toggleSpeechRecognition}
-              className={`p-2.5 rounded-2xl border transition-all cursor-pointer ${
-                isListening
-                  ? "bg-rose-600 text-white border-rose-600 animate-pulse"
-                  : "bg-bg border-line text-ink hover:text-forest hover:bg-line"
-              }`}
-              title={isListening ? "Listening... click to stop" : "Voice typing (Bengali / English)"}
-            >
-              {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-            </button>
-
-            {/* Input Field */}
             <input
               type="text"
               placeholder={
-                isListening
-                  ? locale === "bn"
-                    ? "শুনছি... কথা বলুন..."
-                    : "Listening... speak now..."
-                  : locale === "bn"
+                locale === "bn"
                   ? "মধু, তেল, ঘি বা অর্ডারের প্রশ্ন লিখুন..."
                   : "Ask about honey, ghee, mustard oil, orders..."
               }
@@ -519,7 +369,6 @@ export default function CustomerAiWidget() {
               className="flex-1 px-4 py-2.5 rounded-2xl bg-bg border border-line text-xs text-ink focus:outline-none focus:border-forest font-medium placeholder:text-ink-soft"
             />
 
-            {/* Send Button */}
             <button
               type="button"
               onClick={() => handleSend()}
