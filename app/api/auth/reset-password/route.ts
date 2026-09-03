@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
     const passwordHash = await bcrypt.hash(newPassword.trim(), 10);
 
     // 4. Update user in database and clear reset tokens
-    await prisma.user.update({
+    await (prisma.user as any).update({
       where: { id: user.id },
       data: {
         passwordHash,

@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes expiry
 
     // 3. Save to database
-    await prisma.user.update({
+    await (prisma.user as any).update({
       where: { id: user.id },
       data: {
         resetPasswordToken: resetToken,
