@@ -425,13 +425,23 @@ function ProductsContent() {
                 </div>
               </div>
 
-              <div className="flex items-center justify-end pt-4 border-t border-stone-200">
+              <div className="flex items-center gap-3 pt-4 border-t border-stone-200">
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleReset();
+                    setMobileFilterOpen(false);
+                  }}
+                  className="w-1/3 py-3 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold transition-colors cursor-pointer"
+                >
+                  {locale === "bn" ? "রিসেট" : "Reset"}
+                </button>
                 <button
                   type="button"
                   onClick={() => setMobileFilterOpen(false)}
-                  className="w-full py-3 rounded-xl bg-forest text-white text-xs font-bold shadow-md cursor-pointer"
+                  className="w-2/3 py-3 rounded-xl bg-forest hover:bg-forest-deep text-white text-xs font-bold shadow-md cursor-pointer"
                 >
-                  {t("catalog.loading")}
+                  {locale === "bn" ? "ফিল্টার প্রয়োগ করুন" : "Apply Filters"}
                 </button>
               </div>
             </div>

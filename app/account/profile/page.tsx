@@ -22,6 +22,8 @@ import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
 import AlertModal from "@/components/ui/AlertModal";
 
+import MobileAccountDashboard from "@/components/account/MobileAccountDashboard";
+
 export default function ProfilePage() {
   const router = useRouter();
   const { lang, locale } = useLanguage();
@@ -347,7 +349,8 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-bg text-ink flex flex-col justify-between">
       <StorefrontHeader />
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex-1 w-full space-y-8">
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10 flex-1 w-full space-y-6 sm:space-y-8">
+        <MobileAccountDashboard user={customer} />
         <AccountNav />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
