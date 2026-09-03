@@ -11,6 +11,7 @@ import FloatingWhatsApp from "@/components/storefront/FloatingWhatsApp";
 import CustomerAiWidget from "@/components/storefront/CustomerAiWidget";
 import CookieConsent from "@/components/storefront/CookieConsent";
 import MobileBottomNav from "@/components/storefront/MobileBottomNav";
+import DynamicFavicon from "@/components/storefront/DynamicFavicon";
 import "./globals.css";
 
 const hindSiliguri = Hind_Siliguri({
@@ -221,6 +222,7 @@ export default function RootLayout({
       <body className="min-h-screen bg-[#FAF8F5] text-stone-900 antialiased overflow-x-hidden max-w-[100vw] w-full relative font-body" suppressHydrationWarning>
         <AuthProvider>
           <StorefrontProvider>
+            <DynamicFavicon />
             <FeatureFlagProvider>
               <LanguageProvider>
                 <CartProvider>
