@@ -11,26 +11,37 @@ export async function POST(request: NextRequest) {
 
     if (!email || !email.trim()) {
       return NextResponse.json(
-        { error: "Please provide a valid email address." },
+        { error: "অনুগ্রহ করে আপনার সঠিক ইমেইল বা ফোন নম্বর লিখুন।" },
         { status: 400 }
       );
     }
 
-    const cleanEmail = email.trim().toLowerCase();
+    const cleanInput = email.trim().toLowerCase();
+    const cleanPhone = cleanInput.replace(/\s+/g, "");
 
-    // 1. Find user in database
-    const user = await prisma.user.findUnique({
-      where: { email: cleanEmail },
-      select: { id: true, name: true, email: true },
+    // 1. Find user in database by email OR phone
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { email: cleanInput },
+          { phone: cleanPhone },
+          { phone: `+88${cleanPhone}` },
+          { phone: cleanPhone.replace(/^\+?88/, "") },
+        ],
+      },
+      select: { id: true, name: true, email: true, phone: true },
     });
 
     if (!user) {
-      // Don't leak whether email exists for security, but return friendly success response
-      return NextResponse.json({
-        success: true,
-        message: "If an account exists with this email, a verification code and reset link have been sent.",
-      });
+      return NextResponse.json(
+        {
+          error: "এই ইমেইল বা ফোন নম্বরে কোনো অ্যাকাউন্ট পাওয়া যায়নি। দয়া করে সঠিক ইমেইল দিন অথবা নতুন অ্যাকাউন্ট তৈরি করুন।",
+        },
+        { status: 404 }
+      );
     }
+
+    const targetEmail = user.email;
 
     // 2. Generate secure 6-digit OTP and 64-char token
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digits
@@ -54,7 +65,7 @@ export async function POST(request: NextRequest) {
       process.env.NEXTAUTH_URL ||
       "http://localhost:3000";
     const baseUrl = origin.replace(/\/$/, "");
-    const resetUrl = `${baseUrl}/auth/reset-password?token=${resetToken}&email=${encodeURIComponent(cleanEmail)}`;
+    const resetUrl = `${baseUrl}/auth/reset-password?token=${resetToken}&email=${encodeURIComponent(targetEmail)}`;
 
     // 5. Construct Beautiful Branded HTML Email
     const emailHtml = `
@@ -91,7 +102,7 @@ export async function POST(request: NextRequest) {
     </div>
     <div class="content">
       <div class="greeting">Assalamu Alaikum, ${user.name || "Valued Customer"}!</div>
-      <p>We received a request to reset the password for your ENMAR account linked to <strong>${cleanEmail}</strong>.</p>
+      <p>We received a request to reset the password for your ENMAR account linked to <strong>${targetEmail}</strong>.</p>
       
       <p>You can verify and reset your password using the 6-digit verification code below:</p>
 
@@ -122,19 +133,25 @@ export async function POST(request: NextRequest) {
 
     // 6. Send Email via Gmail SMTP
     const emailResult = await sendEmail(
-      cleanEmail,
+      targetEmail,
       `🔑 ${otpCode} is your ENMAR Password Reset Code`,
       emailHtml
     );
 
     if (!emailResult.success && emailResult.error) {
       console.warn("[Forgot Password Email Warning]:", emailResult.error);
+      return NextResponse.json(
+        {
+          error: `ইমেইল পাঠানো যায়নি: ${emailResult.error}। অনুগ্রহ করে অ্যাডমিন প্যানেল (Notifications) থেকে Gmail SMTP ঠিকভাবে কনফিগার করুন।`,
+        },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
       success: true,
-      message: "A password reset verification code and direct reset link have been sent to your Gmail inbox.",
-      email: cleanEmail,
+      message: "আপনার জিমেইল ইনবক্সে পাসওয়ার্ড রিসেট ভেরিফিকেশন কোড ও রিসেট লিঙ্ক পাঠানো হয়েছে।",
+      email: targetEmail,
     });
   } catch (error: any) {
     console.error("[Forgot Password Error]:", error);
