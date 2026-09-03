@@ -24,18 +24,7 @@ function ProductsContent() {
   const initialCategory = searchParams.get("category") || "all";
   const initialSearch = searchParams.get("search") || "";
 
-  const [products, setProducts] = useState<any[]>(() => {
-    if (typeof window !== "undefined" && initialCategory === "all" && !initialSearch) {
-      try {
-        const homeCache = sessionStorage.getItem("enmar_home_data_cache_v2") || localStorage.getItem("enmar_home_data_cache_v2");
-        if (homeCache) {
-          const parsed = JSON.parse(homeCache);
-          if (parsed?.data?.featuredProducts?.length) return parsed.data.featuredProducts;
-        }
-      } catch (e) {}
-    }
-    return [];
-  });
+  const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>(() => {
     if (typeof window !== "undefined") {
       try {
