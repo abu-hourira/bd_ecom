@@ -1,9 +1,9 @@
 // app/api/storefront/home/route.ts
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { serverCache } from "@/lib/serverCache";
 
 export const dynamic = "force-dynamic";
-export const revalidate = 0;
 
 const PRODUCT_CARD_SELECT = {
   id: true,
@@ -31,6 +31,20 @@ const PRODUCT_CARD_SELECT = {
 
 export async function GET() {
   try {
+    const CACHE_KEY = "storefront_home_payload";
+    const cached = serverCache.get<any>(CACHE_KEY);
+
+    if (cached) {
+      return NextResponse.json(
+        { success: true, ...cached },
+        {
+          headers: {
+            "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+          },
+        }
+      );
+    }
+
     const [categories, featuredProducts, comboDeals, siteSettings, theme, banners] =
       await Promise.all([
         prisma.category.findMany({
@@ -83,6 +97,15 @@ export async function GET() {
       banners,
     };
 
+    // Cache in high-speed memory for 60 seconds with tags for instant admin invalidation
+    serverCache.set(CACHE_KEY, payload, 60, [
+      "home",
+      "products",
+      "categories",
+      "banners",
+      "settings",
+    ]);
+
     return NextResponse.json(
       {
         success: true,
@@ -90,7 +113,7 @@ export async function GET() {
       },
       {
         headers: {
-          "Cache-Control": "no-store, max-age=0",
+          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
         },
       }
     );

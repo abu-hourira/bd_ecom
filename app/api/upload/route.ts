@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
+import sharp from "sharp";
 
 export async function POST(req: NextRequest) {
   try {
@@ -22,36 +23,54 @@ export async function POST(req: NextRequest) {
     }
 
     const uploadedUrls: string[] = [];
-    const isServerless = process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NODE_ENV === "production";
+    const isVercel = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
 
     for (const file of fileList) {
       const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      const mimeType = file.type || "image/png";
+      const rawBuffer = Buffer.from(bytes);
 
-      // 1. If on Cloud / Vercel Serverless where disk is read-only, store as high-speed Data URI
-      if (isServerless) {
-        const base64Data = `data:${mimeType};base64,${buffer.toString("base64")}`;
-        uploadedUrls.push(base64Data);
-      } else {
-        // 2. If on local machine with writable disk, store in /public/uploads
+      // High-performance WebP compression with Sharp (max 1200px, quality 82)
+      let compressedBuffer: Buffer;
+      try {
+        compressedBuffer = await sharp(rawBuffer)
+          .rotate() // Auto-orient from EXIF
+          .resize({
+            width: 1200,
+            height: 1200,
+            fit: "inside",
+            withoutEnlargement: true,
+          })
+          .webp({ quality: 82, effort: 4 })
+          .toBuffer();
+      } catch (sharpErr) {
+        console.warn("[Upload Sharp Fallback]:", sharpErr);
+        compressedBuffer = rawBuffer;
+      }
+
+      const cleanBase = path
+        .basename(file.name, path.extname(file.name))
+        .replace(/[^a-zA-Z0-9_-]/g, "_")
+        .substring(0, 30);
+      const uniqueName = `${cleanBase}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.webp`;
+
+      // 1. If on persistent disk (cPanel, VPS, Docker, Windows, Linux)
+      if (!isVercel) {
         try {
           const uploadDir = path.join(process.cwd(), "public", "uploads");
           await mkdir(uploadDir, { recursive: true });
-
-          const ext = path.extname(file.name) || ".png";
-          const cleanBase = path.basename(file.name, ext).replace(/[^a-zA-Z0-9_-]/g, "_");
-          const uniqueName = `${cleanBase}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}${ext}`;
           const filePath = path.join(uploadDir, uniqueName);
 
-          await writeFile(filePath, buffer);
+          await writeFile(filePath, compressedBuffer);
           uploadedUrls.push(`/uploads/${uniqueName}`);
+          continue;
         } catch (diskErr) {
-          // Fallback to Data URI if disk is not writable
-          const base64Data = `data:${mimeType};base64,${buffer.toString("base64")}`;
-          uploadedUrls.push(base64Data);
+          console.warn("[Upload Disk Write Fallback to Data URI]:", diskErr);
         }
       }
+
+      // 2. Fallback to compact WebP Data URI for read-only serverless
+      const base64Data = `data:image/webp;base64,${compressedBuffer.toString("base64")}`;
+      uploadedUrls.push(base64Data);
     }
 
     return NextResponse.json({

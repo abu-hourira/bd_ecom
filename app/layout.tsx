@@ -1,5 +1,6 @@
 // app/layout.tsx
 import type { Metadata } from "next";
+import { Hind_Siliguri, Fraunces, Baloo_Da_2, Space_Mono } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
 import { StorefrontProvider } from "@/context/StorefrontContext";
 import { CartProvider } from "@/context/CartContext";
@@ -11,6 +12,34 @@ import CustomerAiWidget from "@/components/storefront/CustomerAiWidget";
 import CookieConsent from "@/components/storefront/CookieConsent";
 import MobileBottomNav from "@/components/storefront/MobileBottomNav";
 import "./globals.css";
+
+const hindSiliguri = Hind_Siliguri({
+  subsets: ["bengali", "latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-body",
+  display: "swap",
+});
+
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
+  variable: "--font-display",
+  display: "swap",
+});
+
+const balooDa2 = Baloo_Da_2({
+  subsets: ["bengali", "latin"],
+  weight: ["500", "600", "700", "800"],
+  variable: "--font-bengali-display",
+  display: "swap",
+});
+
+const spaceMono = Space_Mono({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  variable: "--font-mono",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "ENMAR — 100% Pure Organic Food & Pantry Essentials",
@@ -27,16 +56,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="bn" suppressHydrationWarning className="overflow-x-hidden max-w-[100vw]">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Baloo+Da+2:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Hind+Siliguri:wght@300;400;500;600;700&family=Noto+Serif+Bengali:wght@400;600;700&family=Space+Mono:wght@400;700&family=Work+Sans:wght@400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
-      </head>
-      <body className="min-h-screen bg-[#FAF8F5] text-stone-900 antialiased overflow-x-hidden max-w-[100vw] w-full relative" suppressHydrationWarning>
+    <html
+      lang="bn"
+      suppressHydrationWarning
+      className={`overflow-x-hidden max-w-[100vw] ${hindSiliguri.variable} ${fraunces.variable} ${balooDa2.variable} ${spaceMono.variable}`}
+    >
+      <body className="min-h-screen bg-[#FAF8F5] text-stone-900 antialiased overflow-x-hidden max-w-[100vw] w-full relative font-body" suppressHydrationWarning>
         <AuthProvider>
           <StorefrontProvider>
             <FeatureFlagProvider>

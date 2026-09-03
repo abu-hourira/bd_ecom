@@ -1,6 +1,7 @@
 // app/api/admin/banners/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { serverCache } from "@/lib/serverCache";
 
 export async function GET() {
   try {
@@ -33,6 +34,9 @@ export async function POST(req: NextRequest) {
         isActive: isActive !== undefined ? Boolean(isActive) : true,
       },
     });
+
+    serverCache.invalidateTag("banners");
+    serverCache.invalidateTag("home");
 
     return NextResponse.json({ success: true, banner }, { status: 201 });
   } catch (error: any) {

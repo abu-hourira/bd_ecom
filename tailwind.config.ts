@@ -37,11 +37,11 @@ const config: Config = {
         line: "var(--line, #e5e7eb)",
       },
       fontFamily: {
-        display: ["var(--font-display)", "Baloo Da 2", "Noto Serif Bengali", "Fraunces", "serif"],
-        body: ["var(--font-body)", "Hind Siliguri", "Work Sans", "DM Sans", "sans-serif"],
-        bengali: ["Hind Siliguri", "Noto Sans Bengali", "sans-serif"],
-        bengaliDisplay: ["Baloo Da 2", "Noto Serif Bengali", "serif"],
-        mono: ["var(--font-mono)", "Space Mono", "monospace"],
+        display: ["var(--font-display)", "var(--font-bengali-display)", "serif"],
+        body: ["var(--font-body)", "sans-serif"],
+        bengali: ["var(--font-body)", "sans-serif"],
+        bengaliDisplay: ["var(--font-bengali-display)", "var(--font-display)", "serif"],
+        mono: ["var(--font-mono)", "monospace"],
       },
       boxShadow: {
         premium: "0 10px 30px -10px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03)",

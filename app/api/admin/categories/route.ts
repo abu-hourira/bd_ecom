@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
+import { serverCache } from "@/lib/serverCache";
 
 export async function GET() {
   try {
@@ -46,6 +47,9 @@ export async function POST(req: NextRequest) {
         isActive: true,
       },
     });
+
+    serverCache.invalidateTag("categories");
+    serverCache.invalidateTag("home");
 
     return NextResponse.json({ success: true, category }, { status: 201 });
   } catch (error: any) {
