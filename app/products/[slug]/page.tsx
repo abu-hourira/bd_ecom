@@ -274,26 +274,71 @@ export default function ProductDetailPage({
               )}
             </div>
 
-            {/* Delivery Discount Offer Banner */}
-            {Number(product.deliveryDiscountMinQty) > 0 && Number(product.deliveryDiscountAmount) > 0 && (
-              <div className="p-3.5 rounded-2xl bg-amber-50/90 border border-amber-200 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-amber-100 flex items-center justify-center shrink-0 text-amber-800">
-                  <Truck className="w-5 h-5" />
-                </div>
-                <div>
-                  <div className="text-xs font-bold text-amber-950">
-                    {locale === "bn"
-                      ? `স্পেশাল ডেলিভারি অফার: ${product.deliveryDiscountMinQty}+ টি কিনলে ডেলিভারি চার্জে ৳${Number(product.deliveryDiscountAmount)} ছাড়!`
-                      : `Special Offer: Buy ${product.deliveryDiscountMinQty}+ units & get ৳${Number(product.deliveryDiscountAmount)} OFF on delivery!`}
+            {/* Multi-Tier Delivery Discount Offer Banner */}
+            {(() => {
+              let tiers: any[] = [];
+              if (Array.isArray(product.deliveryDiscountTiers)) {
+                tiers = product.deliveryDiscountTiers;
+              } else if (typeof product.deliveryDiscountTiers === "string") {
+                try {
+                  tiers = JSON.parse(product.deliveryDiscountTiers);
+                } catch (e) {}
+              }
+              if (tiers.length === 0 && Number(product.deliveryDiscountMinQty) > 0 && Number(product.deliveryDiscountAmount) > 0) {
+                tiers.push({ minQty: product.deliveryDiscountMinQty, discountAmount: product.deliveryDiscountAmount });
+              }
+
+              if (tiers.length === 0) return null;
+
+              return (
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50/60 border border-amber-200/80 space-y-3">
+                  <div className="flex items-center gap-2.5 text-amber-950 font-bold text-xs sm:text-sm">
+                    <div className="w-7 h-7 rounded-lg bg-amber-200/60 flex items-center justify-center shrink-0 text-amber-900">
+                      <Truck className="w-4 h-4" />
+                    </div>
+                    <span>
+                      {locale === "bn" ? "🎁 স্পেশাল ডেলিভারি ডিসকাউন্ট অফার" : "🎁 Special Delivery Discount Offers"}
+                    </span>
                   </div>
-                  <div className="text-[11px] text-amber-800 mt-0.5">
-                    {locale === "bn"
-                      ? `কার্টে ${product.deliveryDiscountMinQty} বা তার বেশি পরিমাণ যোগ করলে স্বয়ংক্রিয়ভাবে ডেলিভারি বিল থেকে ৳${Number(product.deliveryDiscountAmount)} কমে যাবে।`
-                      : `Delivery charge will be automatically discounted at checkout.`}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                    {tiers.map((t, idx) => {
+                      const minQ = Number(t.minQty) || 1;
+                      const discA = Number(t.discountAmount) || 0;
+                      const isUnlocked = quantity >= minQ;
+                      return (
+                        <div
+                          key={idx}
+                          className={`p-2.5 rounded-xl border transition-all text-xs flex items-center justify-between ${
+                            isUnlocked
+                              ? "bg-amber-100/80 border-amber-400 font-bold text-amber-950 shadow-2xs"
+                              : "bg-white/80 border-amber-200/60 text-stone-600"
+                          }`}
+                        >
+                          <div>
+                            <span className="block font-semibold">
+                              {minQ}+ {locale === "bn" ? "টি কিনলে" : "Units"}
+                            </span>
+                            <span className="text-[10px] text-amber-800">
+                              {isUnlocked ? "✓ অফার আনলকড!" : `আর ${Math.max(0, minQ - quantity)} টি প্রয়োজন`}
+                            </span>
+                          </div>
+                          <span className="font-mono font-bold text-amber-900">
+                            - ৳{discA}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
+
+                  <p className="text-[11px] text-amber-800">
+                    {locale === "bn"
+                      ? "কার্টে পরিমাণ বাড়ালে ডেলিভারি বিল থেকে স্বয়ংক্রিয়ভাবে সর্বোচ্চ ছাড় প্রযোজ্য হবে।"
+                      : "Higher quantity orders automatically unlock larger delivery discounts."}
+                  </p>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Desktop Quantity & Action Buttons */}
             <div className="hidden md:flex items-center gap-3">

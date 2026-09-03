@@ -90,6 +90,7 @@ export async function POST(req: NextRequest) {
           deliveryDiscountMinQty: product.deliveryDiscountMinQty ? Number(product.deliveryDiscountMinQty) : 0,
           deliveryDiscountAmount: product.deliveryDiscountAmount ? Number(product.deliveryDiscountAmount) : 0,
           deliveryDiscountType: product.deliveryDiscountType || "FIXED",
+          deliveryDiscountTiers: product.deliveryDiscountTiers || null,
           itemImage: imageSrc,
           totalPrice: itemTotal,
         });

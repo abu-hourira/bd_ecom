@@ -1,4 +1,8 @@
-// lib/delivery-calculator.ts
+export interface DeliveryDiscountTier {
+  minQty: number;
+  discountAmount: number;
+  discountType?: "FIXED" | "FREE_SHIPPING";
+}
 
 export interface DeliveryCalculationParams {
   items: Array<{
@@ -11,6 +15,7 @@ export interface DeliveryCalculationParams {
     deliveryDiscountMinQty?: number | null;
     deliveryDiscountAmount?: number | null;
     deliveryDiscountType?: string | null;
+    deliveryDiscountTiers?: DeliveryDiscountTier[] | string | null;
   }>;
   subtotal: number;
   hasFreeShippingPromo?: boolean;
@@ -37,10 +42,10 @@ export interface DeliveryCalculationResult {
 }
 
 /**
- * Calculates weight-based delivery fees accurately with product-level quantity/weight delivery discounts.
+ * Calculates weight-based delivery fees accurately with multi-tiered product-level quantity/weight delivery discounts.
  * Rule: Base delivery fee (e.g. ৳100) covers up to 1.0 KG.
  * Any weight above 1.0 KG is charged per additional KG (e.g. +৳20/kg).
- * Product-specific delivery discounts are applied when minimum quantity/weight is reached.
+ * Supports multiple discount tiers per product (e.g. 2+ pcs -> ৳20 off, 5+ pcs -> ৳50 off, 10+ pcs -> ৳100 off).
  */
 export function calculateDeliveryFee(params: DeliveryCalculationParams): DeliveryCalculationResult {
   const baseFee = params.baseDeliveryFee !== undefined ? Number(params.baseDeliveryFee) : 100;
@@ -49,7 +54,7 @@ export function calculateDeliveryFee(params: DeliveryCalculationParams): Deliver
   const freeThreshold =
     params.freeShippingThreshold !== undefined ? Number(params.freeShippingThreshold) : 1500;
 
-  // 1. Calculate total weight in grams and check product-specific delivery discounts
+  // 1. Calculate total weight in grams and check multi-tier product-specific delivery discounts
   let totalGrams = 0;
   let totalProductDeliveryDiscount = 0;
   const discountedProductNames: string[] = [];
@@ -76,19 +81,47 @@ export function calculateDeliveryFee(params: DeliveryCalculationParams): Deliver
       }
       totalGrams += itemWeight * qty;
 
-      // Check product-level delivery discount eligibility
-      const minQty = Number(item.deliveryDiscountMinQty) || 0;
-      const discountAmt = Number(item.deliveryDiscountAmount) || 0;
-      const discType = item.deliveryDiscountType || "FIXED";
+      // Parse all configured discount tiers for this product
+      let tiers: DeliveryDiscountTier[] = [];
+      if (Array.isArray(item.deliveryDiscountTiers)) {
+        tiers = item.deliveryDiscountTiers;
+      } else if (typeof item.deliveryDiscountTiers === "string") {
+        try {
+          const parsed = JSON.parse(item.deliveryDiscountTiers);
+          if (Array.isArray(parsed)) tiers = parsed;
+        } catch (e) {}
+      }
 
-      if (minQty > 0 && qty >= minQty) {
-        if (discType === "FREE_SHIPPING") {
+      // Add legacy single tier fallback if tiers array is empty
+      const legacyMin = Number(item.deliveryDiscountMinQty) || 0;
+      const legacyAmt = Number(item.deliveryDiscountAmount) || 0;
+      if (tiers.length === 0 && legacyMin > 0 && legacyAmt > 0) {
+        tiers.push({
+          minQty: legacyMin,
+          discountAmount: legacyAmt,
+          discountType: (item.deliveryDiscountType as any) || "FIXED",
+        });
+      }
+
+      // Find all qualifying tiers for current quantity (sorted best discount first)
+      const qualifyingTiers = tiers
+        .filter((t) => Number(t.minQty) > 0 && qty >= Number(t.minQty))
+        .sort((a, b) => {
+          if (a.discountType === "FREE_SHIPPING") return -1;
+          if (b.discountType === "FREE_SHIPPING") return 1;
+          return Number(b.discountAmount || 0) - Number(a.discountAmount || 0);
+        });
+
+      if (qualifyingTiers.length > 0) {
+        const bestTier = qualifyingTiers[0];
+        const tierAmt = Number(bestTier.discountAmount) || 0;
+        if (bestTier.discountType === "FREE_SHIPPING") {
           hasFreeShippingProduct = true;
           if (item.name && !discountedProductNames.includes(item.name)) {
             discountedProductNames.push(item.name);
           }
-        } else if (discountAmt > 0) {
-          totalProductDeliveryDiscount += discountAmt;
+        } else if (tierAmt > 0) {
+          totalProductDeliveryDiscount += tierAmt;
           if (item.name && !discountedProductNames.includes(item.name)) {
             discountedProductNames.push(item.name);
           }

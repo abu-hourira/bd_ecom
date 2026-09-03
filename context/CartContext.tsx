@@ -17,6 +17,7 @@ export interface CartItem {
   deliveryDiscountMinQty?: number | null;
   deliveryDiscountAmount?: number | null;
   deliveryDiscountType?: string | null;
+  deliveryDiscountTiers?: any;
   image: string;
   quantity: number;
 }
@@ -139,6 +140,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
             deliveryDiscountMinQty: product.deliveryDiscountMinQty ? Number(product.deliveryDiscountMinQty) : null,
             deliveryDiscountAmount: product.deliveryDiscountAmount ? Number(product.deliveryDiscountAmount) : null,
             deliveryDiscountType: product.deliveryDiscountType || "FIXED",
+            deliveryDiscountTiers: product.deliveryDiscountTiers || null,
             image: imageSrc,
             quantity,
           },

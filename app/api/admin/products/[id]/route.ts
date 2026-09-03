@@ -95,6 +95,7 @@ export async function PUT(
       deliveryDiscountMinQty: body.deliveryDiscountMinQty !== undefined ? (body.deliveryDiscountMinQty !== null && body.deliveryDiscountMinQty !== "" ? Number(body.deliveryDiscountMinQty) : 0) : existing.deliveryDiscountMinQty,
       deliveryDiscountAmount: body.deliveryDiscountAmount !== undefined ? (body.deliveryDiscountAmount !== null && body.deliveryDiscountAmount !== "" ? Number(body.deliveryDiscountAmount) : 0) : existing.deliveryDiscountAmount,
       deliveryDiscountType: body.deliveryDiscountType !== undefined ? body.deliveryDiscountType : existing.deliveryDiscountType,
+      deliveryDiscountTiers: body.deliveryDiscountTiers !== undefined ? (Array.isArray(body.deliveryDiscountTiers) ? body.deliveryDiscountTiers : []) : (existing.deliveryDiscountTiers as any),
       images: images !== undefined ? (Array.isArray(images) ? images : []) : (existing.images as any),
       description: description !== undefined ? description : existing.description,
       shortDescription: shortDescription !== undefined ? shortDescription : existing.shortDescription,

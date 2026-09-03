@@ -94,6 +94,7 @@ export async function POST(req: NextRequest) {
       deliveryDiscountMinQty: body.deliveryDiscountMinQty !== undefined && body.deliveryDiscountMinQty !== null && body.deliveryDiscountMinQty !== "" ? Number(body.deliveryDiscountMinQty) : 0,
       deliveryDiscountAmount: body.deliveryDiscountAmount !== undefined && body.deliveryDiscountAmount !== null && body.deliveryDiscountAmount !== "" ? Number(body.deliveryDiscountAmount) : 0,
       deliveryDiscountType: body.deliveryDiscountType || "FIXED",
+      deliveryDiscountTiers: Array.isArray(body.deliveryDiscountTiers) ? body.deliveryDiscountTiers : undefined,
       images: Array.isArray(images) ? images : [],
       description: description || "",
       shortDescription: shortDescription || null,

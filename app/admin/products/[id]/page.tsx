@@ -6,7 +6,7 @@ import AlertModal from "@/components/ui/AlertModal";
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Save, Loader2, Leaf, Sparkles, Layers, Trash2 } from "lucide-react";
+import { ArrowLeft, Save, Loader2, Leaf, Sparkles, Layers, Trash2, Plus } from "lucide-react";
 import ImageUploader from "@/components/admin/ImageUploader";
 
 export default function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
@@ -37,6 +37,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     deliveryDiscountMinQty: "0",
     deliveryDiscountAmount: "0",
     deliveryDiscountType: "FIXED",
+    deliveryDiscountTiers: [] as Array<{ minQty: string | number; discountAmount: string | number }>,
     images: [] as string[],
     description: "",
     shortDescription: "",
@@ -57,6 +58,18 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         if (catData.success) setCategories(catData.categories);
         if (prodData.success) {
           const p = prodData.product;
+          let parsedTiers = [];
+          if (Array.isArray(p.deliveryDiscountTiers)) {
+            parsedTiers = p.deliveryDiscountTiers;
+          } else if (typeof p.deliveryDiscountTiers === "string") {
+            try {
+              parsedTiers = JSON.parse(p.deliveryDiscountTiers);
+            } catch (e) {}
+          }
+          if (parsedTiers.length === 0 && Number(p.deliveryDiscountMinQty) > 0 && Number(p.deliveryDiscountAmount) > 0) {
+            parsedTiers.push({ minQty: p.deliveryDiscountMinQty, discountAmount: p.deliveryDiscountAmount });
+          }
+
           setFormData({
             name: p.name || "",
             categoryId: p.categoryId ? String(p.categoryId) : "",
@@ -75,6 +88,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             deliveryDiscountMinQty: String(p.deliveryDiscountMinQty || p.delivery_discount_min_qty || 0),
             deliveryDiscountAmount: String(p.deliveryDiscountAmount || p.delivery_discount_amount || 0),
             deliveryDiscountType: p.deliveryDiscountType || p.delivery_discount_type || "FIXED",
+            deliveryDiscountTiers: parsedTiers,
             images: Array.isArray(p.images) ? p.images : [],
             description: p.description || "",
             shortDescription: p.shortDescription || "",
@@ -352,46 +366,100 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
               </p>
             </div>
 
-            {/* Product-Level Delivery Discount Promotion */}
-            <div className="sm:col-span-2 p-4 rounded-2xl bg-amber-50/50 border border-amber-200/70 space-y-4">
-              <div className="flex items-center gap-2 text-amber-900 font-bold text-sm">
-                <span>🚚 ওজনের ওপর ভিত্তি করে ডেলিভারি ডিসকাউন্ট (ঐচ্ছিক)</span>
-              </div>
-              <p className="text-xs text-amber-800/80">
-                নির্দিষ্ট পরিমাণ বা ওজনে এই পণ্য কিনলে ডেলিভারি চার্জে বিশেষ ছাড় সেট করুন। (যেমন: ৩ পিস বা ৩ কেজি নিলে ডেলিভারি চার্জে ৳৩০ ছাড়)।
-              </p>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold text-stone-800">
-                    মিনিমাম ক্রয়ের পরিমাণ (পিস/প্যাক)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="e.g. 3 (0 = কোনো অফার নেই)"
-                    value={formData.deliveryDiscountMinQty}
-                    onChange={(e) => setFormData({ ...formData, deliveryDiscountMinQty: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl bg-white border border-amber-200 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-                  />
-                  <p className="text-[10px] text-stone-500">গ্রাহক এই সংখ্যা বা এর বেশি অর্ডার করলে ছাড় পাবে</p>
+            {/* Product-Level Multi-Tier Delivery Discount Promotion */}
+            <div className="sm:col-span-2 p-5 rounded-2xl bg-amber-50/60 border border-amber-200/80 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-amber-950 font-bold text-sm">
+                  <span>🚚 বিভিন্ন পরিমাণ/ওজনে একাধিক ডেলিভারি ডিসকাউন্ট স্ল্যাব (Multi-Tier Offers)</span>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextMin = (formData.deliveryDiscountTiers.length + 1) * 2;
+                    const nextDisc = (formData.deliveryDiscountTiers.length + 1) * 20;
+                    setFormData({
+                      ...formData,
+                      deliveryDiscountTiers: [
+                        ...formData.deliveryDiscountTiers,
+                        { minQty: nextMin, discountAmount: nextDisc },
+                      ],
+                    });
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>+ নতুন স্ল্যাব যোগ করুন</span>
+                </button>
+              </div>
 
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-semibold text-stone-800">
-                    ডেলিভারি চার্জে ছাড়ের পরিমাণ (৳)
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="e.g. 30 (টাকা ছাড়)"
-                    value={formData.deliveryDiscountAmount}
-                    onChange={(e) => setFormData({ ...formData, deliveryDiscountAmount: e.target.value })}
-                    className="w-full px-3.5 py-2 rounded-xl bg-white border border-amber-200 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/20"
-                  />
-                  <p className="text-[10px] text-stone-500">ডেলিভারি বিল থেকে যত টাকা ছাড় পাবে</p>
+              <p className="text-xs text-amber-800/80">
+                এই পণ্যে গ্রাহককে একাধিক পরিমাণে ক্রয়ের ওপর বিভিন্ন মাত্রার ডেলিভারি ছাড় দিতে পারেন (যেমন: ২ পিস নিলে ৳২০ ছাড়, ৫ পিস নিলে ৳৫০ ছাড়, ১০ পিস নিলে ৳১০০ ছাড়)।
+              </p>
+
+              {formData.deliveryDiscountTiers.length === 0 ? (
+                <div className="text-center py-4 px-3 rounded-xl bg-amber-100/40 border border-dashed border-amber-300 text-xs text-amber-800">
+                  বর্তমানে কোনো ডিসকাউন্ট স্ল্যাব নেই। <strong>"+ নতুন স্ল্যাব যোগ করুন"</strong> বাটনে ক্লিক করে অফার তৈরি করুন।
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-3">
+                  {formData.deliveryDiscountTiers.map((tier, idx) => (
+                    <div
+                      key={idx}
+                      className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center bg-white p-3.5 rounded-xl border border-amber-200/80 shadow-xs"
+                    >
+                      <div className="sm:col-span-5 space-y-1">
+                        <label className="block text-[11px] font-semibold text-stone-700">
+                          মিনিমাম পরিমাণ/ওজন (পিস বা কেজি)
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          placeholder="e.g. 2, 5, 10"
+                          value={tier.minQty}
+                          onChange={(e) => {
+                            const updated = [...formData.deliveryDiscountTiers];
+                            updated[idx].minQty = e.target.value;
+                            setFormData({ ...formData, deliveryDiscountTiers: updated });
+                          }}
+                          className="w-full px-3 py-1.5 rounded-lg bg-stone-50 border border-stone-200 text-xs font-mono focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div className="sm:col-span-5 space-y-1">
+                        <label className="block text-[11px] font-semibold text-stone-700">
+                          ডেলিভারি ছাড়ের পরিমাণ (৳)
+                        </label>
+                        <input
+                          type="number"
+                          min="1"
+                          placeholder="e.g. 20, 50, 100"
+                          value={tier.discountAmount}
+                          onChange={(e) => {
+                            const updated = [...formData.deliveryDiscountTiers];
+                            updated[idx].discountAmount = e.target.value;
+                            setFormData({ ...formData, deliveryDiscountTiers: updated });
+                          }}
+                          className="w-full px-3 py-1.5 rounded-lg bg-stone-50 border border-stone-200 text-xs font-mono focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div className="sm:col-span-2 flex justify-end pt-3 sm:pt-4">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = formData.deliveryDiscountTiers.filter((_, i) => i !== idx);
+                            setFormData({ ...formData, deliveryDiscountTiers: updated });
+                          }}
+                          className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                          title="রিমুভ করুন"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="space-y-2 sm:col-span-2">

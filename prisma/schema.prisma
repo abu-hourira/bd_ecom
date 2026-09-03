@@ -167,6 +167,7 @@ model Product {
   deliveryDiscountMinQty Int?   @default(0) @map("delivery_discount_min_qty") // e.g. buy 3+ units for delivery discount
   deliveryDiscountAmount Decimal? @default(0) @map("delivery_discount_amount") @db.Decimal(10, 2) // Discount amount in Taka
   deliveryDiscountType   String?  @default("FIXED") @map("delivery_discount_type") // "FIXED" | "FREE_SHIPPING"
+  deliveryDiscountTiers  Json?    @map("delivery_discount_tiers") // Array of { minQty: number, discountAmount: number, discountType?: string }
   images            Json        // Array of image URLs
   description       String      @db.LongText
   shortDescription  String?     @db.Text

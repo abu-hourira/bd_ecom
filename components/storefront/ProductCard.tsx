@@ -100,11 +100,34 @@ export default function ProductCard({ product }: ProductCardProps) {
             </span>
           )}
 
-          {Number(product.deliveryDiscountMinQty) > 0 && Number(product.deliveryDiscountAmount) > 0 && (
-            <div className="mt-1 inline-flex items-center gap-1 text-[9px] sm:text-[10px] text-amber-800 bg-amber-50/80 px-1.5 py-0.5 rounded-md font-semibold border border-amber-200/70 truncate">
-              <span>🚚 {product.deliveryDiscountMinQty}+ টিতে ৳{Number(product.deliveryDiscountAmount)} ডেলিভারি ছাড়</span>
-            </div>
-          )}
+          {(() => {
+            let tiers: any[] = [];
+            if (Array.isArray(product.deliveryDiscountTiers)) {
+              tiers = product.deliveryDiscountTiers;
+            } else if (typeof product.deliveryDiscountTiers === "string") {
+              try {
+                tiers = JSON.parse(product.deliveryDiscountTiers);
+              } catch (e) {}
+            }
+            if (tiers.length === 0 && Number(product.deliveryDiscountMinQty) > 0 && Number(product.deliveryDiscountAmount) > 0) {
+              tiers.push({ minQty: product.deliveryDiscountMinQty, discountAmount: product.deliveryDiscountAmount });
+            }
+
+            if (tiers.length > 0) {
+              const firstTier = tiers[0];
+              const maxDisc = Math.max(...tiers.map((t) => Number(t.discountAmount) || 0));
+              return (
+                <div className="mt-1 inline-flex items-center gap-1 text-[9px] sm:text-[10px] text-amber-850 bg-amber-50/90 px-1.5 py-0.5 rounded-md font-semibold border border-amber-200/80 truncate">
+                  <span>
+                    🚚 {tiers.length > 1
+                      ? `${firstTier.minQty}+ টিতে ৳${firstTier.discountAmount} থেকে ৳${maxDisc} পর্যন্ত ছাড়`
+                      : `${firstTier.minQty}+ টিতে ৳${firstTier.discountAmount} ডেলিভারি ছাড়`}
+                  </span>
+                </div>
+              );
+            }
+            return null;
+          })()}
         </div>
       </Link>
 
