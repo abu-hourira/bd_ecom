@@ -1,477 +1,69 @@
-"use client";
-// app/products/[slug]/page.tsx - Ultra-Polished Mobile & Desktop Product Detail Page
+// app/products/[slug]/page.tsx - Server-rendered Product Detail Page with 0ms Instant Load & Rich SEO
+import { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { getStorefrontProductBySlug } from "@/lib/server/storefront-data";
+import ProductDetailClient from "@/components/storefront/ProductDetailClient";
+import { getProductImages, getSafeImageUrl } from "@/lib/utils";
 
-import { useEffect, useState, use } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import {
-  ShoppingBag,
-  Plus,
-  Minus,
-  Star,
-  Leaf,
-  ShieldCheck,
-  Truck,
-  ArrowRight,
-  Share2,
-  Check,
-  AlertTriangle,
-  CheckCircle2,
-  Sparkles,
-  RotateCcw,
-  Zap,
-} from "lucide-react";
-import StorefrontHeader from "@/components/storefront/Header";
-import StorefrontFooter from "@/components/storefront/Footer";
-import ProductCard from "@/components/storefront/ProductCard";
-import { formatTaka, getProductImages, getSafeImageUrl, formatProductUnit } from "@/lib/utils";
-import { useCart } from "@/context/CartContext";
-import { useLanguage } from "@/context/LanguageContext";
+export const revalidate = 60; // ISR revalidate every 60 seconds
 
-export default function ProductDetailPage({
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const { product } = await getStorefrontProductBySlug(slug);
+
+  if (!product) {
+    return {
+      title: "Product Not Found | ENMAR",
+      description: "Organic product not found",
+    };
+  }
+
+  const images = getProductImages(product.images);
+  const mainImage = images[0] ? getSafeImageUrl(images[0]) : "/assets/logo/logo.png";
+  const desc =
+    product.shortDescription ||
+    product.description?.slice(0, 160) ||
+    `${product.name} - ১০০% বিশুদ্ধ ও অর্গানিক। ক্যাশ অন ডেলিভারিতে সারাদেশে ডেলিভারি।`;
+
+  return {
+    title: `${product.name} | ১০০% খাঁটি অর্গানিক ফুড - ENMAR`,
+    description: desc,
+    openGraph: {
+      title: `${product.name} | ENMAR Organic Food`,
+      description: desc,
+      images: [{ url: mainImage, width: 800, height: 600, alt: product.name }],
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${product.name} | ENMAR Organic Food`,
+      description: desc,
+      images: [mainImage],
+    },
+  };
+}
+
+export default async function ProductDetailPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  const resolvedParams = use(params);
-  const router = useRouter();
-  const { addToCart, setIsCartOpen } = useCart();
-  const { t, locale } = useLanguage();
-
-  const [product, setProduct] = useState<any>(() => {
-    if (typeof window !== "undefined" && resolvedParams.slug) {
-      try {
-        const homeCache = sessionStorage.getItem("enmar_home_data_cache_v2") || localStorage.getItem("enmar_home_data_cache_v2");
-        if (homeCache) {
-          const parsed = JSON.parse(homeCache);
-          const found = (parsed?.data?.featuredProducts || []).find((p: any) => p.slug === resolvedParams.slug);
-          if (found) return found;
-        }
-      } catch (e) {}
-    }
-    return null;
-  });
-  const [related, setRelated] = useState<any[]>([]);
-  const [loading, setLoading] = useState(() => !product);
-  const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const [quantity, setQuantity] = useState(1);
-  const [copied, setCopied] = useState(false);
-  const [added, setAdded] = useState(false);
-
-  useEffect(() => {
-    fetch(`/api/storefront/products/${resolvedParams.slug}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.product) {
-          setProduct(data.product);
-          setRelated(data.related || []);
-        }
-      })
-      .catch((e) => console.error(e))
-      .finally(() => setLoading(false));
-  }, [resolvedParams.slug]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#FAF8F5] flex flex-col justify-between">
-        <StorefrontHeader />
-        <div className="py-24 text-center text-stone-500 space-y-3">
-          <div className="w-12 h-12 rounded-2xl bg-stone-200/80 animate-pulse mx-auto" />
-          <p className="text-xs font-semibold">{locale === "bn" ? "পণ্য লোড হচ্ছে..." : "Loading product details..."}</p>
-        </div>
-        <StorefrontFooter />
-      </div>
-    );
-  }
+  const { slug } = await params;
+  const { product, related } = await getStorefrontProductBySlug(slug);
 
   if (!product) {
-    return (
-      <div className="min-h-screen bg-[#FAF8F5] flex flex-col justify-between">
-        <StorefrontHeader />
-        <div className="max-w-xl mx-auto py-24 text-center px-4 space-y-4">
-          <h2 className="text-xl font-bold font-display text-stone-900">
-            {locale === "bn" ? "পণ্যটি পাওয়া যায়নি" : "Product Not Found"}
-          </h2>
-          <p className="text-xs text-stone-600">
-            {locale === "bn"
-              ? "আপনি যে পণ্যটি খুঁজছেন তা বর্তমানে অনুপলব্ধ অথবা সরানো হয়েছে।"
-              : "The product you requested does not exist or has been removed."}
-          </p>
-          <Link
-            href="/products"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-forest text-white text-xs font-semibold hover:bg-forest-deep transition-all shadow-xs"
-          >
-            <span>{locale === "bn" ? "সবগুলো পণ্য দেখুন" : "View All Products"}</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-        <StorefrontFooter />
-      </div>
-    );
+    notFound();
   }
 
-  const images = getProductImages(product.images);
-  const activeImage = images[activeImageIndex] || images[0];
-
-  const effectivePrice = Number(product.discountPrice || product.price);
-  const hasDiscount =
-    product.discountPrice && Number(product.discountPrice) < Number(product.price);
-  const discountPercent = hasDiscount
-    ? Math.round(
-        ((Number(product.price) - Number(product.discountPrice)) /
-          Number(product.price)) *
-          100
-      )
-    : 0;
-
-  const isOutOfStock = product.stockQuantity <= 0;
-
-  const handleAddToCart = () => {
-    addToCart(product, quantity);
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1500);
-  };
-
-  const handleBuyNow = () => {
-    addToCart(product, quantity);
-    router.push("/checkout");
-  };
-
-  const handleShare = () => {
-    if (navigator.clipboard) {
-      navigator.clipboard.writeText(window.location.href);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-[#FAF8F5] text-stone-900 flex flex-col justify-between overflow-x-hidden">
-      <StorefrontHeader />
-
-      <main className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8 space-y-6 sm:space-y-10 flex-1 w-full pb-28 md:pb-16">
-        {/* 1. Breadcrumbs */}
-        <nav className="flex items-center gap-1.5 text-[11px] sm:text-xs text-stone-500 font-medium overflow-x-auto whitespace-nowrap">
-          <Link href="/" className="hover:text-forest transition-colors">
-            {locale === "bn" ? "হোম" : "Home"}
-          </Link>
-          <span>/</span>
-          <Link href="/products" className="hover:text-forest transition-colors">
-            {locale === "bn" ? "দোকান" : "Shop"}
-          </Link>
-          {product.category && (
-            <>
-              <span>/</span>
-              <Link
-                href={`/products?category=${product.category.slug}`}
-                className="hover:text-forest transition-colors"
-              >
-                {product.category.name}
-              </Link>
-            </>
-          )}
-          <span>/</span>
-          <span className="text-stone-800 font-bold truncate max-w-[150px] sm:max-w-xs">
-            {product.name}
-          </span>
-        </nav>
-
-        {/* 2. Main Product Section (Gallery + Info) */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-10 items-start">
-          {/* Left: Product Images Gallery */}
-          <div className="space-y-3">
-            <div className="relative w-full aspect-square rounded-2xl sm:rounded-3xl bg-white border border-stone-200/80 overflow-hidden shadow-xs flex items-center justify-center">
-              <Image
-                src={getSafeImageUrl(activeImage)}
-                alt={product.name}
-                fill
-                priority
-                className="object-contain p-3 sm:p-6"
-                sizes="(max-width: 1024px) 100vw, 50vw"
-              />
-
-              {/* Badges */}
-              <div className="absolute top-3 left-3 flex flex-col gap-1.5 z-10">
-                {product.isOrganic && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#143520] text-amber-300 text-[10px] font-extrabold uppercase tracking-wider shadow-sm">
-                    <Leaf className="w-3 h-3 text-amber-400" />
-                    <span>{locale === "bn" ? "১০০% অর্গানিক সার্টিফাইড" : "100% Organic"}</span>
-                  </span>
-                )}
-              </div>
-
-              {hasDiscount && (
-                <div className="absolute top-3 right-3 z-10">
-                  <span className="px-2.5 py-1 rounded-lg bg-amber-500 text-stone-950 text-xs font-black tracking-tight shadow-sm">
-                    -{discountPercent}% {locale === "bn" ? "ছাড়" : "OFF"}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Thumbnail Carousel */}
-            {images.length > 1 && (
-              <div className="flex items-center gap-2.5 overflow-x-auto pb-1">
-                {images.map((img: string, idx: number) => (
-                  <button
-                    key={idx}
-                    onClick={() => setActiveImageIndex(idx)}
-                    className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-white border-2 overflow-hidden shrink-0 transition-all cursor-pointer ${
-                      activeImageIndex === idx
-                        ? "border-forest shadow-sm scale-105"
-                        : "border-stone-200 opacity-70 hover:opacity-100"
-                    }`}
-                  >
-                    <Image
-                      src={getSafeImageUrl(img)}
-                      alt={`${product.name} ${idx + 1}`}
-                      fill
-                      className="object-cover p-1"
-                      sizes="80px"
-                    />
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Right: Product Details & CTA */}
-          <div className="space-y-4 sm:space-y-6">
-            <div className="space-y-1.5">
-              {product.category && (
-                <span className="text-[10px] sm:text-xs font-mono font-bold uppercase tracking-wider text-forest bg-forest-soft px-2.5 py-0.5 rounded-full inline-block">
-                  {product.category.name}
-                </span>
-              )}
-
-              {formatProductUnit(product.unitQuantity, product.unit) && (
-                <span className="text-xs sm:text-sm text-stone-500 font-medium block">
-                  {locale === "bn" ? "পরিমাণ:" : "Pack Size:"}{" "}
-                  <strong className="text-stone-800 font-bold">
-                    {formatProductUnit(product.unitQuantity, product.unit)}
-                  </strong>
-                </span>
-              )}
-            </div>
-
-            {/* Price Box */}
-            <div className="p-3.5 sm:p-4 rounded-2xl bg-white border border-stone-200/80 flex items-baseline justify-between">
-              <div className="flex items-baseline gap-2 flex-wrap">
-                <span className="text-2xl sm:text-3xl font-extrabold font-mono text-forest">
-                  {formatTaka(effectivePrice)}
-                </span>
-                {formatProductUnit(product.unitQuantity, product.unit) && (
-                  <span className="text-xs sm:text-sm font-medium text-stone-500">
-                    / {formatProductUnit(product.unitQuantity, product.unit)}
-                  </span>
-                )}
-                {hasDiscount && (
-                  <span className="text-sm sm:text-base font-mono text-stone-400 line-through ml-1">
-                    {formatTaka(Number(product.price))}
-                  </span>
-                )}
-              </div>
-
-              {/* Stock Badge */}
-              {isOutOfStock ? (
-                <span className="px-2.5 py-1 rounded-lg bg-red-100 text-red-700 text-xs font-bold">
-                  {locale === "bn" ? "স্টক শেষ" : "Out of Stock"}
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>{locale === "bn" ? "স্টকে আছে" : "In Stock"}</span>
-                </span>
-              )}
-            </div>
-
-            {/* Multi-Tier Delivery Discount Offer Banner */}
-            {(() => {
-              let tiers: any[] = [];
-              if (Array.isArray(product.deliveryDiscountTiers)) {
-                tiers = product.deliveryDiscountTiers;
-              } else if (typeof product.deliveryDiscountTiers === "string") {
-                try {
-                  tiers = JSON.parse(product.deliveryDiscountTiers);
-                } catch (e) {}
-              }
-              if (tiers.length === 0 && Number(product.deliveryDiscountMinQty) > 0 && Number(product.deliveryDiscountAmount) > 0) {
-                tiers.push({ minQty: product.deliveryDiscountMinQty, discountAmount: product.deliveryDiscountAmount });
-              }
-
-              if (tiers.length === 0) return null;
-
-              return (
-                <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50/60 border border-amber-200/80 space-y-3">
-                  <div className="flex items-center gap-2.5 text-amber-950 font-bold text-xs sm:text-sm">
-                    <div className="w-7 h-7 rounded-lg bg-amber-200/60 flex items-center justify-center shrink-0 text-amber-900">
-                      <Truck className="w-4 h-4" />
-                    </div>
-                    <span>
-                      {locale === "bn" ? "🎁 স্পেশাল ডেলিভারি ডিসকাউন্ট অফার" : "🎁 Special Delivery Discount Offers"}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                    {tiers.map((t, idx) => {
-                      const minQ = Number(t.minQty) || 1;
-                      const discA = Number(t.discountAmount) || 0;
-                      const isUnlocked = quantity >= minQ;
-                      return (
-                        <div
-                          key={idx}
-                          className={`p-2.5 rounded-xl border transition-all text-xs flex items-center justify-between ${
-                            isUnlocked
-                              ? "bg-amber-100/80 border-amber-400 font-bold text-amber-950 shadow-2xs"
-                              : "bg-white/80 border-amber-200/60 text-stone-600"
-                          }`}
-                        >
-                          <div>
-                            <span className="block font-semibold">
-                              {minQ}+ {locale === "bn" ? "টি কিনলে" : "Units"}
-                            </span>
-                            <span className="text-[10px] text-amber-800">
-                              {isUnlocked ? "✓ অফার আনলকড!" : `আর ${Math.max(0, minQ - quantity)} টি প্রয়োজন`}
-                            </span>
-                          </div>
-                          <span className="font-mono font-bold text-amber-900">
-                            - ৳{discA}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <p className="text-[11px] text-amber-800">
-                    {locale === "bn"
-                      ? "কার্টে পরিমাণ বাড়ালে ডেলিভারি বিল থেকে স্বয়ংক্রিয়ভাবে সর্বোচ্চ ছাড় প্রযোজ্য হবে।"
-                      : "Higher quantity orders automatically unlock larger delivery discounts."}
-                  </p>
-                </div>
-              );
-            })()}
-
-            {/* Main Quantity Stepper & Action Buttons (Mobile + Desktop Visible) */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 pt-1">
-              <div className="flex items-center gap-2">
-                {/* Stepper */}
-                <div className="flex items-center border border-stone-200 rounded-xl bg-white p-1 shadow-2xs">
-                  <button
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="w-9 h-9 flex items-center justify-center text-stone-700 hover:bg-stone-100 active:bg-stone-200 rounded-lg cursor-pointer transition-colors"
-                    aria-label="Decrease quantity"
-                  >
-                    <Minus className="w-4 h-4" />
-                  </button>
-                  <span className="w-10 text-center font-mono font-bold text-sm text-stone-900">
-                    {quantity}
-                  </span>
-                  <button
-                    onClick={() => setQuantity(quantity + 1)}
-                    className="w-9 h-9 flex items-center justify-center text-stone-700 hover:bg-stone-100 active:bg-stone-200 rounded-lg cursor-pointer transition-colors"
-                    aria-label="Increase quantity"
-                  >
-                    <Plus className="w-4 h-4" />
-                  </button>
-                </div>
-
-                {/* Mobile Buy Now Button (Inline for instant 1-tap checkout) */}
-                <button
-                  onClick={handleBuyNow}
-                  disabled={isOutOfStock}
-                  className="flex-1 sm:hidden py-3 px-4 rounded-xl font-bold text-xs bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-stone-950 shadow-sm transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                >
-                  <Zap className="w-4 h-4 text-stone-950 fill-stone-950" />
-                  <span>{locale === "bn" ? "অর্ডার করুন" : "Buy Now"}</span>
-                </button>
-              </div>
-
-              {/* Add to Cart Button */}
-              <button
-                onClick={handleAddToCart}
-                disabled={isOutOfStock}
-                className={`flex-1 py-3 px-5 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer active:scale-98 ${
-                  added
-                    ? "bg-emerald-600 text-white"
-                    : "bg-forest hover:bg-forest-deep active:bg-forest-deep text-white"
-                }`}
-              >
-                {added ? (
-                  <>
-                    <Check className="w-4 h-4" />
-                    <span>{locale === "bn" ? "কার্টে যোগ করা হয়েছে" : "Added to Cart"}</span>
-                  </>
-                ) : (
-                  <>
-                    <ShoppingBag className="w-4 h-4 text-amber-400" />
-                    <span>{locale === "bn" ? "কার্টে যোগ করুন" : "Add to Cart"}</span>
-                  </>
-                )}
-              </button>
-
-              {/* Desktop Buy Now */}
-              <button
-                onClick={handleBuyNow}
-                disabled={isOutOfStock}
-                className="hidden sm:flex py-3 px-6 rounded-xl font-bold text-sm bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-stone-950 shadow-sm transition-all cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
-              >
-                <Zap className="w-4 h-4 text-stone-950 fill-stone-950" />
-                <span>{locale === "bn" ? "অর্ডার করুন" : "Buy Now"}</span>
-              </button>
-            </div>
-
-            {/* Trust Badges */}
-            <div className="grid grid-cols-2 gap-2 sm:gap-3 pt-2">
-              <div className="p-2.5 sm:p-3 rounded-xl bg-white border border-stone-200 flex items-center gap-2.5">
-                <Truck className="w-4 h-4 text-forest shrink-0" />
-                <div className="text-[11px] leading-tight">
-                  <strong className="block text-stone-800">{locale === "bn" ? "দ্রুত ডেলিভারি" : "Fast Delivery"}</strong>
-                  <span className="text-stone-500">{locale === "bn" ? "সারা বাংলাদেশে" : "Across Bangladesh"}</span>
-                </div>
-              </div>
-
-              <div className="p-2.5 sm:p-3 rounded-xl bg-white border border-stone-200 flex items-center gap-2.5">
-                <ShieldCheck className="w-4 h-4 text-forest shrink-0" />
-                <div className="text-[11px] leading-tight">
-                  <strong className="block text-stone-800">{locale === "bn" ? "১০০% খাঁটি পণ্য" : "100% Genuine"}</strong>
-                  <span className="text-stone-500">{locale === "bn" ? "ল্যাব টেস্টেড" : "Quality Tested"}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Description */}
-            {product.description && (
-              <div className="p-4 sm:p-5 rounded-2xl bg-white border border-stone-200 space-y-2">
-                <h3 className="font-display font-bold text-xs sm:text-sm text-stone-900">
-                  {locale === "bn" ? "পণ্যের বিবরণ:" : "Product Description:"}
-                </h3>
-                <div className="text-xs sm:text-sm text-stone-600 leading-relaxed whitespace-pre-line">
-                  {product.description}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* 3. Related Products Carousel/Grid */}
-        {related.length > 0 && (
-          <section className="space-y-4 pt-4 border-t border-stone-200">
-            <h2 className="text-base sm:text-2xl font-bold font-display text-stone-900 flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-forest" />
-              <span>{locale === "bn" ? "সম্পর্কিত অন্যান্য পণ্য" : "Related Organic Products"}</span>
-            </h2>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-6">
-              {related.map((item: any) => (
-                <ProductCard key={item.id} product={item} />
-              ))}
-            </div>
-          </section>
-        )}
-      </main>
-
-      <StorefrontFooter />
-    </div>
+    <ProductDetailClient
+      initialProduct={product}
+      initialRelated={related}
+      slug={slug}
+    />
   );
 }
