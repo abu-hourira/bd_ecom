@@ -544,6 +544,10 @@ model AIConversationLog {
   id           Int      @id @default(autoincrement())
   sessionId    String
   userId       Int?
+  provider     String?  @default("gemini_web2api")
+  modelName    String?  @default("gemini-3.6-flash")
+  latencyMs    Int?     @default(0)
+  source       String?  @default("STOREFRONT") // STOREFRONT | ADMIN
   userMessage  String   @db.Text
   aiResponse   String   @db.Text
   tokensUsed   Int      @default(0)
@@ -553,6 +557,8 @@ model AIConversationLog {
   user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([sessionId])
+  @@index([createdAt])
+  @@index([provider])
   @@map("ai_conversation_logs")
 }
 

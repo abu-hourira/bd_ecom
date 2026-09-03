@@ -44,8 +44,21 @@ export interface CookieAccountItem {
   preview: string;
 }
 
+export interface AILogItem {
+  id: number;
+  sessionId: string;
+  provider?: string;
+  modelName?: string;
+  latencyMs?: number;
+  source?: string;
+  userMessage: string;
+  aiResponse: string;
+  tokensUsed: number;
+  createdAt: string;
+}
+
 export default function AdminAiPage() {
-  const [activeTab, setActiveTab] = useState<"assistant" | "settings" | "cookies">("assistant");
+  const [activeTab, setActiveTab] = useState<"assistant" | "settings" | "cookies" | "logs">("assistant");
 
   // Chat State
   const [messages, setMessages] = useState<
@@ -71,6 +84,13 @@ export default function AdminAiPage() {
   const [savingCookie, setSavingCookie] = useState(false);
   const [deletingCookieName, setDeletingCookieName] = useState<string | null>(null);
   const [testingPool, setTestingPool] = useState(false);
+
+  // AI Telemetry Logs State
+  const [aiLogs, setAiLogs] = useState<AILogItem[]>([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
+  const [logSourceFilter, setLogSourceFilter] = useState<"ALL" | "STOREFRONT" | "ADMIN">("ALL");
+  const [clearingLogs, setClearingLogs] = useState(false);
+  const [expandedLogId, setExpandedLogId] = useState<number | null>(null);
 
   // Settings State
   const [provider, setProvider] = useState("openai");
@@ -449,6 +469,42 @@ export default function AdminAiPage() {
     }
   };
 
+  const fetchAiLogs = async (source = logSourceFilter) => {
+    setLoadingLogs(true);
+    try {
+      const res = await fetch(`/api/admin/ai/logs?source=${source}`);
+      const json = await res.json();
+      if (json.success && json.logs) {
+        setAiLogs(json.logs);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingLogs(false);
+    }
+  };
+
+  const handleClearLogs = async () => {
+    setClearingLogs(true);
+    try {
+      const res = await fetch("/api/admin/ai/logs", { method: "DELETE" });
+      const json = await res.json();
+      if (json.success) {
+        setAiLogs([]);
+        setAlertState({
+          isOpen: true,
+          title: "Logs Cleared",
+          message: "All AI telemetry logs have been cleared.",
+          type: "success",
+        });
+      }
+    } catch (e: any) {
+      setAlertState({ isOpen: true, title: "Error", message: e.message, type: "error" });
+    } finally {
+      setClearingLogs(false);
+    }
+  };
+
   const activeProviderInfo = AI_PROVIDER_DEFAULTS[provider] || AI_PROVIDER_DEFAULTS.custom;
 
   return (
@@ -509,6 +565,27 @@ export default function AdminAiPage() {
                 activeTab === "cookies" ? "bg-white/20 text-white" : "bg-forest-soft text-forest"
               }`}>
                 {cookieAccounts.length}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab("logs");
+              fetchAiLogs();
+            }}
+            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+              activeTab === "logs"
+                ? "bg-forest text-white shadow-xs"
+                : "text-ink hover:text-forest"
+            }`}
+          >
+            <Activity className="w-3.5 h-3.5 text-blue-500" />
+            <span>Live Telemetry & Audit Logs</span>
+            {aiLogs.length > 0 && (
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                activeTab === "logs" ? "bg-white/20 text-white" : "bg-blue-50 text-blue-700"
+              }`}>
+                {aiLogs.length}
               </span>
             )}
           </button>
@@ -1120,6 +1197,156 @@ export default function AdminAiPage() {
                     >
                       <Trash className="w-3.5 h-3.5" />
                     </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab 4: Live Telemetry & Audit Logs */}
+      {activeTab === "logs" && (
+        <div className="space-y-6">
+          {/* Header Card with Metrics */}
+          <div className="bg-paper p-6 sm:p-8 rounded-3xl border border-line shadow-card flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="p-2 rounded-xl bg-blue-50 text-blue-700">
+                  <Activity className="w-5 h-5" />
+                </span>
+                <h3 className="text-lg font-bold font-display text-ink">
+                  Live AI Telemetry & Audit Logs
+                </h3>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 text-blue-700 font-mono">
+                  Real-time Tracking
+                </span>
+              </div>
+              <p className="text-xs text-ink-soft">
+                এখানে আপনি দেখতে পাবেন কোন সময়ে কাস্টমার বা অ্যাডমিন কোন AI মডেল ব্যবহার করেছে, রেসপন্স স্পিড (Latency) কত ছিল এবং কি প্রশ্ন-উত্তর হয়েছে।
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={() => fetchAiLogs(logSourceFilter)}
+                disabled={loadingLogs}
+                className="px-4 py-2.5 rounded-xl border border-line bg-bg hover:bg-line text-xs font-bold text-ink transition-all flex items-center gap-2 cursor-pointer"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 text-blue-600 ${loadingLogs ? "animate-spin" : ""}`} />
+                <span>Refresh Logs</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleClearLogs}
+                disabled={clearingLogs || aiLogs.length === 0}
+                className="px-4 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Clear All Logs</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Source Filter Tabs */}
+          <div className="flex items-center gap-2">
+            {(["ALL", "STOREFRONT", "ADMIN"] as const).map((src) => (
+              <button
+                key={src}
+                onClick={() => {
+                  setLogSourceFilter(src);
+                  fetchAiLogs(src);
+                }}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  logSourceFilter === src
+                    ? "bg-forest text-white shadow-xs"
+                    : "bg-paper border border-line text-ink-soft hover:text-ink hover:border-forest/50"
+                }`}
+              >
+                {src === "ALL" && "All Logs"}
+                {src === "STOREFRONT" && "Customer Storefront Chat"}
+                {src === "ADMIN" && "Admin Operations Chat"}
+              </button>
+            ))}
+          </div>
+
+          {/* Logs List Table */}
+          {loadingLogs ? (
+            <div className="p-12 text-center text-ink-soft flex items-center justify-center gap-2 bg-paper rounded-3xl border border-line">
+              <Loader2 className="w-5 h-5 animate-spin text-forest" />
+              <span>Fetching telemetry logs...</span>
+            </div>
+          ) : aiLogs.length === 0 ? (
+            <div className="p-12 rounded-3xl border border-dashed border-line text-center space-y-3 bg-paper">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto">
+                <Activity className="w-6 h-6" />
+              </div>
+              <h4 className="text-sm font-bold text-ink">No AI Logs Recorded Yet</h4>
+              <p className="text-xs text-ink-soft max-w-md mx-auto">
+                As customers chat on the storefront or staff interact with the AI assistant, all requests, timestamps, providers, and speeds will be recorded here.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {aiLogs.map((log) => (
+                <div
+                  key={log.id}
+                  className="bg-paper p-5 rounded-3xl border border-line shadow-card hover:border-forest/40 transition-all space-y-3"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`px-2.5 py-1 rounded-lg text-[10.5px] font-bold uppercase tracking-wider ${
+                        log.source === "STOREFRONT"
+                          ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                          : "bg-purple-50 text-purple-800 border border-purple-200"
+                      }`}>
+                        {log.source === "STOREFRONT" ? "🛍️ Customer Chat" : "⚡ Admin Assistant"}
+                      </span>
+
+                      <span className="px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold bg-forest-soft text-forest border border-forest/20">
+                        {log.provider || "gemini_web2api"} • {log.modelName || "gemini-3.6-flash"}
+                      </span>
+
+                      {log.latencyMs ? (
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-mono font-bold bg-amber-50 text-amber-700">
+                          ⚡ {(log.latencyMs / 1000).toFixed(2)}s
+                        </span>
+                      ) : null}
+
+                      {log.tokensUsed ? (
+                        <span className="text-[11px] font-mono text-ink-soft">
+                          {log.tokensUsed} tokens
+                        </span>
+                      ) : null}
+                    </div>
+
+                    <span className="text-[11px] text-ink-soft font-mono">
+                      {new Date(log.createdAt).toLocaleDateString()} {new Date(log.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                    </span>
+                  </div>
+
+                  {/* Question / Prompt */}
+                  <div className="space-y-1">
+                    <p className="text-[11px] font-bold text-ink flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-forest" />
+                      <span>User Question / Prompt:</span>
+                    </p>
+                    <p className="text-xs text-ink bg-bg p-3 rounded-2xl border border-line font-medium leading-relaxed">
+                      {log.userMessage}
+                    </p>
+                  </div>
+
+                  {/* AI Response Preview */}
+                  <div className="space-y-1">
+                    <p className="text-[11px] font-bold text-forest flex items-center gap-1.5">
+                      <Bot className="w-3.5 h-3.5" />
+                      <span>AI Answer:</span>
+                    </p>
+                    <div className="text-xs text-ink-soft bg-forest-soft/30 p-3 rounded-2xl border border-forest/20 leading-relaxed max-h-40 overflow-y-auto whitespace-pre-wrap">
+                      {log.aiResponse}
+                    </div>
                   </div>
                 </div>
               ))}

@@ -279,6 +279,7 @@ CRITICAL OPERATIONAL & ORDERING RULES:
     // 6. Invoke LLM if configured, else provide intelligent contextual response
     let reply = "";
     let tokensUsed = 0;
+    const startTime = Date.now();
 
     if (aiSetting?.apiKeyEncrypted) {
       try {
@@ -308,11 +309,17 @@ CRITICAL OPERATIONAL & ORDERING RULES:
       }
     }
 
+    const latencyMs = Date.now() - startTime;
+
     // 7. Log Conversation Safely (without leaking sensitive data)
     prisma.aIConversationLog
       .create({
         data: {
           sessionId: sessionId || "storefront-chat",
+          provider: aiSetting?.provider || "gemini_web2api",
+          modelName: aiSetting?.modelName || "gemini-3.6-flash",
+          latencyMs,
+          source: "STOREFRONT",
           userMessage: message.trim(),
           aiResponse: reply,
           tokensUsed: tokensUsed || 50,

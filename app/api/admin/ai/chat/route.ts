@@ -116,6 +116,7 @@ ACTION & SAFETY MODEL:
     // 5. Invoke LLM if configured, else intelligent fallback
     let reply = "";
     let tokensUsed = 0;
+    const startTime = Date.now();
 
     if (aiSetting?.apiKeyEncrypted) {
       try {
@@ -137,10 +138,31 @@ ACTION & SAFETY MODEL:
       reply = `🤖 **ENMAR Admin AI Assistant (Standing By)**\n\nTo enable full open-ended conversational AI intelligence with live model reasoning, please input your **API Key** in the **AI Settings** tab above.\n\n**Current Live Store Snapshot:**\n- Catalog: ${totalProducts} Products (${totalCategories} Categories)\n- Registered Customers: ${totalCustomers}\n- Recent Orders: ${recentOrders.length} in queue\n- Low Stock Items: ${lowStockProducts.length}\n\n*Ready to draft product descriptions, analyze sales trends, and create promotional banners once your API key is saved.*`;
     }
 
+    const latencyMs = Date.now() - startTime;
+
+    // Log admin conversation for telemetry audit
+    await prisma.aIConversationLog
+      .create({
+        data: {
+          sessionId: sessionId || "admin-chat",
+          provider: aiSetting?.provider || "gemini_web2api",
+          modelName: aiSetting?.modelName || "gemini-3.6-flash",
+          latencyMs,
+          source: "ADMIN",
+          userMessage: message.trim(),
+          aiResponse: reply,
+          tokensUsed: tokensUsed || 50,
+        },
+      })
+      .catch((e) => console.error("[Log AI Exception]:", e));
+
     return NextResponse.json({
       success: true,
       reply,
       tokensUsed,
+      provider: aiSetting?.provider || "gemini_web2api",
+      modelName: aiSetting?.modelName || "gemini-3.6-flash",
+      latencyMs,
       timestamp: new Date().toISOString(),
     });
   } catch (error: any) {
