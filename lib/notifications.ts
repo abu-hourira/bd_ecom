@@ -134,18 +134,21 @@ export async function sendEmail(
     const pass = (creds.smtpPass || process.env.GMAIL_APP_PASSWORD || process.env.SMTP_PASS || "").replace(/\s+/g, "").trim();
 
     if (!user || !pass) {
-      console.log(`[Email Simulation/Preview] To: ${recipientEmail} | Subject: ${subject}`);
+      console.log(`[Email Warning] No SMTP Configured. To: ${recipientEmail} | Subject: ${subject}`);
       await prisma.notificationLog.create({
         data: {
           channel: "EMAIL",
           recipient: recipientEmail,
           subject,
           content: contentHtml,
-          status: "SENT",
-          errorReason: "Simulation mode (Configure Gmail in Admin -> Notifications or .env GMAIL_USER/GMAIL_APP_PASSWORD)",
+          status: "FAILED",
+          errorReason: "No Gmail SMTP credentials configured in database or .env",
         },
       });
-      return { success: true, messageId: "SIMULATED-EMAIL" };
+      return {
+        success: false,
+        error: "Gmail SMTP গেটওয়ে এখনও কনফিগার করা হয়নি। অ্যাডমিন প্যানেলে (Admin -> Notifications) গিয়ে আপনার Gmail এবং ১৬-সংখ্যার Google App Password সেভ করুন।",
+      };
     }
 
     const isGmail = host.toLowerCase().includes("gmail.com") || user.toLowerCase().endsWith("@gmail.com");

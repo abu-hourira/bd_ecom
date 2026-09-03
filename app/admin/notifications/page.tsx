@@ -127,7 +127,7 @@ export default function AdminNotificationSettingsPage() {
       setTestMessage({ text: "Please enter your Gmail address (Username).", type: "error" });
       return;
     }
-    if (!emailForm.smtpPass.trim()) {
+    if (!emailForm.smtpPass.trim() && !emailGateway?.smtpPass) {
       setTestMessage({ text: "Please enter your 16-character Google App Password.", type: "error" });
       return;
     }
