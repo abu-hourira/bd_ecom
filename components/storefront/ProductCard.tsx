@@ -4,6 +4,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Plus, Leaf, Check, Sparkles } from "lucide-react";
 import { formatTaka, getProductImages, getSafeImageUrl, formatProductUnit } from "@/lib/utils";
 import { useCart } from "@/context/CartContext";
@@ -14,6 +15,7 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
+  const router = useRouter();
   const { addToCart } = useCart();
   const { t, locale } = useLanguage();
   const [added, setAdded] = useState(false);
@@ -34,6 +36,15 @@ export default function ProductCard({ product }: ProductCardProps) {
       )
     : 0;
 
+  const productHref = `/products/${encodeURIComponent(product.slug || String(product.id))}`;
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    // If clicked on an interactive element, let its own handler execute
+    const target = e.target as HTMLElement;
+    if (target.closest("button") || target.closest("a")) return;
+    router.push(productHref);
+  };
+
   const handleAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -43,9 +54,12 @@ export default function ProductCard({ product }: ProductCardProps) {
   };
 
   return (
-    <div className="group bg-white rounded-2xl sm:rounded-3xl border border-stone-200/90 hover:border-forest/40 p-2.5 sm:p-4 flex flex-col justify-between shadow-xs hover:shadow-md transition-all duration-300 relative overflow-hidden active:scale-[0.99]">
+    <div
+      onClick={handleCardClick}
+      className="group bg-white rounded-2xl sm:rounded-3xl border border-stone-200/90 hover:border-forest/40 p-2.5 sm:p-4 flex flex-col justify-between shadow-xs hover:shadow-md transition-all duration-300 relative overflow-hidden active:scale-[0.99] cursor-pointer"
+    >
       {/* 1. Product Image & Badges */}
-      <Link href={`/products/${product.slug}`} className="block">
+      <Link href={productHref} className="block">
         <div className="relative w-full aspect-square rounded-xl sm:rounded-2xl overflow-hidden bg-[#FAF8F5] border border-stone-100 mb-2.5 sm:mb-3 group-hover:scale-[1.02] transition-transform duration-300">
           <Image
             src={imageSrc}
@@ -109,8 +123,15 @@ export default function ProductCard({ product }: ProductCardProps) {
                 tiers = JSON.parse(product.deliveryDiscountTiers);
               } catch (e) {}
             }
-            if (tiers.length === 0 && Number(product.deliveryDiscountMinQty) > 0 && Number(product.deliveryDiscountAmount) > 0) {
-              tiers.push({ minQty: product.deliveryDiscountMinQty, discountAmount: product.deliveryDiscountAmount });
+            if (
+              tiers.length === 0 &&
+              Number(product.deliveryDiscountMinQty) > 0 &&
+              Number(product.deliveryDiscountAmount) > 0
+            ) {
+              tiers.push({
+                minQty: product.deliveryDiscountMinQty,
+                discountAmount: product.deliveryDiscountAmount,
+              });
             }
 
             if (tiers.length > 0) {
@@ -148,6 +169,7 @@ export default function ProductCard({ product }: ProductCardProps) {
 
         {/* Quick Add Button */}
         <button
+          type="button"
           onClick={handleAdd}
           className={`p-1.5 sm:px-3 sm:py-1.5 rounded-xl font-bold text-xs flex items-center justify-center gap-1 transition-all duration-200 cursor-pointer active:scale-90 shrink-0 shadow-xs ${
             added

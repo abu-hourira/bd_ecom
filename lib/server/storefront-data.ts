@@ -120,8 +120,24 @@ export async function getStorefrontProductBySlug(slug: string) {
   if (cached) return cached;
 
   try {
+    const rawSlug = String(slug || "").trim();
+    let decodedSlug = rawSlug;
+    try {
+      decodedSlug = decodeURIComponent(rawSlug).trim();
+    } catch (e) {}
+
+    const isNumeric = !isNaN(Number(rawSlug)) && Number(rawSlug) > 0;
+    const numericId = isNumeric ? Number(rawSlug) : null;
+
     const product = await prisma.product.findFirst({
-      where: { slug, isActive: true },
+      where: {
+        OR: [
+          { slug: rawSlug },
+          { slug: decodedSlug },
+          ...(numericId ? [{ id: numericId }] : []),
+        ],
+        isActive: true,
+      },
       include: {
         category: {
           select: { id: true, name: true, slug: true },
