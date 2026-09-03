@@ -1,8 +1,68 @@
 // app/api/upload/route.ts
+// Multi-Tier High-Performance Image Uploader: Cloudinary -> ImgBB -> Local Disk -> Compact WebP
+
 import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import path from "path";
 import sharp from "sharp";
+
+async function uploadToCloudinary(buffer: Buffer, filename: string): Promise<string | null> {
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  const apiKey = process.env.CLOUDINARY_API_KEY;
+  const apiSecret = process.env.CLOUDINARY_API_SECRET;
+  const uploadPreset = process.env.CLOUDINARY_UPLOAD_PRESET || "ml_default";
+
+  if (!cloudName) return null;
+
+  try {
+    const formData = new FormData();
+    const blob = new Blob([new Uint8Array(buffer)], { type: "image/webp" });
+    formData.append("file", blob, filename);
+    formData.append("upload_preset", uploadPreset);
+
+    if (apiKey && apiSecret) {
+      const timestamp = Math.round(Date.now() / 1000).toString();
+      formData.append("timestamp", timestamp);
+      formData.append("api_key", apiKey);
+    }
+
+    const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+    if (data.secure_url) {
+      return data.secure_url;
+    }
+  } catch (err) {
+    console.warn("[Cloudinary Upload Fallback]:", err);
+  }
+  return null;
+}
+
+async function uploadToImgBB(buffer: Buffer): Promise<string | null> {
+  const apiKey = process.env.IMGBB_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const formData = new FormData();
+    formData.append("image", buffer.toString("base64"));
+
+    const res = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+    if (data?.data?.url) {
+      return data.data.url;
+    }
+  } catch (err) {
+    console.warn("[ImgBB Upload Fallback]:", err);
+  }
+  return null;
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -29,18 +89,18 @@ export async function POST(req: NextRequest) {
       const bytes = await file.arrayBuffer();
       const rawBuffer = Buffer.from(bytes);
 
-      // High-performance WebP compression with Sharp (max 1200px, quality 82)
+      // High-performance WebP compression with Sharp (max 1000px, quality 78 for ultra-compact storage)
       let compressedBuffer: Buffer;
       try {
         compressedBuffer = await sharp(rawBuffer)
           .rotate() // Auto-orient from EXIF
           .resize({
-            width: 1200,
-            height: 1200,
+            width: 1000,
+            height: 1000,
             fit: "inside",
             withoutEnlargement: true,
           })
-          .webp({ quality: 82, effort: 4 })
+          .webp({ quality: 78, effort: 4 })
           .toBuffer();
       } catch (sharpErr) {
         console.warn("[Upload Sharp Fallback]:", sharpErr);
@@ -53,7 +113,21 @@ export async function POST(req: NextRequest) {
         .substring(0, 30);
       const uniqueName = `${cleanBase}_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.webp`;
 
-      // 1. If on persistent disk (cPanel, VPS, Docker, Windows, Linux)
+      // 1. Try Cloudinary if configured
+      const cloudinaryUrl = await uploadToCloudinary(compressedBuffer, uniqueName);
+      if (cloudinaryUrl) {
+        uploadedUrls.push(cloudinaryUrl);
+        continue;
+      }
+
+      // 2. Try ImgBB if configured
+      const imgbbUrl = await uploadToImgBB(compressedBuffer);
+      if (imgbbUrl) {
+        uploadedUrls.push(imgbbUrl);
+        continue;
+      }
+
+      // 3. If on persistent disk (cPanel, VPS, Docker, Windows, Linux localhost)
       if (!isVercel) {
         try {
           const uploadDir = path.join(process.cwd(), "public", "uploads");
@@ -68,7 +142,7 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // 2. Fallback to compact WebP Data URI for read-only serverless
+      // 4. Fallback to compact WebP Data URI for serverless environments
       const base64Data = `data:image/webp;base64,${compressedBuffer.toString("base64")}`;
       uploadedUrls.push(base64Data);
     }

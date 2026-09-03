@@ -90,16 +90,35 @@ export async function getStorefrontHomeData() {
       settingsMap[s.key] = s.value;
     });
 
+    const sanitizeCards = (list: any[]) =>
+      list.map((p) => {
+        let imgs: any[] = [];
+        if (Array.isArray(p.images)) {
+          imgs = p.images.slice(0, 1);
+        } else if (typeof p.images === "string") {
+          try {
+            const parsed = JSON.parse(p.images);
+            imgs = Array.isArray(parsed) ? parsed.slice(0, 1) : [p.images];
+          } catch (e) {
+            imgs = [p.images];
+          }
+        }
+        return {
+          ...p,
+          images: imgs,
+        };
+      });
+
     const payload = serializePrisma({
       categories,
-      featuredProducts,
-      comboDeals,
+      featuredProducts: sanitizeCards(featuredProducts),
+      comboDeals: sanitizeCards(comboDeals),
       settings: settingsMap,
       theme,
       banners,
     });
 
-    serverCache.set(CACHE_KEY, payload, 60, ["products", "categories", "banners", "settings"]);
+    serverCache.set(CACHE_KEY, payload, 300, ["products", "categories", "banners", "settings"]);
     return payload;
   } catch (error) {
     console.error("[getStorefrontHomeData Error]:", error);
