@@ -190,7 +190,7 @@ export default function HomePage() {
 
         {/* 4. Family Combo & Bundle Deals */}
         {loading && comboDeals.length === 0 ? (
-          <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
             <div className="bg-[#F7F4EE] p-4 sm:p-8 rounded-3xl border border-stone-200/80 space-y-3.5 sm:space-y-6">
               <div className="h-6 w-40 bg-stone-200/80 rounded-md animate-pulse" />
               <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-6">
@@ -199,7 +199,7 @@ export default function HomePage() {
                 ))}
               </div>
             </div>
-          </section>
+          </div>
         ) : comboDeals.length > 0 ? (
           <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
             <div className="bg-[#F7F4EE] p-4 sm:p-8 rounded-3xl border border-stone-200/80 space-y-3.5 sm:space-y-6">

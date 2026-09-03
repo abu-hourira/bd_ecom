@@ -173,10 +173,10 @@ export default function CustomerAiWidget() {
           aria-label="Open Organic AI Chat"
           title={locale === "bn" ? "অর্গানিক এআই বিশেষজ্ঞের সাথে চ্যাট করুন" : "Chat with ENMAR AI Assistant"}
         >
-          <div className="relative flex items-center justify-center">
+          <span className="relative flex items-center justify-center">
             <Bot className="w-5 h-5 text-amber-300 group-hover:rotate-12 transition-transform" />
             <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-          </div>
+          </span>
           <span className="hidden md:inline text-xs font-bold font-display text-amber-300 pr-1">
             {locale === "bn" ? "এআই সহকারী" : "AI Advisor"}
           </span>
