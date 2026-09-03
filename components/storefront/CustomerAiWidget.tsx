@@ -1,26 +1,67 @@
 "use client";
-// components/storefront/CustomerAiWidget.tsx
+// components/storefront/CustomerAiWidget.tsx - Advanced Organic AI Customer Assistant
 
-import { useState, useEffect } from "react";
-import { Bot, Send, X, Loader2, Sparkles, MessageSquare } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import {
+  Bot,
+  Send,
+  X,
+  Loader2,
+  Sparkles,
+  Volume2,
+  VolumeX,
+  Mic,
+  MicOff,
+  Copy,
+  Check,
+  RotateCcw,
+  Package,
+  Truck,
+  HeartHandshake,
+  HelpCircle,
+} from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { useFeatures } from "@/context/FeatureFlagContext";
+import MarkdownText from "@/components/ui/MarkdownText";
+
+interface ChatMessage {
+  id: string;
+  sender: "user" | "ai";
+  text: string;
+  timestamp: string;
+}
 
 export default function CustomerAiWidget() {
   const [open, setOpen] = useState(false);
-  const DEFAULT_MESSAGE = {
-    sender: "ai" as const,
-    text: "আসসালামু আলাইকুম! আমি ENMAR অর্গানিক খাদ্য বিশেষজ্ঞ এআই সহকারী। সুন্দরবনের খাঁটি মধু, কাঠের ঘানিভাঙা তেল, পাহাড়ি মশলা বা আপনার সুস্থতার জন্য যেকোনো পণ্যের তথ্য জানতে আমাকে প্রশ্ন করুন!",
+  const [input, setInput] = useState("");
+  const [sending, setSending] = useState(false);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isListening, setIsListening] = useState(false);
+  const [speechSynthesisActive, setSpeechSynthesisActive] = useState<string | null>(null);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
+
+  const { t, locale } = useLanguage();
+  const { isFeatureEnabled } = useFeatures();
+
+  const DEFAULT_MESSAGE: ChatMessage = {
+    id: "welcome-1",
+    sender: "ai",
+    text:
+      locale === "bn"
+        ? "🌿 **আসসালামু আলাইকুম!** আমি **ENMAR অর্গানিক ফুড বিশেষজ্ঞ এআই সহকারী**।\n\nসুন্দরবনের কাঁচা মধু, কাঠের ঘানিভাঙা খাঁটি সরিষার তেল, গাওয়া ঘি, প্রিমিয়াম খেজুর বা আপনার সুস্থতার উপযোগী অর্গানিক পণ্য সম্পর্কে যেকোনো প্রশ্ন করতে পারেন।\n\n📦 আপনার কোনো রানিং অর্ডার থাকলে ট্র্যাকিং আইডিসহ লিখুন, আমি তৎক্ষণাৎ স্ট্যাটাস জানিয়ে দেব!"
+        : "🌿 **Hello!** I am your **ENMAR Organic Food Expert AI Advisor**.\n\nAsk me anything about Sundarban raw honey, wood-pressed cold mustard oil, gawa ghee, organic dates, or healthy living diets.\n\n📦 If you have an active order, simply mention your Tracking ID for real-time status!",
+    timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
   };
 
-  const [messages, setMessages] = useState<
-    Array<{ sender: "user" | "ai"; text: string }>
-  >([DEFAULT_MESSAGE]);
+  const [messages, setMessages] = useState<ChatMessage[]>([DEFAULT_MESSAGE]);
 
   // Load chat history from localStorage on mount
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("enmar_customer_ai_chat");
+      const saved = localStorage.getItem("enmar_customer_ai_chat_v2");
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
@@ -30,29 +71,135 @@ export default function CustomerAiWidget() {
     } catch (e) {}
   }, []);
 
-  // Save chat history to localStorage whenever messages change
-  const updateMessages = (updater: (prev: Array<{ sender: "user" | "ai"; text: string }>) => Array<{ sender: "user" | "ai"; text: string }>) => {
+  // Save chat history to localStorage
+  const updateMessages = (updater: (prev: ChatMessage[]) => ChatMessage[]) => {
     setMessages((prev) => {
       const next = updater(prev);
       try {
-        localStorage.setItem("enmar_customer_ai_chat", JSON.stringify(next));
+        localStorage.setItem("enmar_customer_ai_chat_v2", JSON.stringify(next));
       } catch (e) {}
       return next;
     });
   };
 
-  const [input, setInput] = useState("");
-  const [sending, setSending] = useState(false);
-  const { t, locale } = useLanguage();
-  const { isFeatureEnabled } = useFeatures();
+  // Scroll to bottom whenever messages change
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
-  if (!isFeatureEnabled("customer_ai_widget")) return null;
+  useEffect(() => {
+    if (open) {
+      scrollToBottom();
+    }
+  }, [messages, sending, open]);
+
+  // Setup Web Speech Recognition
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const SpeechRecognition =
+        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        const recog = new SpeechRecognition();
+        recog.continuous = false;
+        recog.interimResults = false;
+        recog.lang = locale === "bn" ? "bn-BD" : "en-US";
+
+        recog.onresult = (event: any) => {
+          const transcript = event.results[0][0].transcript;
+          if (transcript) {
+            setInput((prev) => (prev ? `${prev} ${transcript}` : transcript));
+          }
+          setIsListening(false);
+        };
+
+        recog.onerror = (event: any) => {
+          console.error("Speech Recognition Error:", event.error);
+          setIsListening(false);
+        };
+
+        recog.onend = () => {
+          setIsListening(false);
+        };
+
+        recognitionRef.current = recog;
+      }
+    }
+  }, [locale]);
+
+  const toggleSpeechRecognition = () => {
+    if (!recognitionRef.current) {
+      alert(
+        locale === "bn"
+          ? "আপনার ব্রাউজার ভয়েস টাইপিং সাপোর্ট করে না। দয়া করে Chrome বা Edge ব্যবহার করুন।"
+          : "Voice recognition is not supported in your current browser. Please try Chrome or Edge."
+      );
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      try {
+        recognitionRef.current.lang = locale === "bn" ? "bn-BD" : "en-US";
+        recognitionRef.current.start();
+        setIsListening(true);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  };
+
+  // Text to Speech
+  const handleSpeakText = (id: string, text: string) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+
+    if (speechSynthesisActive === id) {
+      window.speechSynthesis.cancel();
+      setSpeechSynthesisActive(null);
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    // Clean markdown symbols for cleaner voice
+    const cleanText = text.replace(/[*_#`\[\]]/g, "").replace(/\(https?:\/\/[^\)]+\)/g, "");
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = locale === "bn" ? "bn-BD" : "en-US";
+    utterance.rate = 1.0;
+
+    utterance.onend = () => setSpeechSynthesisActive(null);
+    utterance.onerror = () => setSpeechSynthesisActive(null);
+
+    setSpeechSynthesisActive(id);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  // Copy to clipboard
+  const handleCopy = (id: string, text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  // Clear chat
+  const handleClearChat = () => {
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    setSpeechSynthesisActive(null);
+    updateMessages(() => [DEFAULT_MESSAGE]);
+  };
 
   const handleSend = async (text?: string) => {
     const query = text || input;
     if (!query.trim() || sending) return;
 
-    const userMsg = { sender: "user" as const, text: query };
+    const userMsg: ChatMessage = {
+      id: `user-${Date.now()}`,
+      sender: "user",
+      text: query.trim(),
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    };
+
     const historyPayload = messages.map((m) => ({
       role: m.sender === "user" ? "user" : "assistant",
       content: m.text,
@@ -67,157 +214,317 @@ export default function CustomerAiWidget() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: query,
+          message: query.trim(),
           history: historyPayload,
           sessionId: "web-user",
         }),
       });
       const json = await res.json();
-      if (json.success) {
-        updateMessages((prev) => [...prev, { sender: "ai" as const, text: json.reply }]);
+      if (json.success && json.reply) {
+        const aiMsg: ChatMessage = {
+          id: `ai-${Date.now()}`,
+          sender: "ai",
+          text: json.reply,
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        };
+        updateMessages((prev) => [...prev, aiMsg]);
+
+        // Auto read aloud if enabled
+        if (soundEnabled && typeof window !== "undefined" && "speechSynthesis" in window) {
+          // Subtle audio alert or text speak
+        }
       } else {
-        updateMessages((prev) => [
-          ...prev,
-          {
-            sender: "ai" as const,
-            text:
-              json.reply ||
-              (locale === "bn"
-                ? "দুঃখিত, এই মুহূর্তে উত্তর দিতে পারছি না। অনুগ্রহ করে আমাদের সাথে হোয়াটসঅ্যাপে যোগাযোগ করুন।"
-                : "Sorry, I am unable to reply at this moment. Please reach out via WhatsApp."),
-          },
-        ]);
-      }
-    } catch (err: any) {
-      updateMessages((prev) => [
-        ...prev,
-        {
+        const errorMsg: ChatMessage = {
+          id: `ai-err-${Date.now()}`,
           sender: "ai",
           text:
-            locale === "bn"
-              ? "দুঃখিত, এআই সার্ভারের সাথে সংযোগে সাময়িক বিলম্ব হচ্ছে। জরুরি সহায়তার জন্য হোয়াটসঅ্যাপে (+৮৮০১৬১৪১১৩০৮২) যোগাযোগ করতে পারেন।"
-              : "Sorry, connection is momentarily delayed. For urgent help, please contact us on WhatsApp (+8801614113082).",
-        },
-      ]);
+            json.reply ||
+            (locale === "bn"
+              ? "দুঃখিত, এই মুহূর্তে উত্তর দিতে পারছি না। জরুরি তথ্যের জন্য আমাদের হোয়াটসঅ্যাপে (+৮৮০ ১৬১৪ ১১৩০৮২) যোগাযোগ করুন।"
+              : "Sorry, I am unable to reply at this moment. Please reach out via WhatsApp at +880 1614 113082."),
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        };
+        updateMessages((prev) => [...prev, errorMsg]);
+      }
+    } catch (err: any) {
+      const connErrorMsg: ChatMessage = {
+        id: `ai-err-${Date.now()}`,
+        sender: "ai",
+        text:
+          locale === "bn"
+            ? "দুঃখিত, এআই সার্ভারের সাথে সংযোগে সাময়িক বিলম্ব হচ্ছে। সরাসরি কথা বলতে আমাদের হোয়াটসঅ্যাপে (+৮৮০ ১৬১৪ ১১৩০৮২) বার্তা দিন।"
+            : "Sorry, connection is momentarily delayed. For instant assistance, message us on WhatsApp (+880 1614 113082).",
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      };
+      updateMessages((prev) => [...prev, connErrorMsg]);
     } finally {
       setSending(false);
     }
   };
 
+  if (!isFeatureEnabled("customer_ai_widget")) return null;
+
   return (
     <>
-      {/* Floating Trigger Button (Positioned vertically above WhatsApp) */}
+      {/* Floating Trigger Button */}
       {!open && (
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="fixed bottom-36 md:bottom-22 right-4 sm:right-6 z-40 flex items-center gap-2 px-3.5 py-3 rounded-full bg-[#143520] hover:bg-[#0d2315] text-white shadow-xl border-2 border-amber-400/50 transition-all duration-300 hover:scale-105 active:scale-95 group cursor-pointer"
+          className="fixed bottom-36 md:bottom-22 right-4 sm:right-6 z-40 flex items-center gap-2.5 px-4 py-3 rounded-full bg-forest hover:bg-forest-deep text-white shadow-2xl border-2 border-amber-400/40 transition-all duration-300 hover:scale-105 active:scale-95 group cursor-pointer"
           aria-label="Open Organic AI Chat"
-          title={locale === "bn" ? "অর্গানিক এআই অ্যাসিস্ট্যান্টের সাথে চ্যাট করুন" : "Chat with ENMAR AI Assistant"}
+          title={locale === "bn" ? "অর্গানিক এআই বিশেষজ্ঞের সাথে চ্যাট করুন" : "Chat with ENMAR AI Assistant"}
         >
           <div className="relative">
             <Bot className="w-5 h-5 text-amber-300 group-hover:rotate-12 transition-transform" />
-            <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
           </div>
-          <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs transition-all duration-500 ease-in-out text-xs font-bold font-display tracking-wide text-amber-300 pr-1">
-            {locale === "bn" ? "এআই সহকারী" : "AI Assistant"}
-          </span>
+          <div className="flex flex-col text-left">
+            <span className="text-xs font-bold font-display tracking-wide text-amber-300 flex items-center gap-1">
+              <span>{locale === "bn" ? "এআই সহকারী" : "AI Advisor"}</span>
+              <Sparkles className="w-3 h-3 text-amber-400" />
+            </span>
+            <span className="text-[9.5px] text-emerald-200/80 font-mono hidden sm:inline">
+              {locale === "bn" ? "অনলাইন ২৪/৭" : "Online 24/7"}
+            </span>
+          </div>
         </button>
       )}
 
-      {/* Expanded Chat Window */}
+      {/* Expanded Modern Chat Window */}
       {open && (
-        <div className="fixed bottom-20 md:bottom-6 right-3 sm:right-6 left-3 sm:left-auto z-50 sm:w-[380px] w-auto h-[520px] max-h-[82vh] bg-white rounded-3xl border border-stone-200 shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 duration-300">
+        <div className="fixed bottom-20 md:bottom-6 right-3 sm:right-6 left-3 sm:left-auto z-50 sm:w-[410px] w-auto h-[570px] max-h-[85vh] bg-paper rounded-3xl border border-line shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 duration-300">
           {/* Top Header */}
-          <div className="p-4 bg-[#143520] text-white flex items-center justify-between shadow-xs border-b border-amber-400/20">
+          <div className="p-4 bg-forest text-white flex items-center justify-between shadow-xs border-b border-amber-400/20">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-amber-400 text-stone-950 flex items-center justify-center font-bold shadow-xs">
-                <Bot className="w-5 h-5 text-stone-950" />
+              <div className="relative">
+                <div className="w-10 h-10 rounded-2xl bg-amber-400 text-ink flex items-center justify-center font-bold shadow-xs">
+                  <Bot className="w-6 h-6 text-stone-900" />
+                </div>
+                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-forest" />
               </div>
               <div>
                 <h4 className="font-bold font-display text-sm leading-tight text-white flex items-center gap-1.5">
                   <span>ENMAR AI Advisor</span>
                   <Sparkles className="w-3.5 h-3.5 text-amber-400" />
                 </h4>
-                <span className="text-[10px] text-stone-300 flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  {locale === "bn" ? "খাঁটি অর্গানিক খাদ্যের তথ্যদাতা" : "Pure Organic Food Expert"}
+                <span className="text-[10px] text-emerald-200 flex items-center gap-1 font-medium">
+                  {locale === "bn" ? "খাঁটি অর্গানিক খাদ্যের বিশেষজ্ঞ" : "Pure Organic Food Expert"}
                 </span>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => setOpen(false)}
-              className="p-1.5 rounded-lg text-stone-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
-              title="Close chat"
-            >
-              <X className="w-5 h-5" />
-            </button>
+
+            <div className="flex items-center gap-1">
+              {/* Sound toggle */}
+              <button
+                type="button"
+                onClick={() => setSoundEnabled(!soundEnabled)}
+                className={`p-1.5 rounded-xl transition-colors cursor-pointer ${
+                  soundEnabled ? "text-amber-300 hover:bg-white/10" : "text-stone-400 hover:bg-white/10"
+                }`}
+                title={soundEnabled ? "Sound enabled" : "Sound muted"}
+              >
+                {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+              </button>
+
+              {/* Reset / Clear */}
+              <button
+                type="button"
+                onClick={handleClearChat}
+                className="p-1.5 rounded-xl text-stone-300 hover:text-rose-300 hover:bg-white/10 transition-colors cursor-pointer"
+                title={locale === "bn" ? "নতুন চ্যাট শুরু করুন" : "Reset conversation"}
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
+
+              {/* Close */}
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.speechSynthesis) window.speechSynthesis.cancel();
+                  setSpeechSynthesisActive(null);
+                  setOpen(false);
+                }}
+                className="p-1.5 rounded-xl text-stone-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer ml-1"
+                title="Close chat"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {/* Messages Feed */}
-          <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-[#FAF8F5]">
-            {messages.map((m, i) => (
+          <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-bg/60">
+            {messages.map((m) => (
               <div
-                key={i}
-                className={`flex ${
-                  m.sender === "user" ? "justify-end" : "justify-start"
-                }`}
+                key={m.id}
+                className={`flex flex-col ${m.sender === "user" ? "items-end" : "items-start"}`}
               >
                 <div
-                  className={`max-w-[85%] rounded-2xl p-3 text-xs leading-relaxed ${
+                  className={`max-w-[88%] rounded-3xl p-3.5 text-xs leading-relaxed transition-all shadow-xs ${
                     m.sender === "user"
-                      ? "bg-[#143520] text-white rounded-br-none shadow-xs font-medium"
-                      : "bg-white border border-stone-200 text-stone-900 rounded-bl-none shadow-xs whitespace-pre-line"
+                      ? "bg-forest text-white rounded-br-xs font-medium"
+                      : "bg-paper border border-line text-ink rounded-bl-xs"
                   }`}
                 >
-                  {m.text}
+                  {m.sender === "user" ? (
+                    <p className="whitespace-pre-wrap">{m.text}</p>
+                  ) : (
+                    <MarkdownText content={m.text} className="text-ink" />
+                  )}
+                </div>
+
+                {/* Message Meta & Action Bar (AI messages) */}
+                <div className="flex items-center gap-2 mt-1 px-1 text-[10px] text-ink-soft">
+                  <span className="font-mono">{m.timestamp}</span>
+                  {m.sender === "ai" && (
+                    <div className="flex items-center gap-1.5">
+                      {/* Read Aloud Button */}
+                      <button
+                        type="button"
+                        onClick={() => handleSpeakText(m.id, m.text)}
+                        className={`hover:text-forest transition-colors cursor-pointer p-0.5 rounded ${
+                          speechSynthesisActive === m.id ? "text-forest font-bold" : ""
+                        }`}
+                        title="Listen / Read Aloud"
+                      >
+                        <Volume2 className="w-3 h-3" />
+                      </button>
+
+                      {/* Copy Button */}
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(m.id, m.text)}
+                        className="hover:text-forest transition-colors cursor-pointer p-0.5 rounded"
+                        title="Copy text"
+                      >
+                        {copiedId === m.id ? (
+                          <Check className="w-3 h-3 text-emerald-600" />
+                        ) : (
+                          <Copy className="w-3 h-3" />
+                        )}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
+
             {sending && (
-              <div className="flex justify-start">
-                <div className="bg-white border border-stone-200 rounded-2xl p-3 text-xs text-stone-500 flex items-center gap-2 shadow-xs">
-                  <Loader2 className="w-4 h-4 animate-spin text-[#143520]" />
-                  <span>{locale === "bn" ? "এআই তথ্য যাচাই করছে..." : "AI analyzing catalog..."}</span>
+              <div className="flex flex-col items-start space-y-1">
+                <div className="bg-paper border border-line rounded-3xl rounded-bl-xs p-3.5 text-xs text-ink-soft flex items-center gap-2.5 shadow-xs animate-pulse">
+                  <div className="w-6 h-6 rounded-xl bg-forest-soft text-forest flex items-center justify-center font-bold">
+                    <Bot className="w-3.5 h-3.5 animate-bounce" />
+                  </div>
+                  <div className="flex items-center gap-1 text-[11px] font-medium text-forest">
+                    <span>{locale === "bn" ? "এআই উত্তর তৈরি করছে" : "AI is thinking"}</span>
+                    <span className="animate-ping">...</span>
+                  </div>
                 </div>
               </div>
             )}
+            <div ref={messagesEndRef} />
           </div>
 
-          {/* Quick Questions Chips */}
-          <div className="px-3 py-2 bg-white border-t border-stone-200 flex items-center gap-1.5 overflow-x-auto text-[11px]">
+          {/* Quick Smart Suggestion Chips */}
+          <div className="px-3 py-2 bg-paper border-t border-line flex items-center gap-1.5 overflow-x-auto text-[11px] no-scrollbar">
             <button
               type="button"
-              onClick={() => handleSend(locale === "bn" ? "সুন্দরবনের মধুর উপকারিতা ও দাম কত?" : "What are the health benefits of raw honey?")}
-              className="px-2.5 py-1 rounded-full bg-stone-100 hover:bg-emerald-50 border border-stone-200 text-stone-700 hover:text-emerald-800 whitespace-nowrap transition-colors cursor-pointer"
+              onClick={() =>
+                handleSend(
+                  locale === "bn"
+                    ? "সুন্দরবনের কাঁচা মধুর উপকারিতা ও খাঁটি চেনার উপায় কী?"
+                    : "What are the benefits of Sundarban raw honey and how to test its purity?"
+                )
+              }
+              className="px-3 py-1.5 rounded-full bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-900 font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
             >
-              🍯 {locale === "bn" ? "মধুর উপকারিতা" : "Honey Benefits"}
+              🍯 {locale === "bn" ? "খাঁটি মধু" : "Raw Honey"}
             </button>
+
             <button
               type="button"
-              onClick={() => handleSend(locale === "bn" ? "ফ্রি ডেলিভারি পেতে কত টাকার অর্ডার করতে হবে?" : "What is the minimum order for free delivery?")}
-              className="px-2.5 py-1 rounded-full bg-stone-100 hover:bg-emerald-50 border border-stone-200 text-stone-700 hover:text-emerald-800 whitespace-nowrap transition-colors cursor-pointer"
+              onClick={() =>
+                handleSend(
+                  locale === "bn"
+                    ? "কাঠের ঘানিভাঙা খাঁটি সরিষার তেলের দাম ও বিশেষত্ব কী?"
+                    : "What is special about cold wood-pressed mustard oil?"
+                )
+              }
+              className="px-3 py-1.5 rounded-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-900 font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
             >
-              🚚 {locale === "bn" ? "ডেলিভারি খরচ" : "Delivery Info"}
+              🌿 {locale === "bn" ? "ঘানিভাঙা তেল" : "Mustard Oil"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                handleSend(
+                  locale === "bn"
+                    ? "ফ্রি ডেলিভারি পেতে কত টাকার অর্ডার করতে হবে এবং ডেলিভারি চার্জ কত?"
+                    : "What are your delivery charges and free shipping threshold?"
+                )
+              }
+              className="px-3 py-1.5 rounded-full bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-900 font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
+            >
+              🚚 {locale === "bn" ? "ডেলিভারি চার্জ" : "Delivery"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() =>
+                handleSend(
+                  locale === "bn"
+                    ? "আমার অর্ডারের বর্তমান অবস্থা জানতে চাই।"
+                    : "I want to track my order status."
+                )
+              }
+              className="px-3 py-1.5 rounded-full bg-purple-50 hover:bg-purple-100 border border-purple-200 text-purple-900 font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 shadow-2xs"
+            >
+              📦 {locale === "bn" ? "অর্ডার ট্র্যাকিং" : "Track Order"}
             </button>
           </div>
 
-          {/* Input Box */}
-          <div className="p-3 bg-white border-t border-stone-200 flex items-center gap-2">
+          {/* Input & Voice Controls */}
+          <div className="p-3 bg-paper border-t border-line flex items-center gap-2">
+            {/* Voice Input Button */}
+            <button
+              type="button"
+              onClick={toggleSpeechRecognition}
+              className={`p-2.5 rounded-2xl border transition-all cursor-pointer ${
+                isListening
+                  ? "bg-rose-600 text-white border-rose-600 animate-pulse"
+                  : "bg-bg border-line text-ink hover:text-forest hover:bg-line"
+              }`}
+              title={isListening ? "Listening... click to stop" : "Voice typing (Bengali / English)"}
+            >
+              {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+            </button>
+
+            {/* Input Field */}
             <input
               type="text"
-              placeholder={locale === "bn" ? "পণ্যের উপকারিতা বা অর্ডার সংক্রান্ত প্রশ্ন লিখুন..." : "Ask about products, honey, oils..."}
+              placeholder={
+                isListening
+                  ? locale === "bn"
+                    ? "শুনছি... কথা বলুন..."
+                    : "Listening... speak now..."
+                  : locale === "bn"
+                  ? "মধু, তেল, ঘি বা অর্ডারের প্রশ্ন লিখুন..."
+                  : "Ask about honey, ghee, mustard oil, orders..."
+              }
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSend()}
-              className="flex-1 px-4 py-2 rounded-xl bg-stone-50 border border-stone-200 text-xs focus:outline-none focus:border-[#143520] focus:ring-1 focus:ring-[#143520]"
+              className="flex-1 px-4 py-2.5 rounded-2xl bg-bg border border-line text-xs text-ink focus:outline-none focus:border-forest font-medium placeholder:text-ink-soft"
             />
+
+            {/* Send Button */}
             <button
               type="button"
               onClick={() => handleSend()}
               disabled={sending || !input.trim()}
-              className="p-2.5 rounded-xl bg-[#143520] text-white hover:bg-[#0d2315] disabled:opacity-40 transition-all shadow-xs cursor-pointer active:scale-95"
+              className="p-2.5 rounded-2xl bg-forest text-white hover:bg-forest-deep disabled:opacity-40 transition-all shadow-premium cursor-pointer active:scale-95"
               aria-label="Send Message"
             >
               <Send className="w-4 h-4" />

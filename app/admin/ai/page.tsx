@@ -28,10 +28,16 @@ import {
   Trash,
   FileText,
   Edit,
+  Mic,
+  MicOff,
+  Volume2,
+  Copy,
+  Check,
 } from "lucide-react";
 import AdminSidebar from "@/components/admin/Sidebar";
 import AlertModal from "@/components/ui/AlertModal";
 import { AI_PROVIDER_DEFAULTS } from "@/lib/ai-constants";
+import MarkdownText from "@/components/ui/MarkdownText";
 
 export interface CookieAccountItem {
   id: string;
@@ -66,12 +72,15 @@ export default function AdminAiPage() {
   >([
     {
       sender: "ai",
-      text: "🌿 **Hello!** I am your internal ENMAR AI operations assistant. Ask me to draft product copy, analyze low-stock inventory, or generate promotional slogans.",
+      text: "🌿 **Hello!** I am your internal **ENMAR AI Operations Assistant**.\n\nAsk me to:\n- 📝 Draft product descriptions & SEO meta text\n- 📦 Check inventory velocity and low-stock items\n- 📈 Summarize sales and top-performing categories\n- 📢 Create marketing copy for social ads or banners\n\n*Type below or click any of the quick action pills to start!*",
       time: "Just now",
     },
   ]);
   const [inputMessage, setInputMessage] = useState("");
   const [sending, setSending] = useState(false);
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const [isListening, setIsListening] = useState(false);
+  const [speechActiveIdx, setSpeechActiveIdx] = useState<number | null>(null);
 
   // Cookie Pool State
   const [cookieAccounts, setCookieAccounts] = useState<CookieAccountItem[]>([]);
@@ -225,6 +234,62 @@ export default function AdminAiPage() {
       console.error(e);
     } finally {
       setSending(false);
+    }
+  };
+
+  const handleCopyAdmin = (idx: number, text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedIndex(idx);
+    setTimeout(() => setCopiedIndex(null), 2000);
+  };
+
+  const handleSpeakAdmin = (idx: number, text: string) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    if (speechActiveIdx === idx) {
+      window.speechSynthesis.cancel();
+      setSpeechActiveIdx(null);
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const clean = text.replace(/[*_#`\[\]]/g, "").replace(/\(https?:\/\/[^\)]+\)/g, "");
+    const utterance = new SpeechSynthesisUtterance(clean);
+    utterance.lang = "bn-BD";
+    utterance.rate = 1.0;
+    utterance.onend = () => setSpeechActiveIdx(null);
+    utterance.onerror = () => setSpeechActiveIdx(null);
+    setSpeechActiveIdx(idx);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const toggleAdminSpeech = () => {
+    if (typeof window === "undefined") return;
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Voice recognition is not supported in this browser. Please use Google Chrome or Microsoft Edge.");
+      return;
+    }
+
+    if (isListening) {
+      setIsListening(false);
+    } else {
+      try {
+        const recog = new SpeechRecognition();
+        recog.lang = "bn-BD";
+        recog.onresult = (e: any) => {
+          const trans = e.results[0][0].transcript;
+          if (trans) {
+            setInputMessage((prev) => (prev ? `${prev} ${trans}` : trans));
+          }
+          setIsListening(false);
+        };
+        recog.onerror = () => setIsListening(false);
+        recog.onend = () => setIsListening(false);
+        recog.start();
+        setIsListening(true);
+      } catch (err) {
+        console.error(err);
+      }
     }
   };
 
@@ -623,81 +688,142 @@ export default function AdminAiPage() {
       {/* Tab 1: Operations Assistant */}
       {activeTab === "assistant" && (
         <div className="space-y-6">
+          {/* Top Chat Subheader with Active Model & Actions */}
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-paper p-4 rounded-3xl border border-line shadow-2xs">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="px-3 py-1 rounded-xl text-xs font-mono font-bold bg-forest text-white flex items-center gap-1.5 shadow-2xs">
+                <Bot className="w-3.5 h-3.5" />
+                <span>Active: {provider === "gemini_web2api" ? "Gemini Web2API (Cookie Pool)" : provider.toUpperCase()}</span>
+              </span>
+              <span className="px-2.5 py-1 rounded-xl text-xs font-mono bg-forest-soft text-forest border border-forest/20">
+                {modelName}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  setMessages([
+                    {
+                      sender: "ai",
+                      text: "🌿 **Hello!** I am your internal **ENMAR AI Operations Assistant**.\n\nAsk me anything about products, low-stock inventory, revenue trends, or promotional marketing.",
+                      time: "Just now",
+                    },
+                  ])
+                }
+                className="px-3 py-1.5 rounded-xl border border-line bg-bg hover:bg-line text-xs font-bold text-ink-soft hover:text-ink transition-all flex items-center gap-1.5 cursor-pointer"
+                title="Clear chat history"
+              >
+                <RotateCcw className="w-3 h-3 text-forest" />
+                <span>Reset Chat</span>
+              </button>
+            </div>
+          </div>
+
           {/* Quick Action Prompt Pills */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-2">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
             <button
               onClick={() => handleSendMessage("Analyze my low stock products and suggest restock priority.")}
-              className="px-3.5 py-2 rounded-xl bg-paper border border-line hover:border-forest text-xs font-medium text-ink transition-all shrink-0 hover:shadow-xs flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-2 rounded-xl bg-paper border border-line hover:border-forest text-xs font-bold text-ink transition-all shrink-0 hover:shadow-xs flex items-center gap-1.5 cursor-pointer"
             >
-              <Sparkles className="w-3.5 h-3.5 text-accent" />
-              <span>Restock Check</span>
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span>📦 Restock Priority Check</span>
             </button>
             <button
-              onClick={() => handleSendMessage("Write an exciting 2-sentence marketing slogan for an Eid Organic Honey sale in Bengali.")}
-              className="px-3.5 py-2 rounded-xl bg-paper border border-line hover:border-forest text-xs font-medium text-ink transition-all shrink-0 hover:shadow-xs flex items-center gap-1.5 cursor-pointer"
+              onClick={() => handleSendMessage("সুন্দরবনের কাঁচা মধুর জন্য একটি আকর্ষণীয় ফেসবুক অ্যাড কপি বাংলায় তৈরি করো।")}
+              className="px-3.5 py-2 rounded-xl bg-paper border border-line hover:border-forest text-xs font-bold text-ink transition-all shrink-0 hover:shadow-xs flex items-center gap-1.5 cursor-pointer"
             >
-              <Sparkles className="w-3.5 h-3.5 text-accent" />
-              <span>Eid Sale Copy (Bengali)</span>
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span>🍯 মধুর ফেসবুক অ্যাড কপি</span>
             </button>
             <button
-              onClick={() => handleSendMessage("Summarize today's order statistics and customer breakdown.")}
-              className="px-3.5 py-2 rounded-xl bg-paper border border-line hover:border-forest text-xs font-medium text-ink transition-all shrink-0 hover:shadow-xs flex items-center gap-1.5 cursor-pointer"
+              onClick={() => handleSendMessage("Summarize today's order statistics, delivery breakdown, and revenue.")}
+              className="px-3.5 py-2 rounded-xl bg-paper border border-line hover:border-forest text-xs font-bold text-ink transition-all shrink-0 hover:shadow-xs flex items-center gap-1.5 cursor-pointer"
             >
-              <Sparkles className="w-3.5 h-3.5 text-accent" />
-              <span>Store Orders Summary</span>
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span>📊 বিক্রয় ও অর্ডার অ্যানালিটিক্স</span>
             </button>
             <button
-              onClick={() => handleSendMessage("Draft a polite response to a customer asking about the purity of Sundarban Wild Honey.")}
-              className="px-3.5 py-2 rounded-xl bg-paper border border-line hover:border-forest text-xs font-medium text-ink transition-all shrink-0 hover:shadow-xs flex items-center gap-1.5 cursor-pointer"
+              onClick={() => handleSendMessage("কাঠের ঘানিভাঙা খাঁটি সরিষার তেলের বৈশিষ্ট্য ও স্বাস্থ্যোপকারিতা নিয়ে একটি সুন্দর ব্লগ ইন্ট্রো লিখে দাও।")}
+              className="px-3.5 py-2 rounded-xl bg-paper border border-line hover:border-forest text-xs font-bold text-ink transition-all shrink-0 hover:shadow-xs flex items-center gap-1.5 cursor-pointer"
             >
-              <Sparkles className="w-3.5 h-3.5 text-accent" />
-              <span>Customer Support Draft</span>
+              <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+              <span>🌿 সরিষার তেলের ব্লগ পোস্ট</span>
             </button>
           </div>
 
           {/* Chat Box Container */}
-          <div className="bg-paper rounded-3xl border border-line shadow-card flex flex-col h-[560px] overflow-hidden">
-            <div className="flex-1 p-6 overflow-y-auto space-y-4">
+          <div className="bg-paper rounded-3xl border border-line shadow-card flex flex-col h-[580px] overflow-hidden">
+            <div className="flex-1 p-6 overflow-y-auto space-y-4 bg-bg/50">
               {messages.map((m, idx) => (
                 <div
                   key={idx}
-                  className={`flex gap-3 ${
-                    m.sender === "user" ? "justify-end" : "justify-start"
-                  }`}
+                  className={`flex flex-col ${m.sender === "user" ? "items-end" : "items-start"}`}
                 >
-                  {m.sender === "ai" && (
-                    <div className="w-8 h-8 rounded-xl bg-forest text-white flex items-center justify-center shrink-0 text-xs font-bold">
-                      AI
-                    </div>
-                  )}
-                  <div
-                    className={`max-w-xl rounded-2xl p-4 text-xs sm:text-sm leading-relaxed ${
-                      m.sender === "user"
-                        ? "bg-forest text-white rounded-br-none"
-                        : "bg-bg border border-line text-ink rounded-bl-none shadow-xs whitespace-pre-line"
-                    }`}
-                  >
-                    {m.text}
-                    <span
-                      className={`block text-[10px] mt-1.5 ${
-                        m.sender === "user" ? "text-white/60 text-right" : "text-ink-soft"
+                  <div className="flex gap-3 max-w-2xl">
+                    {m.sender === "ai" && (
+                      <div className="w-8 h-8 rounded-xl bg-forest text-white flex items-center justify-center shrink-0 text-xs font-bold shadow-xs">
+                        <Bot className="w-4 h-4" />
+                      </div>
+                    )}
+                    <div
+                      className={`rounded-3xl p-4 text-xs sm:text-sm leading-relaxed shadow-xs ${
+                        m.sender === "user"
+                          ? "bg-forest text-white rounded-br-xs font-medium ml-auto"
+                          : "bg-paper border border-line text-ink rounded-bl-xs"
                       }`}
                     >
-                      {m.time}
-                    </span>
+                      {m.sender === "user" ? (
+                        <p className="whitespace-pre-wrap">{m.text}</p>
+                      ) : (
+                        <MarkdownText content={m.text} className="text-ink" />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Meta bar for AI messages */}
+                  <div className="flex items-center gap-2 mt-1 px-11 text-[10.5px] text-ink-soft">
+                    <span className="font-mono">{m.time}</span>
+                    {m.sender === "ai" && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleSpeakAdmin(idx, m.text)}
+                          className={`hover:text-forest transition-colors cursor-pointer p-0.5 rounded ${
+                            speechActiveIdx === idx ? "text-forest font-bold" : ""
+                          }`}
+                          title="Listen / Read aloud"
+                        >
+                          <Volume2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyAdmin(idx, m.text)}
+                          className="hover:text-forest transition-colors cursor-pointer p-0.5 rounded"
+                          title="Copy response"
+                        >
+                          {copiedIndex === idx ? (
+                            <Check className="w-3.5 h-3.5 text-emerald-600" />
+                          ) : (
+                            <Copy className="w-3.5 h-3.5" />
+                          )}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
               {sending && (
-                <div className="flex items-center gap-2 text-ink-soft text-xs italic">
+                <div className="flex items-center gap-2 text-ink-soft text-xs italic bg-paper p-3 rounded-2xl border border-line w-fit">
                   <Loader2 className="w-4 h-4 animate-spin text-forest" />
-                  <span>ENMAR AI ({provider.toUpperCase()}) is analyzing store data and drafting response...</span>
+                  <span>ENMAR AI ({provider.toUpperCase()}) is processing and reasoning with store telemetry...</span>
                 </div>
               )}
             </div>
 
             {/* Chat Input Bar */}
-            <div className="p-4 bg-bg border-t border-line">
+            <div className="p-4 bg-paper border-t border-line">
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -705,17 +831,36 @@ export default function AdminAiPage() {
                 }}
                 className="flex items-center gap-2"
               >
+                {/* Voice Input */}
+                <button
+                  type="button"
+                  onClick={toggleAdminSpeech}
+                  className={`p-3 rounded-2xl border transition-all cursor-pointer ${
+                    isListening
+                      ? "bg-rose-600 text-white border-rose-600 animate-pulse"
+                      : "bg-bg border-line text-ink hover:text-forest hover:bg-line"
+                  }`}
+                  title={isListening ? "Listening... click to stop" : "Voice typing"}
+                >
+                  {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                </button>
+
                 <input
                   type="text"
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
-                  placeholder="Ask the AI agent to draft descriptions, analyze inventory, or summarize orders..."
-                  className="flex-1 px-4 py-3 rounded-2xl bg-paper border border-line text-sm focus:outline-none focus:border-forest"
+                  placeholder={
+                    isListening
+                      ? "শুনছি... কথা বলুন..."
+                      : "Ask the AI agent to draft descriptions, analyze inventory, or summarize orders..."
+                  }
+                  className="flex-1 px-4 py-3 rounded-2xl bg-bg border border-line text-sm text-ink focus:outline-none focus:border-forest placeholder:text-ink-soft"
                 />
+
                 <button
                   type="submit"
                   disabled={sending || !inputMessage.trim()}
-                  className="px-5 py-3 rounded-2xl bg-forest hover:bg-forest-deep text-white font-bold text-sm shadow-premium transition-all disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+                  className="px-5 py-3 rounded-2xl bg-forest hover:bg-forest-deep text-white font-bold text-sm shadow-premium transition-all disabled:opacity-50 flex items-center gap-2 cursor-pointer active:scale-95"
                 >
                   <Send className="w-4 h-4" />
                   <span>Send</span>
