@@ -20,6 +20,59 @@ export interface LLMConfig {
 }
 
 /**
+ * Clean AI responses: Strips internal thinking scratchpads, "Here's a thinking process", and <thought> tags
+ */
+export function cleanAiResponse(raw: string): string {
+  if (!raw) return "";
+  let text = raw.trim();
+
+  // 1. Strip <thought>...</thought> tags
+  text = text.replace(/<thought>[\s\S]*?<\/thought>/gi, "").trim();
+
+  // 2. Strip "Here's a thinking process: ... " blocks
+  if (/^Here'?s a thinking process/i.test(text) || text.includes("Here's a thinking process:")) {
+    const responseMarkers = [
+      /(?:Draft Response|Final Response|Response|Answer|Revised Response|Output)\s*:\s*(?:\([^)]*\))?\s*[:\n]*/i,
+      /(?:আসসালামু আলাইকুম|Hello|Hi|Greetings)/i,
+    ];
+
+    let foundIndex = -1;
+    for (const marker of responseMarkers) {
+      const match = marker.exec(text);
+      if (match && match.index > 15) {
+        foundIndex = match.index;
+        if (text.substring(match.index).toLowerCase().includes("response:") || text.substring(match.index).toLowerCase().includes("answer:")) {
+          const colonIdx = text.indexOf(":", match.index);
+          if (colonIdx !== -1) {
+            foundIndex = colonIdx + 1;
+          }
+        }
+        break;
+      }
+    }
+
+    if (foundIndex !== -1) {
+      text = text.substring(foundIndex).trim();
+    }
+  }
+
+  // 3. Strip Thinking Process: ...
+  if (/^Thinking Process/i.test(text) || text.includes("Thinking Process:")) {
+    const splitParts = text.split(/(?:Final Answer|Final Response|Response|Output)\s*:\s*/i);
+    if (splitParts.length > 1) {
+      text = splitParts[splitParts.length - 1].trim();
+    }
+  }
+
+  // 4. Strip surrounding double quotes if whole response is enclosed in quotes
+  if (text.startsWith('"') && text.endsWith('"') && text.length > 2) {
+    text = text.slice(1, -1).trim();
+  }
+
+  return text;
+}
+
+/**
  * Default base URLs and models for popular AI providers
  */
 export const AI_PROVIDER_DEFAULTS: Record<
@@ -567,7 +620,8 @@ export async function callLLM(
     }
 
     const data = await res.json();
-    const text = data.choices?.[0]?.message?.content || "";
+    const rawText = data.choices?.[0]?.message?.content || "";
+    const text = cleanAiResponse(rawText);
     await recordAiRequest();
     return { text, tokensUsed: data.usage?.total_tokens || 0 };
   } catch (error: any) {
@@ -746,8 +800,9 @@ async function callGeminiWeb(
     throw new Error("Could not extract reply from Gemini Web. Please verify your cookie or try asking again.");
   }
 
+  const cleaned = cleanAiResponse(parsedText);
   return {
-    text: parsedText.trim(),
-    tokensUsed: Math.ceil(parsedText.length / 4),
+    text: cleaned || parsedText.trim(),
+    tokensUsed: Math.ceil((cleaned || parsedText).length / 4),
   };
 }
