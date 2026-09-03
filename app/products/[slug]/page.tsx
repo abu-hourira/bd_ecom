@@ -39,9 +39,21 @@ export default function ProductDetailPage({
   const { addToCart, setIsCartOpen } = useCart();
   const { t, locale } = useLanguage();
 
-  const [product, setProduct] = useState<any>(null);
+  const [product, setProduct] = useState<any>(() => {
+    if (typeof window !== "undefined" && resolvedParams.slug) {
+      try {
+        const homeCache = sessionStorage.getItem("enmar_home_data_cache_v2") || localStorage.getItem("enmar_home_data_cache_v2");
+        if (homeCache) {
+          const parsed = JSON.parse(homeCache);
+          const found = (parsed?.data?.featuredProducts || []).find((p: any) => p.slug === resolvedParams.slug);
+          if (found) return found;
+        }
+      } catch (e) {}
+    }
+    return null;
+  });
   const [related, setRelated] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !product);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [copied, setCopied] = useState(false);

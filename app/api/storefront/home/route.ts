@@ -23,6 +23,11 @@ const PRODUCT_CARD_SELECT = {
   savingsPercentage: true,
   badge: true,
   featured: true,
+  weightInGrams: true,
+  deliveryDiscountMinQty: true,
+  deliveryDiscountAmount: true,
+  deliveryDiscountType: true,
+  deliveryDiscountTiers: true,
   createdAt: true,
   category: {
     select: { id: true, name: true, slug: true },

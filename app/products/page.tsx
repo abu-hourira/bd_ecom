@@ -24,9 +24,28 @@ function ProductsContent() {
   const initialCategory = searchParams.get("category") || "all";
   const initialSearch = searchParams.get("search") || "";
 
-  const [products, setProducts] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<any[]>(() => {
+    if (typeof window !== "undefined" && initialCategory === "all" && !initialSearch) {
+      try {
+        const homeCache = sessionStorage.getItem("enmar_home_data_cache_v2") || localStorage.getItem("enmar_home_data_cache_v2");
+        if (homeCache) {
+          const parsed = JSON.parse(homeCache);
+          if (parsed?.data?.featuredProducts?.length) return parsed.data.featuredProducts;
+        }
+      } catch (e) {}
+    }
+    return [];
+  });
+  const [categories, setCategories] = useState<any[]>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const catCache = localStorage.getItem("enmar_categories_cache");
+        if (catCache) return JSON.parse(catCache);
+      } catch (e) {}
+    }
+    return [];
+  });
+  const [loading, setLoading] = useState(() => products.length === 0);
   const [loadingMore, setLoadingMore] = useState(false);
   const [pagination, setPagination] = useState<{
     total: number;
@@ -35,7 +54,7 @@ function ProductsContent() {
     totalPages: number;
     hasMore: boolean;
   }>({
-    total: 0,
+    total: products.length || 0,
     page: 1,
     limit: 24,
     totalPages: 1,
@@ -57,7 +76,12 @@ function ProductsContent() {
     fetch("/api/storefront/categories")
       .then((res) => res.json())
       .then((data) => {
-        if (data.categories) setCategories(data.categories);
+        if (data.categories) {
+          setCategories(data.categories);
+          try {
+            localStorage.setItem("enmar_categories_cache", JSON.stringify(data.categories));
+          } catch (e) {}
+        }
       })
       .catch((e) => console.error(e));
   }, []);
