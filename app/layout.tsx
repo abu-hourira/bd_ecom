@@ -46,17 +46,17 @@ const siteUrl = process.env.NEXTAUTH_URL || "https://enmar.bd";
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "ENMAR — 100% Pure Organic Food & Pantry Essentials | খাঁটি অর্গানিক খাদ্য",
+    default: "ENMAR — 100% Pure Organic Food & Pantry Essentials | খাঁটি অর্গানিক খাদ্য".normalize("NFC"),
     template: "%s | ENMAR Organic Food",
   },
   description:
-    "বাংলাদেশের প্রিমিয়াম অর্গানিক ফুড ব্র্যান্ড। সুন্দরবনের খাঁটি মধু, গাওয়া ঘি, কাঠের ঘানির সরিষার তেল, অর্গানিক চাল, ডাল ও মশলা। সারাদেশে দ্রুত হোম ডেলিভারি ও ক্যাশ অন ডেলিভারি।",
+    "বাংলাদেশের প্রিমিয়াম অর্গানিক ফুড ব্র্যান্ড। সুন্দরবনের খাঁটি মধু, গাওয়া ঘি, কাঠের ঘানির সরিষার তেল, অর্গানিক চাল, ডাল ও মশলা। সারাদেশে দ্রুত হোম ডেলিভারি ও ক্যাশ অন ডেলিভারি।".normalize("NFC"),
   keywords: [
     "ENMAR",
     "অর্গানিক ফুড বাংলাদেশ",
     "খাঁটি মধু",
     "সুন্দরবনের মধু",
-    "গাওয়া ঘি",
+    "গাওয়া ঘি",
     "খাঁটি সরিষার তেল",
     "কাঠের ঘানির তেল",
     "কালোজিরা তেল",
@@ -68,7 +68,7 @@ export const metadata: Metadata = {
     "Organic Grocery Bangladesh",
     "Health Food Store Dhaka",
     "Buy Pure Honey Online",
-  ],
+  ].map((k) => k.normalize("NFC")),
   authors: [{ name: "ENMAR Organic", url: siteUrl }],
   creator: "ENMAR Bangladesh",
   publisher: "ENMAR Organic Food",
@@ -100,10 +100,10 @@ export const metadata: Metadata = {
     locale: "bn_BD",
     alternateLocale: ["en_US"],
     url: siteUrl,
-    siteName: "ENMAR — Pure Organic Food Bangladesh",
-    title: "ENMAR — 100% Pure Organic Food & Pantry Essentials | খাঁটি অর্গানিক খাদ্য",
+    siteName: "ENMAR — Pure Organic Food Bangladesh".normalize("NFC"),
+    title: "ENMAR — 100% Pure Organic Food & Pantry Essentials | খাঁটি অর্গানিক খাদ্য".normalize("NFC"),
     description:
-      "সুন্দরবনের খাঁটি মধু, গাওয়া ঘি, কাঠের ঘানির সরিষার তেল ও অর্গানিক খাদ্য সম্ভার। ১০০% বিশুদ্ধতার নিশ্চয়তা।",
+      "সুন্দরবনের খাঁটি মধু, গাওয়া ঘি, কাঠের ঘানির সরিষার তেল ও অর্গানিক খাদ্য সম্ভার। ১০০% বিশুদ্ধতার নিশ্চয়তা।".normalize("NFC"),
     images: [
       {
         url: "/assets/logo/logo.png",
@@ -117,7 +117,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "ENMAR — 100% Pure Organic Food & Pantry Essentials",
     description:
-      "খাঁটি সুন্দরবনের মধু, গাওয়া ঘি, কাঠের ঘানির সরিষার তেল ও অর্গানিক খাদ্য। সারাদেশে ক্যাশ অন ডেলিভারি।",
+      "খাঁটি সুন্দরবনের মধু, গাওয়া ঘি, কাঠের ঘানির সরিষার তেল ও অর্গানিক খাদ্য। সারাদেশে ক্যাশ অন ডেলিভারি।".normalize("NFC"),
     images: ["/assets/logo/logo.png"],
     creator: "@enmar_organic",
   },

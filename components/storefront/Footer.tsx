@@ -71,9 +71,9 @@ export default function StorefrontFooter() {
 
           {/* Column 2: Quick Shop Categories (Real DB Categories) */}
           <div className="space-y-2.5">
-            <h4 className="text-xs font-bold text-white font-display uppercase tracking-wider">
+            <h3 className="text-xs font-bold text-white font-display uppercase tracking-wider">
               {locale === "bn" ? "পণ্য ক্যাটাগরি" : "Categories"}
-            </h4>
+            </h3>
             <ul className="space-y-1.5 text-xs text-stone-400">
               <li>
                 <Link href="/products" className="hover:text-white transition-colors">
@@ -92,9 +92,9 @@ export default function StorefrontFooter() {
 
           {/* Column 3: Customer Care */}
           <div className="space-y-2.5">
-            <h4 className="text-xs font-bold text-white font-display uppercase tracking-wider">
+            <h3 className="text-xs font-bold text-white font-display uppercase tracking-wider">
               {locale === "bn" ? "কাস্টমার কেয়ার" : "Customer Care"}
-            </h4>
+            </h3>
             <ul className="space-y-1.5 text-xs text-stone-400">
               <li>
                 <Link href="/track" className="hover:text-white transition-colors">
@@ -116,9 +116,9 @@ export default function StorefrontFooter() {
 
           {/* Column 4: Contact Info (Only if entered in settings) */}
           <div className="space-y-2.5">
-            <h4 className="text-xs font-bold text-white font-display uppercase tracking-wider">
+            <h3 className="text-xs font-bold text-white font-display uppercase tracking-wider">
               {locale === "bn" ? "যোগাযোগ" : "Contact"}
-            </h4>
+            </h3>
             <ul className="space-y-2 text-xs text-stone-400">
               {settings.contactAddress && (
                 <li className="flex items-start gap-2">

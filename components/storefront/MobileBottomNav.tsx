@@ -50,14 +50,14 @@ export default function MobileBottomNav() {
           onClick={() => setIsCartOpen(true)}
           className="relative flex flex-col items-center justify-center py-1 px-3 rounded-2xl text-stone-700 cursor-pointer active:scale-95"
         >
-          <div className="relative p-1.5 rounded-full bg-forest text-amber-400 shadow-sm">
+          <span className="relative block p-1.5 rounded-full bg-forest text-amber-400 shadow-sm">
             <ShoppingBag className="w-4 h-4" />
             {cartCount > 0 && (
               <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-400 text-stone-950 text-[9px] font-extrabold flex items-center justify-center ring-2 ring-white">
                 {cartCount}
               </span>
             )}
-          </div>
+          </span>
           <span className="text-[10px] mt-0.5 font-bold text-forest leading-none">
             {locale === "bn" ? "কার্ট" : "Cart"}
           </span>

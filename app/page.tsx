@@ -55,16 +55,21 @@ export default function HomePage() {
       <StorefrontHeader />
 
       <main className="space-y-6 sm:space-y-10 pb-24 md:pb-20">
+        {/* Accessible Main Heading (Level 1) */}
+        <h1 className="sr-only">
+          ENMAR — 100% Pure Organic Food & Pantry Essentials | খাঁটি অর্গানিক খাদ্য বাংলাদেশ
+        </h1>
+
         {/* 1. Dynamic Top Ad Banners & Promo Slider */}
         {banners && banners.length > 0 && (
-          <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-3 sm:pt-6">
+          <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-3 sm:pt-6">
             <HeroSlider banners={banners} />
-          </section>
+          </div>
         )}
 
         {/* 2. Horizontal Category Story-Bar */}
         {(loading && categories.length === 0) ? (
-          <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
             <div className="flex items-center gap-2.5 overflow-x-auto pb-2 scrollbar-none animate-pulse">
               <div className="h-9 w-24 bg-stone-200/80 rounded-2xl shrink-0" />
               <div className="h-9 w-28 bg-stone-200/80 rounded-2xl shrink-0" />
@@ -72,7 +77,7 @@ export default function HomePage() {
               <div className="h-9 w-32 bg-stone-200/80 rounded-2xl shrink-0" />
               <div className="h-9 w-24 bg-stone-200/80 rounded-2xl shrink-0" />
             </div>
-          </section>
+          </div>
         ) : categories.length > 0 ? (
           <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between mb-2.5">
