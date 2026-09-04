@@ -20,20 +20,69 @@ export interface LLMConfig {
 }
 
 /**
- * Clean AI responses: Strips internal thinking scratchpads, "Here's a thinking process", and <thought> tags
+ * Clean AI responses: Strips internal thinking scratchpads, "Here's a thinking process", <think>/<thought> tags, and constraint checklists
  */
 export function cleanAiResponse(raw: string): string {
   if (!raw) return "";
   let text = raw.trim();
 
-  // 1. Strip <thought>...</thought> tags
-  text = text.replace(/<thought>[\s\S]*?<\/thought>/gi, "").trim();
+  // 1. Strip XML-style thinking and reasoning tags
+  text = text.replace(/<think(?:ing)?>[\s\S]*?<\/think(?:ing)?>/gi, "");
+  text = text.replace(/<thought>[\s\S]*?<\/thought>/gi, "");
+  text = text.replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, "");
+  text = text.replace(/<scratchpad>[\s\S]*?<\/scratchpad>/gi, "");
+  text = text.replace(/```(?:thought|think|thinking|scratchpad)[\s\S]*?```/gi, "").trim();
 
-  // 2. Strip "Here's a thinking process: ... " blocks
-  if (/^Here'?s a thinking process/i.test(text) || text.includes("Here's a thinking process:")) {
+  // Strip unclosed opening thinking tags if truncated mid-thought
+  text = text.replace(/<(?:think(?:ing)?|thought|reasoning|scratchpad)>[\s\S]*$/gi, "").trim();
+
+  // 2. Handle pure thinking scratchpad (bullet lists analyzing constraints: "- Greeting:", "- Check constraints:", "- Let's do:")
+  const isScratchpad =
+    (text.startsWith("**") || text.startsWith("*") || text.startsWith("- ")) &&
+    (text.includes("- Greeting:") ||
+      text.includes("- Check constraints:") ||
+      text.includes("- Brief reply") ||
+      text.includes("- Let's do:") ||
+      text.includes("- Output:") ||
+      text.includes("Check constraints") ||
+      text.includes("Output only the final message"));
+
+  if (isScratchpad) {
+    // Try to extract the best candidate text inside quotes within the scratchpad
+    const quotedMatches = [
+      ...text.matchAll(/(?:Output|Let's do|Draft|Response|Maybe)\s*:\s*["“]([^"”\n]+)["”]/gi),
+    ];
+    if (quotedMatches.length > 0) {
+      text = quotedMatches[quotedMatches.length - 1][1].trim();
+    } else {
+      const allQuoted = [...text.matchAll(/["“]([^\n"”]{10,})["”]/g)];
+      if (allQuoted.length > 0) {
+        text = allQuoted[allQuoted.length - 1][1].trim();
+      } else {
+        text = "আসসালামু আলাইকুম! ENMAR Organic Food-এ আপনাকে স্বাগতম। আপনার কি কোনো নির্দিষ্ট পণ্য বা ডায়েটের বিষয়ে জানতে আগ্রহ আছে? আমি সাহায্য করতে পারি!";
+      }
+    }
+  }
+
+  // 3. Check for explicit "Output:", "Final Response:", "Answer:", "Response:" inside scratchpads
+  const outputSplitRegex = /(?:^|\n)(?:[-*•]\s*)?(?:Final (?:Output|Response|Answer)|Output|Response|Answer|Revised (?:Response|Answer))\s*:\s*/gi;
+  const matches = [...text.matchAll(outputSplitRegex)];
+  if (matches.length > 0) {
+    const lastMatch = matches[matches.length - 1];
+    const candidate = text.substring(lastMatch.index! + lastMatch[0].length).trim();
+    if (candidate && !candidate.startsWith("- ") && !candidate.startsWith("* ")) {
+      text = candidate;
+    }
+  }
+
+  // 4. Strip "Here's a thinking process:" / "Thinking Process:" headers if present
+  if (
+    /^(?:Here'?s a thinking process|Thinking Process|Thought Process|Reasoning Process)/i.test(text) ||
+    text.includes("Here's a thinking process:")
+  ) {
     const responseMarkers = [
-      /(?:Draft Response|Final Response|Response|Answer|Revised Response|Output)\s*:\s*(?:\([^)]*\))?\s*[:\n]*/i,
-      /(?:আসসালামু আলাইকুম|Hello|Hi|Greetings)/i,
+      /(?:(?:Draft|Final|Revised)\s+)?(?:Response|Answer|Output)\s*:\s*(?:\([^)]*\))?\s*[:\n]*/i,
+      /(?:আসসালামু আলাইকুম|Hello|Hi|Greetings|Dear)/i,
     ];
 
     let foundIndex = -1;
@@ -41,7 +90,11 @@ export function cleanAiResponse(raw: string): string {
       const match = marker.exec(text);
       if (match && match.index > 15) {
         foundIndex = match.index;
-        if (text.substring(match.index).toLowerCase().includes("response:") || text.substring(match.index).toLowerCase().includes("answer:")) {
+        if (
+          text.substring(match.index).toLowerCase().includes("response:") ||
+          text.substring(match.index).toLowerCase().includes("answer:") ||
+          text.substring(match.index).toLowerCase().includes("output:")
+        ) {
           const colonIdx = text.indexOf(":", match.index);
           if (colonIdx !== -1) {
             foundIndex = colonIdx + 1;
@@ -56,17 +109,12 @@ export function cleanAiResponse(raw: string): string {
     }
   }
 
-  // 3. Strip Thinking Process: ...
-  if (/^Thinking Process/i.test(text) || text.includes("Thinking Process:")) {
-    const splitParts = text.split(/(?:Final Answer|Final Response|Response|Output)\s*:\s*/i);
-    if (splitParts.length > 1) {
-      text = splitParts[splitParts.length - 1].trim();
-    }
-  }
+  // 5. Strip surrounding double quotes if whole response is enclosed in quotes
+  text = text.replace(/^["“'`]+|["”'`]+$/g, "").trim();
 
-  // 4. Strip surrounding double quotes if whole response is enclosed in quotes
-  if (text.startsWith('"') && text.endsWith('"') && text.length > 2) {
-    text = text.slice(1, -1).trim();
+  // 6. If result is still empty or looks like broken thinking
+  if (!text || text.startsWith("- Final check") || text.length < 3) {
+    text = "আসসালামু আলাইকুম! ENMAR Organic Food-এ আপনাকে স্বাগতম। আপনার কি কোনো নির্দিষ্ট পণ্য বা তথ্যের প্রয়োজন? আমি সাহায্য করতে পারি!";
   }
 
   return text;
@@ -432,7 +480,7 @@ export async function callLLM(
       const systemMessage = messages.find((m) => m.role === "system")?.content;
       const result = await callGeminiWeb(apiKey, messages, systemMessage);
       await recordAiRequest();
-      return result;
+      return { text: cleanAiResponse(result.text), tokensUsed: result.tokensUsed || 0 };
     }
 
     // ─────────────────────────────────────────────────────────────
@@ -481,7 +529,8 @@ export async function callLLM(
       }
 
       const data = await res.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      const text = cleanAiResponse(rawText);
       await recordAiRequest();
       return { text, tokensUsed: data.usageMetadata?.totalTokenCount || 0 };
     }
@@ -523,7 +572,8 @@ export async function callLLM(
       }
 
       const data = await res.json();
-      const text = data.content?.[0]?.text || "";
+      const rawText = data.content?.[0]?.text || "";
+      const text = cleanAiResponse(rawText);
       await recordAiRequest();
       return { text, tokensUsed: (data.usage?.input_tokens || 0) + (data.usage?.output_tokens || 0) };
     }

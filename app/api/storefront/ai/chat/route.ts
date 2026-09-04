@@ -258,10 +258,9 @@ ${orderTrackingContext}
 ${inChatOrderCreatedContext}
 
 CRITICAL OPERATIONAL & RESPONSE RULES:
-1. BREVITY & OUTPUT FORMAT (STRICT):
-   - Keep all responses VERY SHORT, clean, and concise (maximum 1 to 2 short sentences, or 2 brief bullet points).
-   - NEVER output internal thinking processes, scratchpad notes, analysis steps, or phrases like "Here's a thinking process" / "Draft Response".
-   - Output ONLY the final polite customer-facing message directly.
+1. BREVITY & DIRECT OUTPUT FORMAT:
+   - Output ONLY the final polite customer-facing message directly (maximum 1 to 2 short sentences).
+   - Do NOT include any planning steps, greeting notes, scratchpads, thinking bullet points, or meta commentary.
 2. ORDER PLACEMENT POLICY:
    - If [SUCCESSFULLY CREATED REAL DATABASE ORDER] is present above, confirm the order enthusiastically in Bengali/English with the exact Order Number, Tracking ID, Total Amount, and tell them: "আমাদের প্রতিনিধি খুব শীঘ্রই কল করে ডেলিভারি নিশ্চিত করবেন।"
    - If a customer wants to place an order but HAS NOT provided their phone number or address yet, kindly tell them:
