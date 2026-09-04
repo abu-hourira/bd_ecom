@@ -23,27 +23,56 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Phone number is required" }, { status: 400 });
     }
 
-    const cleanPhone = phone.trim();
+    const rawPhone = phone.trim();
+    const digitsOnly = rawPhone.replace(/\D/g, "");
+    
+    // Normalize phone number to standard Bangladeshi 11-digit or full format
+    let cleanPhone = rawPhone;
+    if (digitsOnly.length === 11 && digitsOnly.startsWith("01")) {
+      cleanPhone = digitsOnly;
+    } else if (digitsOnly.length === 13 && digitsOnly.startsWith("8801")) {
+      cleanPhone = "0" + digitsOnly.slice(2);
+    }
+
+    const phoneVariations = [
+      cleanPhone,
+      `+88${cleanPhone}`,
+      `88${cleanPhone}`,
+      rawPhone,
+    ];
+    const uniquePhones = Array.from(new Set(phoneVariations));
+
     // Generate 6-digit OTP
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
     const otpExpiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
-    // Upsert customer user
-    await prisma.user.upsert({
-      where: { phone: cleanPhone },
-      update: {
-        otpCode,
-        otpExpiresAt,
-      },
-      create: {
-        name: `Customer ${cleanPhone.slice(-4)}`,
-        phone: cleanPhone,
-        email: `phone_${cleanPhone}@enmar.bd`,
-        passwordHash: "",
-        otpCode,
-        otpExpiresAt,
+    // Find existing user with any format
+    let existingUser = await prisma.user.findFirst({
+      where: {
+        OR: uniquePhones.map((p) => ({ phone: p })),
       },
     });
+
+    if (existingUser) {
+      await prisma.user.update({
+        where: { id: existingUser.id },
+        data: {
+          otpCode,
+          otpExpiresAt,
+        },
+      });
+    } else {
+      existingUser = await prisma.user.create({
+        data: {
+          name: `Customer ${cleanPhone.slice(-4)}`,
+          phone: cleanPhone,
+          email: `phone_${cleanPhone}@enmar.bd`,
+          passwordHash: "",
+          otpCode,
+          otpExpiresAt,
+        },
+      });
+    }
 
     // Send SMS via notification engine
     await sendSMS(cleanPhone, `Your ENMAR Organic Food login verification code is ${otpCode}. Valid for 5 minutes.`);
@@ -54,6 +83,7 @@ export async function POST(request: NextRequest) {
       devOtp: process.env.NODE_ENV === "development" ? otpCode : undefined,
     });
   } catch (error: any) {
+    console.error("[OTP Send Error]:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

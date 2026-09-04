@@ -122,13 +122,18 @@ function LoginContent() {
       if (data.success && data.user) {
         login(data.user);
 
-        if (data.isStaff) {
+        if (callbackUrl) {
+          router.push(callbackUrl);
+        } else if (data.isStaff) {
           router.push("/admin");
         } else {
-          router.push(callbackUrl || "/account/profile");
+          router.push("/account/profile");
         }
       } else {
         setError(data.error || "Invalid login credentials.");
+        if (data.isOtpAccount && phoneOtpEnabled) {
+          setLoginMethod("phone");
+        }
       }
     } catch (err: any) {
       setError(err.message || "Login request failed.");
@@ -195,7 +200,7 @@ function LoginContent() {
           )}
 
           {error && (
-            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
+            <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium leading-relaxed">
               {error}
             </div>
           )}
@@ -216,14 +221,14 @@ function LoginContent() {
             <form onSubmit={handlePasswordLogin} className="space-y-4">
               <div className="space-y-1">
                 <label className="block text-xs font-semibold text-stone-700">
-                  {locale === "bn" ? "ইমেইল অ্যাড্রেস" : "Email Address"}
+                  {locale === "bn" ? "ইমেইল বা ফোন নম্বর" : "Email or Phone Number"}
                 </label>
                 <div className="relative">
                   <Mail className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400" />
                   <input
                     type="text"
                     required
-                    placeholder="customer@enmar.bd"
+                    placeholder="user@enmar.bd or 01XXXXXXXXX"
                     value={identifier}
                     onChange={(e) => setIdentifier(e.target.value)}
                     className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-stone-50 border border-stone-200 text-sm focus:outline-none focus:border-forest"

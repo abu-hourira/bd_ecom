@@ -42,22 +42,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Hydrate from localStorage on mount (client only)
+  // Hydrate from localStorage on mount & verify session
   useEffect(() => {
+    let currentUser: AuthUser | null = null;
     try {
       const raw = localStorage.getItem(AUTH_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as AuthUser;
         if (parsed && parsed.id) {
+          currentUser = parsed;
           setUser(parsed);
         }
       }
     } catch (e) {
-      // Corrupt data — wipe it
       localStorage.removeItem(AUTH_KEY);
     } finally {
       setIsLoaded(true);
     }
+
+    // Verify session with server in background
+    fetch("/api/auth/me")
+      .then((res) => {
+        if (res.ok) return res.json();
+        return null;
+      })
+      .then((data) => {
+        if (data && data.authenticated && data.user) {
+          setUser(data.user);
+          try {
+            localStorage.setItem(AUTH_KEY, JSON.stringify(data.user));
+          } catch (e) {}
+        } else if (!data?.authenticated && currentUser) {
+          // If server says unauthenticated (e.g. cookie expired), clear local state
+          // Note: only if server explicitly returned 401
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const login = useCallback((newUser: AuthUser) => {

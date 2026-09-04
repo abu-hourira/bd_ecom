@@ -16,21 +16,50 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const cleanIdentifier = identifier.trim().toLowerCase();
+    const rawInput = identifier.trim();
+    const cleanEmail = rawInput.toLowerCase();
 
-    // Find by email or phone
+    // Generate phone variations (01xxxxxxxxx, +8801xxxxxxxxx, 8801xxxxxxxxx)
+    const digitsOnly = rawInput.replace(/\D/g, "");
+    const phoneVariations: string[] = [rawInput];
+
+    if (digitsOnly.length >= 10) {
+      if (digitsOnly.startsWith("8801")) {
+        const local = "0" + digitsOnly.slice(2);
+        phoneVariations.push(local, "+" + digitsOnly, digitsOnly);
+      } else if (digitsOnly.startsWith("01")) {
+        phoneVariations.push(digitsOnly, "+88" + digitsOnly, "88" + digitsOnly);
+      } else if (digitsOnly.startsWith("1") && digitsOnly.length === 10) {
+        const local = "0" + digitsOnly;
+        phoneVariations.push(local, "+88" + local, "88" + local);
+      }
+    }
+
+    const uniquePhones = Array.from(new Set(phoneVariations));
+
+    // Find by email or any phone format
     const user = await prisma.user.findFirst({
       where: {
         OR: [
-          { email: cleanIdentifier },
-          { phone: identifier.trim() },
+          { email: cleanEmail },
+          ...uniquePhones.map((p) => ({ phone: p })),
         ],
       },
     });
 
-    if (!user || !user.passwordHash) {
+    if (!user) {
       return NextResponse.json(
-        { error: "Invalid login credentials. Please check your email/phone and password." },
+        { error: "Invalid login credentials. No account found with this email or phone number." },
+        { status: 401 }
+      );
+    }
+
+    if (!user.passwordHash) {
+      return NextResponse.json(
+        {
+          error: "This account was created via Phone OTP and does not have a password yet. Please sign in via Phone OTP or reset your password.",
+          isOtpAccount: true,
+        },
         { status: 401 }
       );
     }

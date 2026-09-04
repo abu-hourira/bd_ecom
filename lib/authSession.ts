@@ -20,7 +20,7 @@ export function isStaffRole(role?: string): boolean {
   return STAFF_ROLES.includes(role);
 }
 
-// Simple Base64URL encode/decode
+// Robust Base64URL encode/decode supporting UTF-8 (Bengali, emoji, special chars) in both Node and Edge
 function base64UrlEncode(str: string): string {
   if (typeof Buffer !== "undefined") {
     return Buffer.from(str, "utf8")
@@ -29,7 +29,12 @@ function base64UrlEncode(str: string): string {
       .replace(/\+/g, "-")
       .replace(/\//g, "_");
   }
-  return btoa(str)
+  const bytes = new TextEncoder().encode(str);
+  let binary = "";
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary)
     .replace(/=/g, "")
     .replace(/\+/g, "-")
     .replace(/\//g, "_");
@@ -43,7 +48,12 @@ function base64UrlDecode(str: string): string {
   if (typeof Buffer !== "undefined") {
     return Buffer.from(base64, "base64").toString("utf8");
   }
-  return atob(base64);
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return new TextDecoder().decode(bytes);
 }
 
 /**
