@@ -4,13 +4,23 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+/** @type {import('next').NextConfig} */
 const nextConfig = {
   outputFileTracingRoot: __dirname,
   reactStrictMode: true,
   compress: true,
   poweredByHeader: false,
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error', 'warn'] } : false,
+  },
   experimental: {
-    optimizePackageImports: ['lucide-react', 'clsx', 'tailwind-merge'],
+    optimizePackageImports: [
+      'lucide-react',
+      'clsx',
+      'tailwind-merge',
+      'framer-motion',
+      '@prisma/client',
+    ],
   },
   images: {
     formats: ['image/avif', 'image/webp'],
@@ -27,6 +37,46 @@ const nextConfig = {
         hostname: '**',
       },
     ],
+  },
+  async headers() {
+    return [
+      {
+        source: '/assets/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/_next/image/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=2592000, stale-while-revalidate=86400',
+          },
+        ],
+      },
+      {
+        source: '/api/storefront/bootstrap',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, s-maxage=300, stale-while-revalidate=1800',
+          },
+        ],
+      },
+      {
+        source: '/api/storefront/home',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, s-maxage=120, stale-while-revalidate=600',
+          },
+        ],
+      },
+    ];
   },
 };
 

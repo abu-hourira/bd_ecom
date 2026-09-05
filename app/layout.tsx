@@ -1,18 +1,21 @@
 // app/layout.tsx
 import type { Metadata } from "next";
 import { Hind_Siliguri, Fraunces, Baloo_Da_2, Space_Mono } from "next/font/google";
+import dynamic from "next/dynamic";
 import { AuthProvider } from "@/context/AuthContext";
 import { StorefrontProvider } from "@/context/StorefrontContext";
 import { CartProvider } from "@/context/CartContext";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { FeatureFlagProvider } from "@/context/FeatureFlagContext";
 import CartDrawer from "@/components/storefront/CartDrawer";
-import FloatingWhatsApp from "@/components/storefront/FloatingWhatsApp";
-import CustomerAiWidget from "@/components/storefront/CustomerAiWidget";
-import CookieConsent from "@/components/storefront/CookieConsent";
 import MobileBottomNav from "@/components/storefront/MobileBottomNav";
-import DynamicFavicon from "@/components/storefront/DynamicFavicon";
 import "./globals.css";
+
+// Lazy load non-critical floating widgets to boost First Contentful Paint & TBT
+const FloatingWhatsApp = dynamic(() => import("@/components/storefront/FloatingWhatsApp"), { ssr: false });
+const CustomerAiWidget = dynamic(() => import("@/components/storefront/CustomerAiWidget"), { ssr: false });
+const CookieConsent = dynamic(() => import("@/components/storefront/CookieConsent"), { ssr: false });
+const DynamicFavicon = dynamic(() => import("@/components/storefront/DynamicFavicon"), { ssr: false });
 
 const hindSiliguri = Hind_Siliguri({
   subsets: ["bengali", "latin"],
