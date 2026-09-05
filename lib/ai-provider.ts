@@ -26,95 +26,106 @@ export function cleanAiResponse(raw: string): string {
   if (!raw) return "";
   let text = raw.trim();
 
-  // 1. Strip XML-style thinking and reasoning tags
+  // 1. Strip XML-style thinking, thought, and reasoning tags
   text = text.replace(/<think(?:ing)?>[\s\S]*?<\/think(?:ing)?>/gi, "");
   text = text.replace(/<thought>[\s\S]*?<\/thought>/gi, "");
   text = text.replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, "");
   text = text.replace(/<scratchpad>[\s\S]*?<\/scratchpad>/gi, "");
-  text = text.replace(/```(?:thought|think|thinking|scratchpad)[\s\S]*?```/gi, "").trim();
+  text = text.replace(/```(?:thought|think|thinking|scratchpad|reasoning)[\s\S]*?```/gi, "").trim();
 
   // Strip unclosed opening thinking tags if truncated mid-thought
   text = text.replace(/<(?:think(?:ing)?|thought|reasoning|scratchpad)>[\s\S]*$/gi, "").trim();
 
-  // 2. Handle pure thinking scratchpad (bullet lists analyzing constraints: "- Greeting:", "- Check constraints:", "- Let's do:")
+  // 2. Detect if the response contains Chain-of-Thought / Thinking process
+  const hasThinkingProcess =
+    /Here'?s a (?:thinking|breakdown of the thinking|thought) process/i.test(text) ||
+    /^(?:Thinking|Thought|Reasoning)\s+Process/i.test(text) ||
+    /(?:^|\n)\s*(?:1\.\s+)?\*{0,2}(?:Analyze User Input|Analyze Intent|Identify Intent|Check Constraints)/i.test(text);
+
+  if (hasThinkingProcess) {
+    // Look for explicit final response or draft markers
+    const finalMarkers = [
+      /(?:(?:Final|Revised|Customer-facing)\s+)?(?:Response|Answer|Output|Message)\s*:\s*(?:\([^)]*\))?\s*[:\n]*/gi,
+      /(?:Let's refine|Let's draft|Refined (?:Response|Answer|Message)|Draft)\s*:\s*[:\n]*/gi,
+    ];
+
+    let extracted = "";
+    // Find the LAST occurrence of any final marker
+    for (const marker of finalMarkers) {
+      const matches = [...text.matchAll(marker)];
+      if (matches.length > 0) {
+        const lastMatch = matches[matches.length - 1];
+        const candidate = text.substring(lastMatch.index! + lastMatch[0].length).trim();
+        // If candidate contains further markers or quotes, extract clean text
+        if (candidate.length > 5) {
+          extracted = candidate;
+        }
+      }
+    }
+
+    if (extracted) {
+      text = extracted;
+    } else {
+      // Look for quoted strings in the thinking text, prefer Bengali or customer-facing text
+      const allQuoted = [...text.matchAll(/["“]([\s\S]+?)["”]/g)].map((m) => m[1].trim());
+      // Filter out small rule quotes or single words
+      const validQuotes = allQuoted.filter(
+        (q) =>
+          q.length > 15 &&
+          !q.includes("Analyze User") &&
+          !q.includes("Check constraints") &&
+          !q.startsWith("- ")
+      );
+      if (validQuotes.length > 0) {
+        // Take the last valid quote (typically the refined/final draft)
+        text = validQuotes[validQuotes.length - 1];
+      }
+    }
+
+    // Strip remaining internal thinking lines (e.g. "Check against rules:", "- Brevity: ...", etc.)
+    text = text
+      .split("\n")
+      .filter((line) => {
+        const trimmed = line.trim();
+        if (!trimmed) return true;
+        if (/^(?:[-*•]|\d+\.)\s*(?:Analyze|Identify|Check|Draft|Refine|Review|Constraint|User|Intent|Rule|Language|Brevit|Brevity|Catalog)/i.test(trimmed)) return false;
+        if (/^(?:Check against rules|Let's draft|Let's refine|Check constraints|Rule \d+)/i.test(trimmed)) return false;
+        if (/^[-*•]\s*(?:I'll|I will|I should|I need to|We need to|Language:|Based on)/i.test(trimmed)) return false;
+        return true;
+      })
+      .join("\n")
+      .trim();
+  }
+
+  // 3. Handle standalone scratchpads (bullet points analyzing constraints)
   const isScratchpad =
-    (text.startsWith("**") || text.startsWith("*") || text.startsWith("- ")) &&
-    (text.includes("- Greeting:") ||
-      text.includes("- Check constraints:") ||
-      text.includes("- Brief reply") ||
-      text.includes("- Let's do:") ||
-      text.includes("- Output:") ||
-      text.includes("Check constraints") ||
+    (text.startsWith("**") || text.startsWith("*") || text.startsWith("- ") || text.startsWith("1.")) &&
+    (text.includes("Check constraints") ||
+      text.includes("Analyze User") ||
+      text.includes("- Greeting:") ||
       text.includes("Output only the final message"));
 
   if (isScratchpad) {
-    // Try to extract the best candidate text inside quotes within the scratchpad
-    const quotedMatches = [
-      ...text.matchAll(/(?:Output|Let's do|Draft|Response|Maybe)\s*:\s*["“]([^"”\n]+)["”]/gi),
-    ];
-    if (quotedMatches.length > 0) {
-      text = quotedMatches[quotedMatches.length - 1][1].trim();
+    const quotedMatches = [...text.matchAll(/["“]([\s\S]+?)["”]/g)].map((m) => m[1].trim());
+    const valid = quotedMatches.filter((q) => q.length > 15 && !q.startsWith("- "));
+    if (valid.length > 0) {
+      text = valid[valid.length - 1];
     } else {
-      const allQuoted = [...text.matchAll(/["“]([^\n"”]{10,})["”]/g)];
-      if (allQuoted.length > 0) {
-        text = allQuoted[allQuoted.length - 1][1].trim();
-      } else {
-        text = "আসসালামু আলাইকুম! ENMAR Organic Food-এ আপনাকে স্বাগতম। আপনার কি কোনো নির্দিষ্ট পণ্য বা ডায়েটের বিষয়ে জানতে আগ্রহ আছে? আমি সাহায্য করতে পারি!";
-      }
+      text = "আসসালামু আলাইকুম! ENMAR Organic Food-এ আপনাকে স্বাগতম। আমাদের সব অর্গানিক পণ্য ও সেরা অফার সম্পর্কে জানতে আমি আপনাকে সাহায্য করতে পারি।";
     }
   }
 
-  // 3. Check for explicit "Output:", "Final Response:", "Answer:", "Response:" inside scratchpads
-  const outputSplitRegex = /(?:^|\n)(?:[-*•]\s*)?(?:Final (?:Output|Response|Answer)|Output|Response|Answer|Revised (?:Response|Answer))\s*:\s*/gi;
-  const matches = [...text.matchAll(outputSplitRegex)];
-  if (matches.length > 0) {
-    const lastMatch = matches[matches.length - 1];
-    const candidate = text.substring(lastMatch.index! + lastMatch[0].length).trim();
-    if (candidate && !candidate.startsWith("- ") && !candidate.startsWith("* ")) {
-      text = candidate;
-    }
+  // 4. Strip surrounding double quotes or backticks if whole response is enclosed
+  text = text.replace(/^["“'`\s]+|["”'`\s]+$/g, "").trim();
+
+  // 5. Clean up any weird broken trailing thought sentences (e.g., "আমাদের ENMAR-এ স্টকমো")
+  if (text.endsWith("স্টকমো") || text.endsWith("স্টকমোত")) {
+    text = text.replace(/\s*স্টকমো[ত]?$/, " স্টকে রয়েছে।");
   }
-
-  // 4. Strip "Here's a thinking process:" / "Thinking Process:" headers if present
-  if (
-    /^(?:Here'?s a thinking process|Thinking Process|Thought Process|Reasoning Process)/i.test(text) ||
-    text.includes("Here's a thinking process:")
-  ) {
-    const responseMarkers = [
-      /(?:(?:Draft|Final|Revised)\s+)?(?:Response|Answer|Output)\s*:\s*(?:\([^)]*\))?\s*[:\n]*/i,
-      /(?:আসসালামু আলাইকুম|Hello|Hi|Greetings|Dear)/i,
-    ];
-
-    let foundIndex = -1;
-    for (const marker of responseMarkers) {
-      const match = marker.exec(text);
-      if (match && match.index > 15) {
-        foundIndex = match.index;
-        if (
-          text.substring(match.index).toLowerCase().includes("response:") ||
-          text.substring(match.index).toLowerCase().includes("answer:") ||
-          text.substring(match.index).toLowerCase().includes("output:")
-        ) {
-          const colonIdx = text.indexOf(":", match.index);
-          if (colonIdx !== -1) {
-            foundIndex = colonIdx + 1;
-          }
-        }
-        break;
-      }
-    }
-
-    if (foundIndex !== -1) {
-      text = text.substring(foundIndex).trim();
-    }
-  }
-
-  // 5. Strip surrounding double quotes if whole response is enclosed in quotes
-  text = text.replace(/^["“'`]+|["”'`]+$/g, "").trim();
 
   // 6. If result is still empty or looks like broken thinking
-  if (!text || text.startsWith("- Final check") || text.length < 3) {
-    text = "আসসালামু আলাইকুম! ENMAR Organic Food-এ আপনাকে স্বাগতম। আপনার কি কোনো নির্দিষ্ট পণ্য বা তথ্যের প্রয়োজন? আমি সাহায্য করতে পারি!";
+  if (!text || text.length < 5 || /^(?:Analyze|Check constraints|Rule \d+|- Final check)/i.test(text)) {
+    text = "আসসালামু আলাইকুম! ENMAR Organic Food-এ আপনাকে স্বাগতম। আমাদের খাঁটি ও অর্গানিক পণ্য সম্পর্কে যেকোনো তথ্য জানতে পারেন, আমি সাহায্য করতে প্রস্তুত!";
   }
 
   return text;

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { callLLM, ChatMessage } from "@/lib/ai-provider";
+import { callLLM, ChatMessage, cleanAiResponse } from "@/lib/ai-provider";
 import { calculateDeliveryFee } from "@/lib/delivery-calculator";
 
 export async function POST(request: NextRequest) {
@@ -258,9 +258,10 @@ ${orderTrackingContext}
 ${inChatOrderCreatedContext}
 
 CRITICAL OPERATIONAL & RESPONSE RULES:
-1. BREVITY & DIRECT OUTPUT FORMAT:
-   - Output ONLY the final polite customer-facing message directly (maximum 1 to 2 short sentences).
-   - Do NOT include any planning steps, greeting notes, scratchpads, thinking bullet points, or meta commentary.
+1. DIRECT CUSTOMER-FACING OUTPUT:
+   - Speak directly to the shopper in warm, fluent, natural Bengali (or English if the customer asked in English).
+   - When listing products, present them in a clean, readable format with prices and stock status.
+   - NEVER output internal thinking steps, chain-of-thought, numbered analysis ('1. Analyze User Input'), or draft notes.
 2. ORDER PLACEMENT POLICY:
    - If [SUCCESSFULLY CREATED REAL DATABASE ORDER] is present above, confirm the order enthusiastically in Bengali/English with the exact Order Number, Tracking ID, Total Amount, and tell them: "আমাদের প্রতিনিধি খুব শীঘ্রই কল করে ডেলিভারি নিশ্চিত করবেন।"
    - If a customer wants to place an order but HAS NOT provided their phone number or address yet, kindly tell them:
@@ -303,7 +304,7 @@ CRITICAL OPERATIONAL & RESPONSE RULES:
           temperature: aiSetting.temperature ?? 0.7,
           maxTokens: aiSetting.maxTokens ?? 1000,
         });
-        reply = llmRes.text;
+        reply = cleanAiResponse(llmRes.text);
         tokensUsed = llmRes.tokensUsed || 0;
       } catch (llmErr: any) {
         console.error("[Customer AI] LLM Provider Error:", llmErr);
