@@ -7,7 +7,7 @@ import { triggerSnapshotRebuild } from "@/lib/snapshotEngine";
 
 export async function GET() {
   try {
-    const categories = await prisma.category.findMany({
+    let categories = await prisma.category.findMany({
       include: {
         _count: {
           select: { products: true },
@@ -15,6 +15,19 @@ export async function GET() {
       },
       orderBy: { displayOrder: "asc" },
     });
+
+    // If database was freshly initialized and has no categories, rebuild snapshot to auto-seed
+    if (categories.length === 0) {
+      await triggerSnapshotRebuild().catch(() => {});
+      categories = await prisma.category.findMany({
+        include: {
+          _count: {
+            select: { products: true },
+          },
+        },
+        orderBy: { displayOrder: "asc" },
+      });
+    }
 
     return NextResponse.json({ success: true, categories });
   } catch (error: any) {
@@ -51,7 +64,7 @@ export async function POST(req: NextRequest) {
 
     serverCache.invalidateTag("categories");
     serverCache.invalidateTag("home");
-    triggerSnapshotRebuild();
+    await triggerSnapshotRebuild().catch(() => {});
 
     return NextResponse.json({ success: true, category }, { status: 201 });
   } catch (error: any) {

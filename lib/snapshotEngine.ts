@@ -37,6 +37,19 @@ function sanitizeProductCards(list: any[]): any[] {
   });
 }
 
+const DEFAULT_CATEGORIES = [
+  { name: "Honey & Sweeteners", slug: "honey-sweeteners", icon: "honey", description: "100% Pure Raw Honey from Sundarbans & mustard flowers" },
+  { name: "Oils & Ghee", slug: "oils-ghee", icon: "oil", description: "Cold-pressed mustard oil, virgin coconut oil, pure bilona ghee" },
+  { name: "Dates & Dry Fruits", slug: "dates-dry-fruits", icon: "dates", description: "Premium Ajwa, Medjool, and organic dry dates" },
+  { name: "Organic Spices", slug: "organic-spices", icon: "spice", description: "Freshly ground turmeric, cumin, chili, and whole spices" },
+  { name: "Nuts & Seeds", slug: "nuts-seeds", icon: "nuts", description: "Almonds, cashew nuts, chia seeds, and pumpkin seeds" },
+  { name: "Tea & Coffee", slug: "tea-coffee", icon: "tea", description: "Organic Sylhet black tea, green tea, artisanal roasted coffee" },
+  { name: "Rice, Flour & Pulses", slug: "rice-flour-pulses", icon: "grain", description: "Nazirshail rice, red rice, organic dal, unbleached flour" },
+  { name: "Organic Health & Wellness", slug: "organic-health-wellness", icon: "leaf", description: "Certified black seed oil, moringa powder, spirulina" },
+  { name: "Combo & Bundle Deals", slug: "combo-bundle-deals", icon: "bundle", description: "Curated pantry packs with exclusive savings" },
+  { name: "Pickles & Preserves", slug: "pickles-preserves", icon: "pickle", description: "Traditional homemade mango, olive, and garlic pickles" },
+];
+
 const PRODUCT_SELECT = {
   id: true,
   name: true,
@@ -80,7 +93,7 @@ export interface StorefrontSnapshots {
 
 export async function generateStorefrontSnapshots(): Promise<StorefrontSnapshots | null> {
   try {
-    const [
+    let [
       categories,
       allProducts,
       siteSettings,
@@ -119,6 +132,40 @@ export async function generateStorefrontSnapshots(): Promise<StorefrontSnapshots
         select: { key: true, isEnabled: true },
       }),
     ]);
+
+    // Auto-seed default categories if database is completely empty
+    if (categories.length === 0) {
+      try {
+        for (let i = 0; i < DEFAULT_CATEGORIES.length; i++) {
+          const cat = DEFAULT_CATEGORIES[i];
+          await prisma.category.upsert({
+            where: { name: cat.name },
+            update: { displayOrder: i },
+            create: {
+              name: cat.name,
+              slug: cat.slug,
+              icon: cat.icon,
+              description: cat.description,
+              displayOrder: i,
+              isActive: true,
+            },
+          });
+        }
+        categories = await prisma.category.findMany({
+          where: { isActive: true },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            icon: true,
+            image: true,
+            displayOrder: true,
+            _count: { select: { products: true } },
+          },
+          orderBy: { displayOrder: "asc" },
+        });
+      } catch (catSeedErr) {}
+    }
 
     const settingsMap: Record<string, string> = {
       brandName: "ENMAR",
@@ -187,13 +234,13 @@ export async function generateStorefrontSnapshots(): Promise<StorefrontSnapshots
     };
 
     // 1. Sync directly to RAM memory cache (0.1ms access)
-    serverCache.set("snapshot_home", homePayload, 3600, ["home", "products", "settings", "categories"]);
-    serverCache.set("snapshot_products", serializedProducts, 3600, ["products"]);
-    serverCache.set("snapshot_categories", categories, 3600, ["categories"]);
-    serverCache.set("snapshot_settings", { settings: settingsMap, theme }, 3600, ["settings", "theme"]);
-    serverCache.set("snapshot_bootstrap", { settings: settingsMap, categories, features: featuresMap }, 3600, ["settings", "categories", "features"]);
+    serverCache.set("snapshot_home", homePayload, 120, ["home", "products", "settings", "categories"]);
+    serverCache.set("snapshot_products", serializedProducts, 120, ["products"]);
+    serverCache.set("snapshot_categories", categories, 120, ["categories"]);
+    serverCache.set("snapshot_settings", { settings: settingsMap, theme }, 120, ["settings", "theme"]);
+    serverCache.set("snapshot_bootstrap", { settings: settingsMap, categories, features: featuresMap }, 120, ["settings", "categories", "features"]);
 
-    // 2. Persist to disk JSON snapshots for resilient zero-latency reads & cold-boot speed
+    // 2. Persist to disk JSON snapshots for resilient offline fallback
     try {
       await mkdir(SNAPSHOT_DIR, { recursive: true });
       await Promise.all([
@@ -221,38 +268,45 @@ export async function getStorefrontSnapshot<T = any>(
   const cached = serverCache.get<T>(`snapshot_${key}`);
   if (cached) return cached;
 
-  // 2. Fast Local Disk JSON check (0.5ms)
+  // 2. Live Database Query (Directly from TiDB Cloud / MySQL)
+  try {
+    const snapshots = await generateStorefrontSnapshots();
+    if (snapshots) {
+      if (key === "home") return snapshots.home as T;
+      if (key === "products") return snapshots.products as T;
+      if (key === "categories") return snapshots.categories as T;
+      if (key === "settings") return { settings: snapshots.settings, theme: snapshots.theme } as T;
+      if (key === "bootstrap") return { settings: snapshots.settings, categories: snapshots.categories, features: snapshots.features } as T;
+    }
+  } catch (dbErr) {
+    console.warn(`[getStorefrontSnapshot ${key} DB Warning]:`, dbErr);
+  }
+
+  // 3. Resilient Local Disk JSON Fallback (if DB is unreachable or offline)
   try {
     const filePath = path.join(SNAPSHOT_DIR, `${key}.json`);
     const fileContent = await readFile(filePath, "utf-8");
     if (fileContent) {
       const parsed = JSON.parse(fileContent);
-      serverCache.set(`snapshot_${key}`, parsed, 3600, [key]);
+      serverCache.set(`snapshot_${key}`, parsed, 60, [key]);
       return parsed as T;
     }
   } catch (e) {
-    // Disk file might not exist yet, fallback to fresh generation
+    // Disk file might not exist
   }
-
-  // 3. Generate on-demand from database
-  const snapshots = await generateStorefrontSnapshots();
-  if (!snapshots) return null;
-
-  if (key === "home") return snapshots.home as T;
-  if (key === "products") return snapshots.products as T;
-  if (key === "categories") return snapshots.categories as T;
-  if (key === "settings") return { settings: snapshots.settings, theme: snapshots.theme } as T;
-  if (key === "bootstrap") return { settings: snapshots.settings, categories: snapshots.categories, features: snapshots.features } as T;
 
   return null;
 }
 
 /**
  * Call this function whenever an admin modifies products, categories, settings, banners, or theme.
- * Non-blocking async background rebuild.
  */
-export function triggerSnapshotRebuild(): void {
-  generateStorefrontSnapshots().catch((err) => {
-    console.warn("[Snapshot Rebuild Warning]:", err);
-  });
+export async function triggerSnapshotRebuild(): Promise<StorefrontSnapshots | null> {
+  serverCache.invalidateTag("products");
+  serverCache.invalidateTag("home");
+  serverCache.invalidateTag("categories");
+  serverCache.invalidateTag("settings");
+  serverCache.invalidateTag("theme");
+  return generateStorefrontSnapshots();
 }
+

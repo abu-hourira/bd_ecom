@@ -123,7 +123,7 @@ export async function PUT(
     revalidatePath(`/products/${updated.slug}`);
     serverCache.invalidateTag("products");
     serverCache.invalidateTag("home");
-    triggerSnapshotRebuild();
+    await triggerSnapshotRebuild().catch(() => {});
     return NextResponse.json({ success: true, product: updated });
   } catch (error: any) {
     console.error("[Product PUT Error]:", error);
@@ -176,7 +176,7 @@ export async function DELETE(
     revalidatePath("/products");
     serverCache.invalidateTag("products");
     serverCache.invalidateTag("home");
-    triggerSnapshotRebuild();
+    await triggerSnapshotRebuild().catch(() => {});
     return NextResponse.json({
       success: true,
       message: "Product safely moved to recycle bin and deleted",

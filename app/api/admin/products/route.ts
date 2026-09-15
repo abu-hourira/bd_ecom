@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
     revalidatePath("/products");
     serverCache.invalidateTag("products");
     serverCache.invalidateTag("home");
-    triggerSnapshotRebuild();
+    await triggerSnapshotRebuild().catch(() => {});
     return NextResponse.json({ success: true, product }, { status: 201 });
   } catch (error: any) {
     console.error("[Products API POST Error]:", error);

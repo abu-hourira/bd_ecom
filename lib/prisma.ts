@@ -8,7 +8,7 @@ function getSanitizedDatabaseUrl(): string | undefined {
   // 1. Strip any accidental wrapping double or single quotes from Vercel UI
   url = url.trim().replace(/^[\"']|[\"']$/g, "");
 
-  // 2. Safely parse and ensure password special characters (like @) are properly URL-encoded
+  // 2. Safely parse and ensure password special characters (like @ or #) are properly URL-encoded
   try {
     const protocolIndex = url.indexOf("://");
     if (protocolIndex !== -1) {
@@ -31,7 +31,13 @@ function getSanitizedDatabaseUrl(): string | undefined {
       }
     }
 
-    // 3. Ensure optimal connection pool settings in production/serverless
+    // 3. TiDB Cloud SSL Handling
+    if (url.includes("tidbcloud.com") && !url.includes("sslaccept=") && !url.includes("ssl=")) {
+      const separator = url.includes("?") ? "&" : "?";
+      url = `${url}${separator}sslaccept=strict`;
+    }
+
+    // 4. Ensure optimal connection pool settings in production/serverless
     if (!url.includes("connection_limit=")) {
       const separator = url.includes("?") ? "&" : "?";
       url = `${url}${separator}connection_limit=10&pool_timeout=20&connect_timeout=15`;
@@ -60,6 +66,7 @@ export const prisma =
     log: ["error"],
   });
 
-globalForPrisma.prisma = prisma;
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 
 export default prisma;
+
