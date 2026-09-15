@@ -7,15 +7,10 @@ import { StorefrontProvider } from "@/context/StorefrontContext";
 import { CartProvider } from "@/context/CartContext";
 import { LanguageProvider } from "@/context/LanguageContext";
 import { FeatureFlagProvider } from "@/context/FeatureFlagContext";
+import ClientWidgets from "@/components/storefront/ClientWidgets";
 import CartDrawer from "@/components/storefront/CartDrawer";
 import MobileBottomNav from "@/components/storefront/MobileBottomNav";
 import "./globals.css";
-
-// Lazy load non-critical floating widgets to boost First Contentful Paint & TBT
-const FloatingWhatsApp = dynamic(() => import("@/components/storefront/FloatingWhatsApp"), { ssr: false });
-const CustomerAiWidget = dynamic(() => import("@/components/storefront/CustomerAiWidget"), { ssr: false });
-const CookieConsent = dynamic(() => import("@/components/storefront/CookieConsent"), { ssr: false });
-const DynamicFavicon = dynamic(() => import("@/components/storefront/DynamicFavicon"), { ssr: false });
 
 const hindSiliguri = Hind_Siliguri({
   subsets: ["bengali", "latin"],
@@ -225,7 +220,6 @@ export default function RootLayout({
       <body className="min-h-screen bg-[#FAF8F5] text-stone-900 antialiased overflow-x-hidden max-w-[100vw] w-full relative font-body" suppressHydrationWarning>
         <AuthProvider>
           <StorefrontProvider>
-            <DynamicFavicon />
             <FeatureFlagProvider>
               <LanguageProvider>
                 <CartProvider>
@@ -234,9 +228,7 @@ export default function RootLayout({
                   </div>
                   <MobileBottomNav />
                   <CartDrawer />
-                  <CustomerAiWidget />
-                  <FloatingWhatsApp />
-                  <CookieConsent />
+                  <ClientWidgets />
                 </CartProvider>
               </LanguageProvider>
             </FeatureFlagProvider>
