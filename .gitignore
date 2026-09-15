@@ -36,3 +36,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# build archives and test scripts
+*.zip
+scratch/
+.vscode/
+test_*.mjs
+

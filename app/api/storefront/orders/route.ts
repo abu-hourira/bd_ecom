@@ -21,6 +21,10 @@ export async function POST(req: NextRequest) {
       promoCodeText,
       customerNotes,
       userId,
+      deliverySlot,
+      preferredDeliveryDate,
+      coinsRedeemed = 0,
+      coinsDiscount = 0,
     } = body;
 
     if (!customerName?.trim() || !customerPhone?.trim() || !shippingAddress?.trim()) {
@@ -167,9 +171,14 @@ export async function POST(req: NextRequest) {
 
     const shippingFee = deliveryCalc.finalDeliveryFee;
 
-    const totalAmount = Math.max(0, subtotal - discountAmount + shippingFee);
+    const numCoinsRedeemed = Math.max(0, parseInt(String(coinsRedeemed), 10) || 0);
+    const numCoinsDiscount = Math.max(0, parseFloat(String(coinsDiscount)) || 0);
+    const totalAmount = Math.max(0, subtotal - discountAmount - numCoinsDiscount + shippingFee);
     const orderNumber = generateOrderNumber();
     const trackingId = generateTrackingId();
+
+    // 1 Coin earned per ৳10 spent
+    const coinsEarned = Math.floor(totalAmount / 10);
 
     const orderItemsForDb = validatedItems.map((it) => ({
       productId: it.productId,
@@ -197,6 +206,11 @@ export async function POST(req: NextRequest) {
           promoCodeText: promoCodeText || null,
           shippingFee,
           totalAmount,
+          deliverySlot: deliverySlot || null,
+          preferredDeliveryDate: preferredDeliveryDate || null,
+          coinsEarned,
+          coinsRedeemed: numCoinsRedeemed,
+          coinsDiscount: numCoinsDiscount,
           paymentMethod: (paymentMethod as PaymentMethod) || PaymentMethod.COD,
           paymentStatus: PaymentStatus.PENDING,
           orderStatus: OrderStatus.PENDING,
@@ -217,6 +231,62 @@ export async function POST(req: NextRequest) {
           actorName: customerName,
         },
       });
+
+      // Handle Loyalty Wallet updates
+      if (userId) {
+        try {
+          let wallet = await tx.loyaltyWallet.findUnique({
+            where: { userId: Number(userId) },
+          });
+
+          if (!wallet) {
+            wallet = await tx.loyaltyWallet.create({
+              data: {
+                userId: Number(userId),
+                coinsBalance: Math.max(0, coinsEarned - numCoinsRedeemed),
+                totalEarned: coinsEarned,
+                totalSpent: numCoinsRedeemed,
+              },
+            });
+          } else {
+            const nextBalance = Math.max(0, wallet.coinsBalance - numCoinsRedeemed + coinsEarned);
+            await tx.loyaltyWallet.update({
+              where: { id: wallet.id },
+              data: {
+                coinsBalance: nextBalance,
+                totalEarned: wallet.totalEarned + coinsEarned,
+                totalSpent: wallet.totalSpent + numCoinsRedeemed,
+              },
+            });
+          }
+
+          if (numCoinsRedeemed > 0) {
+            await tx.loyaltyTransaction.create({
+              data: {
+                walletId: wallet.id,
+                amount: -numCoinsRedeemed,
+                type: "REDEEM_ORDER",
+                description: `Redeemed on Order #${createdOrder.orderNumber}`,
+                orderId: createdOrder.id,
+              },
+            });
+          }
+
+          if (coinsEarned > 0) {
+            await tx.loyaltyTransaction.create({
+              data: {
+                walletId: wallet.id,
+                amount: coinsEarned,
+                type: "EARN_PURCHASE",
+                description: `Earned from Order #${createdOrder.orderNumber}`,
+                orderId: createdOrder.id,
+              },
+            });
+          }
+        } catch (e) {
+          console.warn("[Loyalty Wallet TX Error]:", e);
+        }
+      }
 
       if (promoCodeId) {
         try {

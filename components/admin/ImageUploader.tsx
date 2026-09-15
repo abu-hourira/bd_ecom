@@ -148,14 +148,14 @@ export default function ImageUploader({
           {images.map((url, idx) => (
             <div
               key={`${url}-${idx}`}
-              className="group relative aspect-square rounded-xl overflow-hidden border border-line bg-bg shadow-xs"
+              className="group relative aspect-square rounded-2xl overflow-hidden border border-stone-200 bg-gradient-to-b from-stone-50 to-stone-100 shadow-xs flex items-center justify-center p-2"
             >
               <Image
                 src={url}
                 alt={`Image ${idx + 1}`}
                 fill
                 sizes="(max-width: 768px) 50vw, 20vw"
-                className="object-cover"
+                className="object-contain p-2 drop-shadow-xs"
                 unoptimized={url.startsWith("/uploads/")}
               />
 

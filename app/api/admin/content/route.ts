@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { translations as defaultTranslations } from "@/lib/i18n";
+import { triggerSnapshotRebuild } from "@/lib/snapshotEngine";
 
 export async function GET() {
   try {
@@ -80,6 +81,7 @@ export async function POST(req: NextRequest) {
     revalidatePath("/", "layout");
     revalidatePath("/products");
     revalidatePath("/checkout");
+    await triggerSnapshotRebuild().catch(() => {});
     return NextResponse.json({
       success: true,
       message: `Successfully saved ${items.length} content block(s) to database.`,

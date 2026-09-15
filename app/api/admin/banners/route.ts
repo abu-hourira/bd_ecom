@@ -1,7 +1,7 @@
 // app/api/admin/banners/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { serverCache } from "@/lib/serverCache";
+import { triggerSnapshotRebuild } from "@/lib/snapshotEngine";
 
 export async function GET() {
   try {
@@ -35,8 +35,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    serverCache.invalidateTag("banners");
-    serverCache.invalidateTag("home");
+    await triggerSnapshotRebuild().catch(() => {});
 
     return NextResponse.json({ success: true, banner }, { status: 201 });
   } catch (error: any) {

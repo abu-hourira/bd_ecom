@@ -7,7 +7,7 @@ export function ProductCardSkeleton() {
     <div className="bg-white rounded-2xl sm:rounded-3xl border border-stone-200/80 p-2.5 sm:p-4 flex flex-col justify-between shadow-xs relative overflow-hidden animate-pulse">
       {/* 1. Image Placeholder */}
       <div>
-        <div className="relative w-full aspect-square rounded-xl sm:rounded-2xl bg-gradient-to-br from-stone-100 via-stone-200/60 to-stone-100 mb-2.5 sm:mb-3 overflow-hidden">
+        <div className="relative w-full aspect-square rounded-2xl sm:rounded-3xl bg-gradient-to-br from-stone-100 via-stone-200/60 to-stone-100 mb-2.5 sm:mb-3 overflow-hidden">
           <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer" />
         </div>
 

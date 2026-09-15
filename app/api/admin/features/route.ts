@@ -1,7 +1,7 @@
 // app/api/admin/features/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import { serverCache } from "@/lib/serverCache";
+import { triggerSnapshotRebuild } from "@/lib/snapshotEngine";
 
 const DEFAULT_SYSTEM_FLAGS = [
   {
@@ -61,30 +61,106 @@ const DEFAULT_SYSTEM_FLAGS = [
     isEnabled: true,
   },
   {
+    key: "search_autocomplete",
+    name: "Search Autocomplete & Suggestions",
+    description: "Live search dropdown preview for customers.",
+    category: "storefront",
+    isEnabled: true,
+  },
+  {
+    key: "homepage_combos_banner",
+    name: "Homepage Combo & Bundle Section",
+    description: "Display family bundle packages on homepage.",
+    category: "storefront",
+    isEnabled: true,
+  },
+  {
+    key: "wellness_tools",
+    name: "General Wellness Profile & BMI Tools",
+    description: "Allow customers to calculate BMI & water intake recommendations.",
+    category: "wellness",
+    isEnabled: true,
+  },
+  {
     key: "payment_cod",
-    name: "Cash on Delivery (COD)",
-    description: "Accept Cash on Delivery payment option at checkout.",
-    category: "payments",
+    name: "Cash On Delivery (ক্যাশ অন ডেলিভারি)",
+    description: "Accept cash payment upon parcel delivery.",
+    category: "payment",
     isEnabled: true,
   },
   {
     key: "payment_bkash",
-    name: "Online / Mobile Payments (SSLCommerz)",
-    description: "Accept bKash, Nagad, Rocket, Cards via SSLCommerz gateway.",
-    category: "payments",
+    name: "bKash Direct Gateway",
+    description: "Accept bKash mobile payments via SSLCommerz.",
+    category: "payment",
+    isEnabled: true,
+  },
+  {
+    key: "payment_card",
+    name: "Debit / Credit Card Payment",
+    description: "Accept Visa, Mastercard, AMEX cards.",
+    category: "payment",
+    isEnabled: true,
+  },
+  {
+    key: "loyalty_rewards",
+    name: "Enmar Coins & Loyalty Rewards (কয়েন ও লয়ালটি রিওয়ার্ড)",
+    description: "Customers earn coins on purchases to redeem for instant discounts at checkout.",
+    category: "loyalty",
+    isEnabled: true,
+  },
+  {
+    key: "subscription_boxes",
+    name: "Grocery Subscription Boxes (মাসিক / সাপ্তাহিক গ্রোসারি বক্স)",
+    description: "Allow customers to subscribe to automated recurring pantry boxes with savings.",
+    category: "subscriptions",
+    isEnabled: true,
+  },
+  {
+    key: "recipes_to_cart",
+    name: "1-Click Recipes & Remedies to Cart (রেসিপি ও স্বাস্থ্য টিপস থেকে কার্ট)",
+    description: "Interactive recipe and herbal remedy pages with 1-click bundle carting.",
+    category: "storefront",
+    isEnabled: true,
+  },
+  {
+    key: "scheduled_delivery_slots",
+    name: "Scheduled Delivery Time Slots (ডেলিভারি স্লট নির্বাচন)",
+    description: "Let customers pick preferred delivery time slots (Morning, Evening, Express) at checkout.",
+    category: "checkout",
+    isEnabled: true,
+  },
+  {
+    key: "lab_purity_reports",
+    name: "Farm-to-Source & Lab Reports (সততা ও ল্যাব টেস্ট রিপোর্ট)",
+    description: "Display harvesting district, batch number, and lab purity certificates on product pages.",
+    category: "storefront",
+    isEnabled: true,
+  },
+  {
+    key: "photo_reviews",
+    name: "Customer Photo Reviews & Q&A (ছবিসহ কাস্টমার রিভিউ)",
+    description: "Allow customers to upload photos with reviews and view verified photo feedback.",
+    category: "storefront",
     isEnabled: true,
   },
 ];
 
 export async function GET() {
   try {
-    // Ensure all standard system flags exist
-    for (const flag of DEFAULT_SYSTEM_FLAGS) {
-      await prisma.featureFlag.upsert({
-        where: { key: flag.key },
-        update: {},
-        create: flag,
-      });
+    const existing = await prisma.featureFlag.findMany();
+    const existingKeys = new Set(existing.map((e) => e.key));
+
+    // Ensure any newly defined flags are inserted into DB
+    const missing = DEFAULT_SYSTEM_FLAGS.filter((f) => !existingKeys.has(f.key));
+    if (missing.length > 0) {
+      await Promise.all(
+        missing.map((f) =>
+          prisma.featureFlag.create({
+            data: f,
+          })
+        )
+      );
     }
 
     const flags = await prisma.featureFlag.findMany({
@@ -118,8 +194,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    serverCache.invalidateTag("features");
-    serverCache.invalidateTag("settings");
+    await triggerSnapshotRebuild().catch(() => {});
 
     return NextResponse.json({
       success: true,

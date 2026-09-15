@@ -347,12 +347,12 @@ export default function AdminProductsPage() {
 
                       <td className="py-4 px-4">
                         <div className="flex items-center gap-3">
-                          <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-bg border border-line shrink-0">
+                          <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-gradient-to-b from-[#FAF8F5] to-[#F4EFEB] border border-stone-200/80 shrink-0 flex items-center justify-center p-1 shadow-xs">
                             <Image
                               src={imageSrc}
                               alt={p.name}
                               fill
-                              className="object-cover"
+                              className="object-contain p-0.5 drop-shadow-xs"
                               unoptimized={imageSrc.startsWith("/uploads/")}
                             />
                           </div>

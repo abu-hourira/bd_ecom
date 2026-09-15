@@ -1,11 +1,14 @@
 // lib/serverCache.ts
-// In-memory server-side high-performance cache with TTL and tag-based invalidation
+// Bounded In-Memory High-Performance Server Cache with Automatic Memory Optimization
 
 interface CacheEntry<T> {
   data: T;
   expiresAt: number;
   tags: string[];
+  accessedAt: number;
 }
+
+const MAX_CACHE_ENTRIES = 300; // Strict limit to prevent memory bloating
 
 class MemoryCache {
   private store = new Map<string, CacheEntry<any>>();
@@ -19,15 +22,43 @@ class MemoryCache {
       return null;
     }
 
+    entry.accessedAt = Date.now();
     return entry.data as T;
   }
 
   set<T>(key: string, data: T, ttlSeconds: number = 60, tags: string[] = []): void {
+    // Memory Guard: Prune expired or oldest items if store exceeds MAX_CACHE_ENTRIES
+    if (this.store.size >= MAX_CACHE_ENTRIES) {
+      this.pruneExpiredOrOldest();
+    }
+
     this.store.set(key, {
       data,
       expiresAt: Date.now() + ttlSeconds * 1000,
       tags,
+      accessedAt: Date.now(),
     });
+  }
+
+  private pruneExpiredOrOldest(): void {
+    const now = Date.now();
+    // 1. First remove any expired items
+    for (const [key, entry] of this.store.entries()) {
+      if (now > entry.expiresAt) {
+        this.store.delete(key);
+      }
+    }
+
+    // 2. If still over capacity, remove the oldest 20% accessed entries
+    if (this.store.size >= MAX_CACHE_ENTRIES) {
+      const sorted = Array.from(this.store.entries()).sort(
+        (a, b) => a[1].accessedAt - b[1].accessedAt
+      );
+      const toDelete = sorted.slice(0, Math.ceil(MAX_CACHE_ENTRIES * 0.2));
+      for (const [k] of toDelete) {
+        this.store.delete(k);
+      }
+    }
   }
 
   invalidateTag(tag: string): void {
@@ -40,6 +71,10 @@ class MemoryCache {
 
   invalidateAll(): void {
     this.store.clear();
+  }
+
+  getStats(): { size: number; max: number } {
+    return { size: this.store.size, max: MAX_CACHE_ENTRIES };
   }
 }
 

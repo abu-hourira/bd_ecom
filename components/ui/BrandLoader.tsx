@@ -38,7 +38,7 @@ export default function BrandLoader({
 
         {/* Main Logo Box */}
         <div
-          className={`relative ${sizeClasses[size]} rounded-2xl sm:rounded-3xl bg-white p-2 shadow-2xl flex items-center justify-center border-2 border-amber-400/40 z-10 animate-bounce-slow`}
+          className={`relative ${sizeClasses[size]} rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl flex items-center justify-center ring-2 ring-amber-400/40 z-10 animate-bounce-slow`}
         >
           {logo ? (
             <div className="relative w-full h-full">
@@ -46,7 +46,7 @@ export default function BrandLoader({
                 src={getSafeImageUrl(logo)}
                 alt={brandName || "Logo"}
                 fill
-                className="object-contain p-1"
+                className="object-cover"
                 sizes="80px"
                 priority
               />

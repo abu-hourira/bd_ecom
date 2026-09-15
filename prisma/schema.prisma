@@ -2,7 +2,8 @@
 // ENMAR Organic Food E-Commerce Platform Database Schema
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-1.0.x", "rhel-openssl-3.0.x", "debian-openssl-1.1.x", "debian-openssl-3.0.x", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {
@@ -61,6 +62,8 @@ model User {
   wellnessProfile WellnessProfile?
   returnRequests  ReturnRequest[]
   wishlist        WishlistItem[]
+  loyaltyWallet   LoyaltyWallet?
+  subscriptions   CustomerSubscription[]
 
   @@map("users")
 }
@@ -178,6 +181,14 @@ model Product {
   badge             String?     // "Sale", "New", "Best Seller"
   featured          Boolean     @default(false)
   isActive          Boolean     @default(true)
+  
+  // Farm-to-Source Transparency & Lab Purity Reports
+  sourceOrigin          String?     // e.g. "সুন্দরবন", "নাটোর", "চলনবিল"
+  harvestDate           String?     // e.g. "২০২৪ মৌসুমের নতুন ফসল"
+  batchNumber           String?     // e.g. "ENM-HN-884"
+  purityCertificateUrl  String?     @db.Text
+  labTestReportSummary  String?     @db.Text
+
   createdAt         DateTime    @default(now())
   updatedAt         DateTime    @updatedAt
 
@@ -244,6 +255,15 @@ model Order {
   promoCodeText      String?
   shippingFee        Decimal        @default(70) @db.Decimal(10, 2)
   totalAmount        Decimal        @db.Decimal(10, 2)
+
+  // Scheduled Delivery Slot & Express Guarantee
+  deliverySlot          String?        // "Morning 8am-12pm", "Evening 4pm-8pm", "Express Same-Day"
+  preferredDeliveryDate String?
+
+  // Loyalty & Coin Discounts
+  coinsEarned           Int?           @default(0)
+  coinsRedeemed         Int?           @default(0)
+  coinsDiscount         Decimal?       @default(0) @db.Decimal(10, 2)
 
   paymentMethod      PaymentMethod  @default(COD)
   paymentStatus      PaymentStatus  @default(PENDING)
@@ -627,15 +647,18 @@ model APIImportSource {
 // ─────────────────────────────────────────────────────────────
 
 model Review {
-  id         Int      @id @default(autoincrement())
-  productId  Int
-  userId     Int?
-  userName   String
-  userEmail  String
-  rating     Int      @default(5)
-  comment    String   @db.Text
-  isApproved Boolean  @default(true)
-  createdAt  DateTime @default(now())
+  id               Int      @id @default(autoincrement())
+  productId        Int
+  userId           Int?
+  userName         String
+  userEmail        String
+  rating           Int      @default(5)
+  comment          String   @db.Text
+  photos           Json?    // Array of uploaded customer photo URLs
+  verifiedPurchase Boolean  @default(true)
+  adminReply       String?  @db.Text
+  isApproved       Boolean  @default(true)
+  createdAt        DateTime @default(now())
 
   product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -712,9 +735,110 @@ model DeliveryPersonnel {
   currentLng         Float?
   lastLocationUpdate DateTime?
   createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-
   orders             Order[]
 
   @@map("delivery_personnel")
 }
+
+// ─────────────────────────────────────────────────────────────
+// 14. ADVANTAGE MODULES: LOYALTY, RECIPES, SUBSCRIPTIONS
+// ─────────────────────────────────────────────────────────────
+
+model LoyaltyWallet {
+  id           Int                  @id @default(autoincrement())
+  userId       Int                  @unique
+  coinsBalance Int                  @default(0)
+  totalEarned  Int                  @default(0)
+  totalSpent   Int                  @default(0)
+  tier         String               @default("SILVER") // SILVER, GOLD, PLATINUM
+  updatedAt    DateTime             @updatedAt
+  createdAt    DateTime             @default(now())
+
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions LoyaltyTransaction[]
+
+  @@map("loyalty_wallets")
+}
+
+model LoyaltyTransaction {
+  id          Int           @id @default(autoincrement())
+  walletId    Int
+  amount      Int           // positive for earn, negative for redeem
+  type        String        // EARN_PURCHASE, REDEEM_ORDER, SIGNUP_BONUS, ADMIN_ADJUSTMENT
+  description String
+  orderId     Int?
+  createdAt   DateTime      @default(now())
+
+  wallet      LoyaltyWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@map("loyalty_transactions")
+}
+
+model Recipe {
+  id                    Int      @id @default(autoincrement())
+  title                 String
+  slug                  String   @unique
+  imageUrl              String   @db.LongText
+  category              String   @default("healthy_cooking") // healthy_cooking, herbal_remedy, breakfast, drinks
+  prepTimeMinutes       Int      @default(15)
+  servings              Int      @default(4)
+  difficulty            String   @default("Easy") // Easy, Medium, Advanced
+  healthBenefits        String?  @db.Text
+  instructions          Json     // Array of steps: [{ stepNumber: 1, title: "", description: "" }]
+  linkedProductIds      Json     // Array of product IDs needed for recipe
+  bundleDiscountPercent Decimal? @default(5) @db.Decimal(5, 2)
+  isFeatured            Boolean  @default(false)
+  isActive              Boolean  @default(true)
+  viewCount             Int      @default(0)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([slug])
+  @@index([isActive, category])
+  @@map("recipes")
+}
+
+model SubscriptionPlan {
+  id                 Int                    @id @default(autoincrement())
+  title              String
+  slug               String                 @unique
+  description        String                 @db.Text
+  imageUrl           String?                @db.LongText
+  frequency          String                 @default("MONTHLY") // "WEEKLY", "BI_WEEKLY", "MONTHLY"
+  discountPercent    Decimal                @default(10) @db.Decimal(5, 2)
+  includedProductIds Json                   // [{ productId: 1, quantity: 2 }]
+  price              Decimal                @db.Decimal(10, 2)
+  isActive           Boolean                @default(true)
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+
+  subscriptions      CustomerSubscription[]
+
+  @@map("subscription_plans")
+}
+
+model CustomerSubscription {
+  id                 Int               @id @default(autoincrement())
+  subscriptionNumber String            @unique
+  userId             Int
+  planId             Int?
+  customerName       String
+  customerPhone      String
+  shippingAddress    String            @db.Text
+  frequency          String            @default("MONTHLY")
+  nextDeliveryDate   DateTime
+  status             String            @default("ACTIVE") // ACTIVE, PAUSED, CANCELLED
+  paymentMethod      String            @default("COD") // COD, BKASH, CARD
+  totalPerDelivery   Decimal           @db.Decimal(10, 2)
+  customItems        Json?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan               SubscriptionPlan? @relation(fields: [planId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([subscriptionNumber])
+  @@map("customer_subscriptions")
+}
+

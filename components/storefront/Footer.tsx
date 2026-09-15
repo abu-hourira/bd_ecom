@@ -1,5 +1,5 @@
 "use client";
-// components/storefront/Footer.tsx - Clean 100% Dynamic Footer
+// components/storefront/Footer.tsx - Clean 100% Dynamic Footer with Payment & Trust Badges
 
 import Link from "next/link";
 import Image from "next/image";
@@ -8,7 +8,8 @@ import {
   Mail,
   MapPin,
   MessageCircle,
-  Store,
+  Truck,
+  RotateCcw,
 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 import { useStorefront } from "@/context/StorefrontContext";
@@ -17,70 +18,71 @@ import { getSafeImageUrl } from "@/lib/utils";
 export default function StorefrontFooter() {
   const { locale } = useLanguage();
   const { settings, categories } = useStorefront();
+  const isBn = locale === "bn";
 
-  const brandTitle = settings.brandName || "";
+  const brandTitle = settings.brandName || "ENMAR";
 
   return (
-    <footer className="bg-stone-900 text-stone-300 border-t border-stone-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {/* Column 1: Brand Info */}
-          <div className="space-y-3">
-            <Link href="/" className="flex items-center gap-2.5 group min-h-[36px]">
+    <footer className="bg-[#0D1C12] text-stone-300 border-t border-forest-deep">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 pb-10 border-b border-stone-800/80">
+          {/* Column 1: Brand Info & WhatsApp */}
+          <div className="space-y-4">
+            <Link href="/" className="flex items-center gap-3 group min-h-[40px]">
               {settings.siteLogo ? (
-                <div className="relative w-10 h-10 rounded-xl overflow-hidden shadow-xs bg-stone-800 border border-stone-700 shrink-0">
+                <div className="relative w-10 h-10 rounded-xl overflow-hidden shadow-md shrink-0 ring-1 ring-white/20">
                   <Image
                     src={getSafeImageUrl(settings.siteLogo)}
-                    alt={brandTitle || "Logo"}
+                    alt={brandTitle}
                     fill
-                    className="object-contain p-0.5"
+                    className="object-cover"
                     sizes="40px"
                   />
                 </div>
               ) : null}
               <div>
-                {brandTitle ? (
-                  <span className="font-display font-bold text-xl tracking-tight text-white leading-none">
-                    {brandTitle}
-                  </span>
-                ) : (
-                  <div className="w-28 h-5 bg-stone-800 rounded-md animate-pulse" />
-                )}
-                {settings.brandTagline && (
-                  <span className="block text-[10px] tracking-wider uppercase text-amber-400 font-mono font-semibold mt-0.5">
-                    {settings.brandTagline}
-                  </span>
-                )}
+                <span className="font-display font-extrabold text-2xl tracking-tight text-white leading-none block">
+                  {brandTitle}
+                </span>
+                <span className="block text-xs font-medium text-amber-300/90 tracking-wide mt-1">
+                  {settings.brandTagline || "100% Pure Organic Food"}
+                </span>
               </div>
             </Link>
 
+            <p className="text-xs text-stone-400 leading-relaxed">
+              {isBn
+                ? "খাঁটি ও প্রাকৃতিক খাদ্যপণ্যের বিশ্বস্ত প্রতিষ্ঠান। আমাদের লক্ষ্য স্বাস্থ্যকর ও নির্ভেজাল খাদ্যাভ্যাস গড়ে তোলা।"
+                : "Your trusted destination for farm-fresh, chemical-free organic foods and pantry staples."}
+            </p>
+
             {settings.whatsappNumber && (
-              <div className="pt-2">
+              <div>
                 <a
                   href={`https://wa.me/${settings.whatsappNumber}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-bold transition-all"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all shadow-md active:scale-95"
                 >
-                  <MessageCircle className="w-3.5 h-3.5" />
-                  <span>WhatsApp</span>
+                  <MessageCircle className="w-4 h-4" />
+                  <span>{isBn ? "হোয়াটসঅ্যাপে যোগাযোগ" : "WhatsApp Support"}</span>
                 </a>
               </div>
             )}
           </div>
 
-          {/* Column 2: Quick Shop Categories (Real DB Categories) */}
-          <div className="space-y-2.5">
-            <h3 className="text-xs font-bold text-white font-display uppercase tracking-wider">
-              {locale === "bn" ? "পণ্য ক্যাটাগরি" : "Categories"}
+          {/* Column 2: Quick Shop Categories */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold text-white font-display uppercase tracking-wider text-amber-400">
+              {isBn ? "পণ্য ক্যাটাগরি" : "Categories"}
             </h3>
-            <ul className="space-y-1.5 text-xs text-stone-400">
+            <ul className="space-y-2 text-xs text-stone-400">
               <li>
                 <Link href="/products" className="hover:text-white transition-colors">
-                  {locale === "bn" ? "সকল পণ্য" : "All Products"}
+                  {isBn ? "সকল অর্গানিক পণ্য" : "All Organic Products"}
                 </Link>
               </li>
-              {categories.map((c) => (
+              {categories.slice(0, 6).map((c) => (
                 <li key={c.id}>
                   <Link href={`/products?category=${c.slug}`} className="hover:text-white transition-colors">
                     {c.name}
@@ -90,66 +92,91 @@ export default function StorefrontFooter() {
             </ul>
           </div>
 
-          {/* Column 3: Customer Care */}
-          <div className="space-y-2.5">
-            <h3 className="text-xs font-bold text-white font-display uppercase tracking-wider">
-              {locale === "bn" ? "কাস্টমার কেয়ার" : "Customer Care"}
+          {/* Column 3: Customer Care & Policies */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold text-white font-display uppercase tracking-wider text-amber-400">
+              {isBn ? "গ্রাহক সেবা ও নীতি" : "Customer Care"}
             </h3>
-            <ul className="space-y-1.5 text-xs text-stone-400">
+            <ul className="space-y-2 text-xs text-stone-400">
               <li>
-                <Link href="/track" className="hover:text-white transition-colors">
-                  {locale === "bn" ? "অর্ডার ট্র্যাকিং" : "Order Tracking"}
+                <Link href="/track" className="hover:text-white transition-colors flex items-center gap-1.5">
+                  <Truck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>{isBn ? "লাইভ অর্ডার ট্র্যাকিং" : "Live Order Tracking"}</span>
                 </Link>
               </li>
               <li>
                 <Link href="/shipping" className="hover:text-white transition-colors">
-                  {locale === "bn" ? "ডেলিভারি পলিসি" : "Shipping Policy"}
+                  {isBn ? "ডেলিভারি তথ্য ও চার্জ" : "Shipping Information"}
+                </Link>
+              </li>
+              <li>
+                <Link href="/returns" className="hover:text-white transition-colors flex items-center gap-1.5">
+                  <RotateCcw className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>{isBn ? "রিটার্ন ও রিফান্ড নীতি" : "Returns & Refund Policy"}</span>
+                </Link>
+              </li>
+              <li>
+                <Link href="/privacy" className="hover:text-white transition-colors">
+                  {isBn ? "প্রাইভেসি পলিসি" : "Privacy Policy"}
                 </Link>
               </li>
               <li>
                 <Link href="/terms" className="hover:text-white transition-colors">
-                  {locale === "bn" ? "রিটার্ন ও রিফান্ড" : "Return & Refund"}
+                  {isBn ? "শর্তাবলী (Terms & Conditions)" : "Terms & Conditions"}
                 </Link>
               </li>
             </ul>
           </div>
 
-          {/* Column 4: Contact Info (Only if entered in settings) */}
-          <div className="space-y-2.5">
-            <h3 className="text-xs font-bold text-white font-display uppercase tracking-wider">
-              {locale === "bn" ? "যোগাযোগ" : "Contact"}
+          {/* Column 4: Contact & Office */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-bold text-white font-display uppercase tracking-wider text-amber-400">
+              {isBn ? "যোগাযোগ ও ঠিকানা" : "Contact & Address"}
             </h3>
-            <ul className="space-y-2 text-xs text-stone-400">
-              {settings.contactAddress && (
-                <li className="flex items-start gap-2">
-                  <MapPin className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
-                  <span>{settings.contactAddress}</span>
-                </li>
-              )}
+            <div className="space-y-2.5 text-xs text-stone-400">
               {settings.contactPhone && (
-                <li className="flex items-center gap-2">
-                  <Phone className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <div className="flex items-center gap-2">
+                  <Phone className="w-4 h-4 text-emerald-400 shrink-0" />
                   <a href={`tel:${settings.contactPhone}`} className="hover:text-white">
                     {settings.contactPhone}
                   </a>
-                </li>
+                </div>
               )}
               {settings.contactEmail && (
-                <li className="flex items-center gap-2">
-                  <Mail className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <div className="flex items-center gap-2">
+                  <Mail className="w-4 h-4 text-emerald-400 shrink-0" />
                   <a href={`mailto:${settings.contactEmail}`} className="hover:text-white">
                     {settings.contactEmail}
                   </a>
-                </li>
+                </div>
               )}
-            </ul>
+              <div className="flex items-start gap-2">
+                <MapPin className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <span>{settings.contactAddress || "ঢাকা, বাংলাদেশ"}</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Bottom Copyright */}
-        <div className="mt-8 pt-4 border-t border-stone-800 flex flex-col sm:flex-row items-center justify-between gap-2 text-[11px] text-stone-500">
-          <div>
-            {brandTitle ? `© ${new Date().getFullYear()} ${brandTitle}. All rights reserved.` : `© ${new Date().getFullYear()}. All rights reserved.`}
+        {/* Bottom Bar: Payment Logos & Copyright */}
+        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-stone-500">
+          <p className="text-center sm:text-left">
+            © {new Date().getFullYear()} {brandTitle}. {isBn ? "সর্বস্বত্ব সংরক্ষিত।" : "All rights reserved."}
+          </p>
+
+          <div className="flex items-center gap-3">
+            <span className="text-[11px] text-stone-400 font-semibold">
+              {isBn ? "নিরাপদ পেমেন্ট পার্টনার:" : "Payment Methods:"}
+            </span>
+            <div className="flex items-center gap-2 bg-stone-900/90 px-3 py-1.5 rounded-xl border border-stone-800">
+              <span className="text-[11px] font-bold text-pink-400">bKash</span>
+              <span className="text-stone-600">|</span>
+              <span className="text-[11px] font-bold text-amber-400">Nagad</span>
+              <span className="text-stone-600">|</span>
+              <span className="text-[11px] font-bold text-emerald-400">COD</span>
+              <span className="text-stone-600">|</span>
+              <span className="text-[11px] font-bold text-sky-400">Cards</span>
+            </div>
           </div>
         </div>
       </div>

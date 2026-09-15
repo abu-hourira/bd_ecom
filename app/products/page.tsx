@@ -18,6 +18,7 @@ import StorefrontFooter from "@/components/storefront/Footer";
 import ProductCard from "@/components/storefront/ProductCard";
 import { ProductCardSkeleton } from "@/components/storefront/ProductCardSkeleton";
 import { useLanguage } from "@/context/LanguageContext";
+import { formatBengaliNumber } from "@/lib/utils";
 
 function ProductsContent() {
   const searchParams = useSearchParams();
@@ -25,16 +26,8 @@ function ProductsContent() {
   const initialSearch = searchParams.get("search") || "";
 
   const [products, setProducts] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const catCache = localStorage.getItem("enmar_categories_cache");
-        if (catCache) return JSON.parse(catCache);
-      } catch (e) {}
-    }
-    return [];
-  });
-  const [loading, setLoading] = useState(() => products.length === 0);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [pagination, setPagination] = useState<{
     total: number;
@@ -43,7 +36,7 @@ function ProductsContent() {
     totalPages: number;
     hasMore: boolean;
   }>({
-    total: products.length || 0,
+    total: 0,
     page: 1,
     limit: 24,
     totalPages: 1,
@@ -62,6 +55,13 @@ function ProductsContent() {
   const { t, locale } = useLanguage();
 
   useEffect(() => {
+    try {
+      const catCache = localStorage.getItem("enmar_categories_cache");
+      if (catCache) {
+        setCategories(JSON.parse(catCache));
+      }
+    } catch (e) {}
+
     fetch("/api/storefront/categories")
       .then((res) => res.json())
       .then((data) => {
@@ -172,7 +172,11 @@ function ProductsContent() {
             <p className="text-xs sm:text-sm text-stone-600 mt-1">
               {loading
                 ? t("catalog.loading")
-                : `${pagination.total || products.length} ${t("catalog.showing")}`}
+                : t("catalog.showing", {
+                    count: locale === "bn"
+                      ? formatBengaliNumber(pagination.total || products.length)
+                      : (pagination.total || products.length),
+                  })}
             </p>
           </div>
 

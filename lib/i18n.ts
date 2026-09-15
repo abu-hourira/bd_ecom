@@ -144,7 +144,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "catalog.sortPriceAsc": "মূল্য: কম থেকে বেশি",
     "catalog.sortPriceDesc": "মূল্য: বেশি থেকে কম",
     "catalog.loading": "পণ্য লোড হচ্ছে...",
-    "catalog.showing": "দেখাচ্ছে {count} টি পণ্য",
+    "catalog.showing": "মোট {count} টি পণ্য প্রদর্শিত হচ্ছে",
 
     // Product Detail Page
     "productDetail.loading": "পণ্যের বিবরণ লোড হচ্ছে...",

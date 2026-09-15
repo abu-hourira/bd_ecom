@@ -3,7 +3,9 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
+import { getSafeImageUrl } from "@/lib/utils";
 import {
   LayoutDashboard,
   Sparkles,
@@ -28,6 +30,10 @@ import {
   UserCheck,
   X,
   LogOut,
+  Coins,
+  Calendar,
+  Utensils,
+  Star,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -111,6 +117,10 @@ export default function AdminSidebar({ mobileOpen, onCloseMobile }: SidebarProps
     { label: "Products", href: "/admin/products", icon: Package, module: "products" },
     { label: "Categories", href: "/admin/categories", icon: Layers, module: "products" },
     { label: "Orders & Tracking", href: "/admin/orders", icon: ShoppingBag, module: "orders" },
+    { label: "Subscriptions", href: "/admin/subscriptions", icon: Calendar, module: "orders" },
+    { label: "Recipes & Bundles", href: "/admin/recipes", icon: Utensils, module: "products" },
+    { label: "Enmar Coins", href: "/admin/loyalty", icon: Coins, module: "promos" },
+    { label: "Customer Reviews", href: "/admin/reviews", icon: Star, module: "customers" },
     { label: "Delivery Fleet", href: "/admin/delivery", icon: Bike, module: "orders" },
     { label: "Returns & Refunds", href: "/admin/returns", icon: RotateCcw, module: "returns" },
     { label: "Customers", href: "/admin/customers", icon: Users, module: "customers" },
@@ -152,12 +162,18 @@ export default function AdminSidebar({ mobileOpen, onCloseMobile }: SidebarProps
         {/* Brand Header */}
         <div className="h-16 px-6 flex items-center justify-between border-b border-white/10">
           <Link href="/admin" className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-accent text-forest-deep font-bold flex items-center justify-center text-lg font-display">
-              E
+            <div className="relative w-8 h-8 rounded-lg overflow-hidden shadow-xs shrink-0 ring-1 ring-white/20">
+              <Image
+                src="/assets/logo/logo.png"
+                alt="ENMAR Logo"
+                fill
+                className="object-cover"
+                sizes="32px"
+              />
             </div>
             <div>
-              <span className="font-display font-bold text-lg tracking-wide">ENMAR</span>
-              <span className="block text-[10px] text-white/60 tracking-wider uppercase -mt-1 font-mono">
+              <span className="font-display font-bold text-lg tracking-wide text-white">ENMAR</span>
+              <span className="block text-[10px] text-white/70 tracking-wider uppercase -mt-0.5">
                 Admin Panel
               </span>
             </div>

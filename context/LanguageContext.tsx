@@ -86,11 +86,13 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
       defaultTranslations["en"]?.[key] ||
       key;
 
-    if (params) {
+    if (params && typeof params === "object") {
       Object.entries(params).forEach(([pKey, pVal]) => {
-        text = text.replace(new RegExp(`\\{${pKey}\\}`, "g"), String(pVal));
+        text = text.replace(new RegExp(`\\{${pKey}\\}`, "g"), String(pVal ?? ""));
       });
     }
+    // Clean up any remaining {placeholder} if no matching param was supplied
+    text = text.replace(/\{[a-zA-Z0-9_]+\}/g, "").replace(/\s+/g, " ").trim();
     return text;
   };
 

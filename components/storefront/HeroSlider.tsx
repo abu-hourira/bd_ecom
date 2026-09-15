@@ -1,5 +1,5 @@
 "use client";
-// components/storefront/HeroSlider.tsx - Polished Mobile & Desktop Hero Carousel
+// components/storefront/HeroSlider.tsx - Ultra-Polished Mobile & Desktop Hero Carousel
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
@@ -38,7 +38,7 @@ export default function HeroSlider({ banners }: HeroSliderProps) {
     if (activeBanners.length > 1) {
       timerRef.current = setInterval(() => {
         setCurrentIndex((prev) => (prev + 1) % activeBanners.length);
-      }, 5000);
+      }, 5500);
     }
   };
 
@@ -86,7 +86,7 @@ export default function HeroSlider({ banners }: HeroSliderProps) {
 
   return (
     <div
-      className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden shadow-sm border border-stone-200/80 bg-stone-900 group"
+      className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden shadow-card border border-stone-200/90 bg-stone-900 group"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
@@ -119,11 +119,11 @@ export default function HeroSlider({ banners }: HeroSliderProps) {
 
                 {/* Subtle Gradient Shadow for readability */}
                 {(banner.title || banner.subtitle) && (
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-3.5 sm:p-8 md:p-10">
-                    <div className="max-w-xl space-y-1 sm:space-y-2 text-white">
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent flex flex-col justify-end p-4 sm:p-8 md:p-10">
+                    <div className="max-w-xl space-y-1.5 sm:space-y-2.5 text-white">
                       {banner.badgeText && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-400 text-stone-950 font-extrabold text-[9px] sm:text-xs uppercase tracking-wider shadow-sm">
-                          <Sparkles className="w-2.5 h-2.5 text-stone-950" />
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-400 text-stone-950 font-extrabold text-[9px] sm:text-xs uppercase tracking-wider shadow-sm">
+                          <Sparkles className="w-3 h-3 text-stone-950" />
                           <span>{banner.badgeText}</span>
                         </span>
                       )}
@@ -140,10 +140,10 @@ export default function HeroSlider({ banners }: HeroSliderProps) {
                         </p>
                       )}
 
-                      <div className="pt-1 sm:pt-2">
-                        <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-bold text-amber-300 hover:text-amber-200 group-hover:underline">
+                      <div className="pt-1">
+                        <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-amber-300 hover:text-amber-200 group-hover:underline">
                           <span>{locale === "bn" ? "অফার দেখুন" : "Explore Offers"}</span>
-                          <ArrowRight className="w-3 h-3" />
+                          <ArrowRight className="w-3.5 h-3.5" />
                         </span>
                       </div>
                     </div>
@@ -174,7 +174,7 @@ export default function HeroSlider({ banners }: HeroSliderProps) {
           </button>
 
           {/* Dots Indicator */}
-          <div className="absolute bottom-2 sm:bottom-3.5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 bg-black/30 backdrop-blur-xs px-2.5 py-1 rounded-full">
+          <div className="absolute bottom-2.5 sm:bottom-3.5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 bg-black/30 backdrop-blur-xs px-2.5 py-1 rounded-full">
             {activeBanners.map((_, i) => (
               <button
                 key={i}

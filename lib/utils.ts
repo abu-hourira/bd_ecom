@@ -132,3 +132,13 @@ export function formatProductUnit(
   return u || "piece";
 }
 
+/**
+ * Convert English digits to standard Bengali numerals (০-৯)
+ */
+export function formatBengaliNumber(num: number | string | null | undefined): string {
+  if (num === null || num === undefined) return "০";
+  const str = String(num);
+  const bengaliDigits = ["০", "১", "২", "৩", "৪", "৫", "৬", "৭", "৮", "৯"];
+  return str.replace(/\d/g, (d) => bengaliDigits[parseInt(d, 10)] || d);
+}
+

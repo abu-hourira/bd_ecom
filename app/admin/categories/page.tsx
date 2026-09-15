@@ -183,10 +183,10 @@ export default function AdminCategoriesPage() {
             >
               <div className="space-y-4">
                 <div className="flex items-start justify-between">
-                  <div className="w-12 h-12 rounded-2xl bg-forest-soft text-forest flex items-center justify-center font-bold text-lg">
+                  <div className="w-12 h-12 rounded-2xl bg-forest-soft text-forest flex items-center justify-center font-bold text-lg overflow-hidden border border-line">
                     {cat.image ? (
-                      <div className="relative w-full h-full rounded-2xl overflow-hidden">
-                        <Image src={cat.image} alt={cat.name} fill className="object-cover" />
+                      <div className="relative w-full h-full rounded-2xl overflow-hidden bg-gradient-to-b from-stone-50 to-stone-100 flex items-center justify-center p-1">
+                        <Image src={cat.image} alt={cat.name} fill className="object-contain p-0.5 drop-shadow-xs" />
                       </div>
                     ) : (
                       <Leaf className="w-6 h-6 text-forest" />

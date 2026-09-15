@@ -21,6 +21,10 @@ import {
   ChevronRight,
   Home,
   Building,
+  Coins,
+  Clock,
+  Calendar,
+  Zap,
 } from "lucide-react";
 import StorefrontHeader from "@/components/storefront/Header";
 import StorefrontFooter from "@/components/storefront/Footer";
@@ -60,6 +64,16 @@ export default function CheckoutPage() {
   const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<number | "custom">("custom");
 
+  // Delivery Slots State
+  const [deliverySlots, setDeliverySlots] = useState<any[]>([]);
+  const [availableDates, setAvailableDates] = useState<any[]>([]);
+  const [selectedSlotId, setSelectedSlotId] = useState<string>("morning");
+  const [selectedDate, setSelectedDate] = useState<string>("");
+
+  // Loyalty Coins State
+  const [loyaltyWallet, setLoyaltyWallet] = useState<any | null>(null);
+  const [redeemCoinsChecked, setRedeemCoinsChecked] = useState(false);
+
   // Promo Code State
   const [promoInput, setPromoInput] = useState("");
   const [appliedPromo, setAppliedPromo] = useState<any | null>(null);
@@ -73,6 +87,32 @@ export default function CheckoutPage() {
     message: "",
     type: "info",
   });
+
+  useEffect(() => {
+    // Fetch delivery slots & dates
+    fetch("/api/storefront/delivery-slots")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) {
+          if (data.slots?.length > 0) setDeliverySlots(data.slots);
+          if (data.availableDates?.length > 0) {
+            setAvailableDates(data.availableDates);
+            setSelectedDate(data.availableDates[0]?.isoDate || "");
+          }
+        }
+      })
+      .catch(() => {});
+
+    // Fetch user loyalty wallet
+    fetch("/api/loyalty/balance")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && data.wallet) {
+          setLoyaltyWallet(data.wallet);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!authLoaded) return;
@@ -133,7 +173,24 @@ export default function CheckoutPage() {
   const deliveryFee = isPromoFreeShipping ? 0 : cartDeliveryFee;
   const discountAmount =
     appliedPromo && !isPromoFreeShipping ? Number(appliedPromo.discountAmount || 0) : 0;
-  const grandTotal = Math.max(0, cartSubtotal - discountAmount + deliveryFee);
+
+  // Selected Delivery Slot
+  const selectedSlot = deliverySlots.find((s) => s.id === selectedSlotId) || deliverySlots[0];
+  const slotExtraFee = selectedSlot?.extraFee ? Number(selectedSlot.extraFee) : 0;
+  const effectiveDeliveryFee = deliveryFee + slotExtraFee;
+
+  // Enmar Coins calculation
+  const availableCoins = loyaltyWallet?.coinsBalance || 0;
+  const maxAllowedCoinsDiscount = Math.floor(cartSubtotal * 0.5); // Max 50% paid with coins
+  const coinsDiscount = redeemCoinsChecked
+    ? Math.min(availableCoins, maxAllowedCoinsDiscount, cartSubtotal)
+    : 0;
+  const coinsToRedeem = coinsDiscount;
+
+  const grandTotal = Math.max(
+    0,
+    cartSubtotal - discountAmount - coinsDiscount + effectiveDeliveryFee
+  );
 
   const handleApplyPromo = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -197,8 +254,12 @@ export default function CheckoutPage() {
         discountAmount,
         promoCodeId: appliedPromo?.promoId || null,
         promoCodeText: appliedPromo?.code || null,
-        shippingFee: deliveryFee,
+        shippingFee: effectiveDeliveryFee,
         totalAmount: grandTotal,
+        deliverySlot: selectedSlot ? `${selectedSlot.label} (${selectedSlot.timeRange})` : null,
+        preferredDeliveryDate: selectedDate || null,
+        coinsRedeemed: coinsToRedeem,
+        coinsDiscount: coinsDiscount,
         items: cart.map((item) => ({
           productId: item.id,
           productName: item.name,
@@ -515,6 +576,101 @@ export default function CheckoutPage() {
               </div>
             </div>
 
+            {/* Scheduled Delivery Date & Time Slot Selector */}
+            <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4">
+              <div className="flex items-center justify-between border-b border-stone-200 pb-3">
+                <h3 className="text-base font-bold font-display text-stone-900 flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-forest" />
+                  <span>{locale === "bn" ? "ডেলিভারি তারিখ ও সময় নির্বাচন" : "Select Delivery Date & Time Slot"}</span>
+                </h3>
+                <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full uppercase">
+                  হোম ডেলিভারি
+                </span>
+              </div>
+
+              {/* Delivery Date Pills */}
+              {availableDates.length > 0 && (
+                <div className="space-y-1.5">
+                  <label className="block text-xs font-semibold text-stone-700">
+                    {locale === "bn" ? "পছন্দের ডেলিভারি তারিখ" : "Preferred Date"}
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {availableDates.map((d) => (
+                      <button
+                        key={d.isoDate}
+                        type="button"
+                        onClick={() => setSelectedDate(d.isoDate)}
+                        className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
+                          selectedDate === d.isoDate
+                            ? "border-forest bg-forest text-white shadow-xs"
+                            : "border-stone-200 hover:border-stone-300 bg-stone-50 text-stone-800"
+                        }`}
+                      >
+                        <span className="block text-[11px] font-bold">{d.dayName}</span>
+                        <span className="block text-[10px] opacity-80">{d.formattedDate}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Time Slots */}
+              <div className="space-y-2 pt-1">
+                <label className="block text-xs font-semibold text-stone-700">
+                  {locale === "bn" ? "ডেলিভারি টাইম স্লট" : "Preferred Delivery Slot"}
+                </label>
+                <div className="space-y-2">
+                  {deliverySlots.map((slot) => {
+                    const isSelected = selectedSlotId === slot.id;
+                    return (
+                      <div
+                        key={slot.id}
+                        onClick={() => setSelectedSlotId(slot.id)}
+                        className={`p-3.5 rounded-xl border flex items-center justify-between cursor-pointer transition-all ${
+                          isSelected
+                            ? "border-forest bg-emerald-50/60 ring-1 ring-forest"
+                            : "border-stone-200 hover:border-stone-300 bg-stone-50/50"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="radio"
+                            name="deliverySlot"
+                            checked={isSelected}
+                            onChange={() => setSelectedSlotId(slot.id)}
+                            className="w-4 h-4 text-forest"
+                          />
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-stone-900">{slot.label}</span>
+                              {slot.badge && (
+                                <span className="text-[10px] bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full font-bold">
+                                  {slot.badge}
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[11px] text-stone-500 block mt-0.5">
+                              {slot.timeRange}
+                            </span>
+                          </div>
+                        </div>
+
+                        {slot.extraFee > 0 ? (
+                          <span className="text-xs font-bold text-amber-700 font-mono">
+                            +৳{slot.extraFee}
+                          </span>
+                        ) : (
+                          <span className="text-[11px] font-bold text-emerald-700">
+                            নরমাল
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
             {/* Payment Method */}
             <div className="bg-white p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4">
               <h3 className="text-base font-bold font-display text-stone-900 border-b border-stone-200 pb-3">
@@ -582,8 +738,8 @@ export default function CheckoutPage() {
                 {cart.map((item) => (
                   <div key={item.id} className="flex items-center justify-between gap-3 text-xs">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-stone-50 border border-stone-200 shrink-0">
-                        <Image src={item.image} alt={item.name} fill className="object-cover" />
+                      <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-gradient-to-b from-[#FAF8F5] to-[#F4EFEB] border border-stone-200/80 shrink-0 flex items-center justify-center p-0.5 shadow-xs">
+                        <Image src={item.image} alt={item.name} fill className="object-contain p-0.5 drop-shadow-xs" />
                       </div>
                       <div className="min-w-0">
                         <h4 className="font-semibold text-stone-900 truncate">{item.name}</h4>
@@ -633,6 +789,44 @@ export default function CheckoutPage() {
                 )}
               </form>
 
+              {/* Enmar Coins Redemption Box */}
+              {availableCoins > 0 && (
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50/60 border border-amber-200/80 space-y-3 shadow-2xs">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Coins className="w-5 h-5 text-amber-600 shrink-0" />
+                      <div>
+                        <span className="text-xs font-bold text-amber-950 block">
+                          এনামার কয়েন ওয়ালেট (Enmar Coins)
+                        </span>
+                        <span className="text-[10px] text-amber-800">
+                          আপনার ওয়ালেটে {availableCoins}টি কয়েন আছে (মূল্য: ৳{availableCoins})
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <label className="flex items-center gap-2.5 p-2.5 bg-white rounded-xl border border-amber-200 cursor-pointer hover:bg-amber-50/50 transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={redeemCoinsChecked}
+                      onChange={(e) => setRedeemCoinsChecked(e.target.checked)}
+                      className="w-4 h-4 rounded text-forest focus:ring-forest accent-forest"
+                    />
+                    <div className="flex-1 flex items-center justify-between text-xs">
+                      <span className="font-bold text-stone-800">
+                        {redeemCoinsChecked ? "কয়েন ছাড় প্রয়োগ করা হয়েছে" : "কয়েন ব্যবহার করে ছাড় নিন"}
+                      </span>
+                      {redeemCoinsChecked && (
+                        <span className="font-mono font-bold text-emerald-700">
+                          -৳{coinsDiscount}
+                        </span>
+                      )}
+                    </div>
+                  </label>
+                </div>
+              )}
+
               {/* Calculations */}
               <div className="space-y-2.5 text-xs pt-4 border-t border-stone-200">
                 <div className="flex items-center justify-between text-stone-600">
@@ -652,8 +846,15 @@ export default function CheckoutPage() {
 
                 {discountAmount > 0 && (
                   <div className="flex items-center justify-between text-emerald-700 font-semibold">
-                    <span>ছাড় (Discount)</span>
+                    <span>কুপন ছাড় (Promo Discount)</span>
                     <span className="font-mono">- {formatTaka(discountAmount)}</span>
+                  </div>
+                )}
+
+                {coinsDiscount > 0 && (
+                  <div className="flex items-center justify-between text-amber-700 font-semibold">
+                    <span>🪙 এনামার কয়েন ছাড় ({coinsToRedeem} Coins)</span>
+                    <span className="font-mono">- {formatTaka(coinsDiscount)}</span>
                   </div>
                 )}
 
@@ -661,10 +862,10 @@ export default function CheckoutPage() {
                   <div className="flex items-center justify-between text-stone-700 font-medium">
                     <span>ডেলিভারি চার্জ</span>
                     <span className="font-mono font-bold text-stone-900">
-                      {deliveryFee === 0 ? (
+                      {effectiveDeliveryFee === 0 ? (
                         <span className="text-emerald-700 font-bold">ফ্রি</span>
                       ) : (
-                        formatTaka(deliveryFee)
+                        formatTaka(effectiveDeliveryFee)
                       )}
                     </span>
                   </div>

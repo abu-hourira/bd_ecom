@@ -49,13 +49,13 @@ export default function AdminLayout({
     if (path.startsWith("/admin/staff") || path.startsWith("/admin/features") || path.startsWith("/admin/backup") || path.startsWith("/admin/bin")) {
       return { module: "staff", superAdminOnly: true };
     }
-    if (path.startsWith("/admin/products") || path.startsWith("/admin/categories")) return { module: "products" };
-    if (path.startsWith("/admin/orders") || path.startsWith("/admin/delivery")) return { module: "orders" };
+    if (path.startsWith("/admin/products") || path.startsWith("/admin/categories") || path.startsWith("/admin/recipes")) return { module: "products" };
+    if (path.startsWith("/admin/orders") || path.startsWith("/admin/delivery") || path.startsWith("/admin/subscriptions")) return { module: "orders" };
     if (path.startsWith("/admin/returns")) return { module: "returns" };
-    if (path.startsWith("/admin/customers")) return { module: "customers" };
+    if (path.startsWith("/admin/customers") || path.startsWith("/admin/reviews")) return { module: "customers" };
     if (path.startsWith("/admin/analytics")) return { module: "analytics" };
     if (path.startsWith("/admin/inventory")) return { module: "inventory" };
-    if (path.startsWith("/admin/promos") || path.startsWith("/admin/banners")) return { module: "promos" };
+    if (path.startsWith("/admin/promos") || path.startsWith("/admin/banners") || path.startsWith("/admin/loyalty")) return { module: "promos" };
     if (path.startsWith("/admin/content")) return { module: "content" };
     if (path.startsWith("/admin/settings")) return { module: "settings" };
     if (path.startsWith("/admin/notifications")) return { module: "notifications" };

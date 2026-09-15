@@ -2,6 +2,7 @@
 // context/StorefrontContext.tsx - High-Performance Unified Storefront Metadata Provider
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import defaultCache from "@/data/site-cache.json";
 import { getCachedSettings, setCachedSettings, getCachedCategories, setCachedCategories } from "@/lib/storeCache";
 
 interface StorefrontContextType {
@@ -28,6 +29,12 @@ const DEFAULT_FEATURES: Record<string, boolean> = {
   whatsapp_floating_button: true,
   cookie_consent_banner: true,
   search_autocomplete: true,
+  loyalty_rewards: true,
+  subscription_boxes: true,
+  recipes_to_cart: true,
+  scheduled_delivery_slots: true,
+  lab_purity_reports: true,
+  photo_reviews: true,
 };
 
 const StorefrontContext = createContext<StorefrontContextType | undefined>(undefined);
@@ -36,8 +43,9 @@ const StorefrontContext = createContext<StorefrontContextType | undefined>(undef
 let bootstrapPromise: Promise<any> | null = null;
 
 export function StorefrontProvider({ children }: { children: ReactNode }) {
-  const [settings, setSettings] = useState<Record<string, string>>(() => getCachedSettings());
-  const [categories, setCategories] = useState<any[]>(() => getCachedCategories());
+  // Always initialize with defaultCache during SSR to prevent Hydration Mismatches
+  const [settings, setSettings] = useState<Record<string, string>>(defaultCache as any);
+  const [categories, setCategories] = useState<any[]>((defaultCache as any)?.categories || []);
   const [features, setFeatures] = useState<Record<string, boolean>>(DEFAULT_FEATURES);
 
   const fetchBootstrap = useCallback(async () => {
@@ -71,6 +79,16 @@ export function StorefrontProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // Client-side cache hydration
+    const clientSettings = getCachedSettings();
+    if (clientSettings && Object.keys(clientSettings).length > 0) {
+      setSettings(clientSettings);
+    }
+    const clientCats = getCachedCategories();
+    if (clientCats && clientCats.length > 0) {
+      setCategories(clientCats);
+    }
+
     fetchBootstrap();
   }, [fetchBootstrap]);
 
