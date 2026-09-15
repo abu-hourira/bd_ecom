@@ -145,7 +145,7 @@ export async function DELETE(
     }
 
     await prisma.$transaction(
-      async (tx) => {
+      async (tx: any) => {
         // 1. Archive into recycle bin
         await tx.binItem.create({
           data: {

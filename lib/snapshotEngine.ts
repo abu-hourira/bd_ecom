@@ -185,7 +185,7 @@ export async function generateStorefrontSnapshots(): Promise<StorefrontSnapshots
       delivery_free_shipping_threshold: "1500",
     };
 
-    siteSettings.forEach((s) => {
+    siteSettings.forEach((s: any) => {
       settingsMap[s.key] = s.value;
     });
 
@@ -205,7 +205,7 @@ export async function generateStorefrontSnapshots(): Promise<StorefrontSnapshots
       cookie_consent_banner: true,
       search_autocomplete: true,
     };
-    featureFlags.forEach((f) => {
+    featureFlags.forEach((f: any) => {
       featuresMap[f.key] = f.isEnabled;
     });
 
