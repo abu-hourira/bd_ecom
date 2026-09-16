@@ -70,19 +70,19 @@ export default function ProductCard({ product, onQuickView }: ProductCardProps) 
     >
       {/* 1. Product Image & Badges (Clean Edge-to-Edge Rounded Frame) */}
       <Link href={productHref} className="block cursor-pointer">
-        <div className="relative w-full aspect-square rounded-xl sm:rounded-2xl overflow-hidden bg-stone-100 border border-stone-100 mb-2.5 sm:mb-3 group/frame">
+        <div className="relative w-full aspect-square rounded-xl sm:rounded-2xl overflow-hidden bg-gradient-to-b from-[#FAF8F5] to-[#F4EFEB] border border-stone-100 mb-2.5 sm:mb-3 group/frame">
           <Image
             src={imageSrc}
             alt={product.name}
             fill
-            className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
+            className="object-cover object-center transition-transform duration-500 group-hover:scale-108"
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           />
 
           {/* Floating Badges */}
           <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
             {product.organicCertified && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#0F4A24]/90 backdrop-blur-md text-emerald-300 text-[8px] sm:text-[9px] font-extrabold tracking-wider uppercase shadow-xs">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-[#0F4A24]/95 backdrop-blur-md text-emerald-300 text-[8px] sm:text-[9px] font-extrabold tracking-wider uppercase shadow-xs">
                 <Leaf className="w-2.5 h-2.5 text-emerald-400" />
                 <span>{isBn ? "১০০% খাঁটি" : "Organic"}</span>
               </span>
@@ -131,7 +131,7 @@ export default function ProductCard({ product, onQuickView }: ProductCardProps) 
         {/* 2. Category, Title & Unit */}
         <div className="space-y-1">
           {product.category?.name && (
-            <span className="text-[10px] font-bold uppercase tracking-wider text-forest/80 block truncate">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-forest/90 block truncate">
               {product.category.name}
             </span>
           )}
@@ -224,7 +224,7 @@ export default function ProductCard({ product, onQuickView }: ProductCardProps) 
             title={isBn ? "কার্টে যোগ করুন" : "Add to Cart"}
             className={`h-8 sm:h-9 px-2.5 sm:px-3 rounded-xl font-bold text-xs flex items-center justify-center transition-all duration-200 cursor-pointer active:scale-90 border shadow-xs shrink-0 ${
               added
-                ? "bg-emerald-600 text-white border-emerald-600"
+                ? "bg-emerald-600 text-white border-emerald-600 scale-105"
                 : "bg-[#F8F6F2] hover:bg-forest/10 border-stone-200 hover:border-forest/40 text-stone-800"
             }`}
             aria-label="Add to cart"

@@ -28,8 +28,20 @@ export default function HeaderSearchBar({ isMobileOpen, onCloseMobile }: HeaderS
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const quickKeywords = isBn
-    ? ["মধু", "ঘি", "সরিষার তেল", "ফ্রোজেন পরোটা", "চিকেন মোমো", "চিকেন রোল"]
-    : ["Honey", "Ghee", "Mustard Oil", "Frozen Paratha", "Chicken Momo", "Chicken Roll"];
+    ? [
+        { label: "🍯 সুন্দরবনের মধু", query: "মধু" },
+        { label: "🧈 খাঁটি গাওয়া ঘি", query: "ঘি" },
+        { label: "🌱 সরিষার তেল", query: "সরিষার তেল" },
+        { label: "🌴 মরিয়ম খেজুর", query: "খেজুর" },
+        { label: "🥟 ফ্রোজেন মোমো", query: "মোমো" },
+      ]
+    : [
+        { label: "🍯 Sundarban Honey", query: "Honey" },
+        { label: "🧈 Pure Deshi Ghee", query: "Ghee" },
+        { label: "🌱 Mustard Oil", query: "Mustard Oil" },
+        { label: "🌴 Organic Dates", query: "Dates" },
+        { label: "🥟 Frozen Paratha", query: "Paratha" },
+      ];
 
   // Handle outside click to close dropdown
   useEffect(() => {
@@ -42,10 +54,14 @@ export default function HeaderSearchBar({ isMobileOpen, onCloseMobile }: HeaderS
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
-  // Keyboard shortcut "/" to focus search
+  // Keyboard shortcut "/" or Cmd+K to focus search
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "/" && document.activeElement !== inputRef.current && !["INPUT", "TEXTAREA"].includes((document.activeElement as HTMLElement)?.tagName)) {
+      if (
+        (e.key === "/" || (e.key === "k" && (e.metaKey || e.ctrlKey))) &&
+        document.activeElement !== inputRef.current &&
+        !["INPUT", "TEXTAREA"].includes((document.activeElement as HTMLElement)?.tagName)
+      ) {
         e.preventDefault();
         inputRef.current?.focus();
         setIsOpen(true);
@@ -92,9 +108,9 @@ export default function HeaderSearchBar({ isMobileOpen, onCloseMobile }: HeaderS
     }
   };
 
-  const handleKeywordClick = (kw: string) => {
-    setQuery(kw);
-    router.push(`/products?search=${encodeURIComponent(kw)}`);
+  const handleKeywordClick = (kwQuery: string) => {
+    setQuery(kwQuery);
+    router.push(`/products?search=${encodeURIComponent(kwQuery)}`);
     setIsOpen(false);
     if (onCloseMobile) onCloseMobile();
   };
@@ -124,14 +140,14 @@ export default function HeaderSearchBar({ isMobileOpen, onCloseMobile }: HeaderS
           }}
           placeholder={
             isBn
-              ? "খাঁটি মধু, সরিষার তেল, ঘি, পরোটা খুঁজুন..."
-              : "Search organic food, honey, ghee, paratha..."
+              ? "খাঁটি মধু, সরিষার তেল, ঘি, পরোটা খুঁজুন... (টাইপ করুন বা / চাপুন)"
+              : "Search organic food, honey, ghee, spices... (Press / to search)"
           }
-          className="w-full pl-9 pr-9 py-2 sm:py-2.5 rounded-full bg-[#F8F6F2] hover:bg-stone-100 focus:bg-white text-xs sm:text-sm text-stone-900 placeholder:text-stone-400 border border-stone-200 focus:border-forest/60 focus:ring-2 focus:ring-forest/15 transition-all outline-none shadow-2xs"
+          className="w-full pl-9 pr-10 py-2 sm:py-2.5 rounded-full bg-[#F8F6F2] hover:bg-stone-100 focus:bg-white text-xs sm:text-sm text-stone-900 placeholder:text-stone-400 border border-stone-200/90 focus:border-forest/60 focus:ring-2 focus:ring-forest/15 transition-all outline-none shadow-2xs"
         />
 
         {/* Clear Button / Loading Spinner */}
-        <div className="absolute right-3 flex items-center gap-1">
+        <div className="absolute right-3 flex items-center gap-1.5">
           {loading ? (
             <Loader2 className="w-4 h-4 animate-spin text-forest" />
           ) : query ? (
@@ -148,7 +164,7 @@ export default function HeaderSearchBar({ isMobileOpen, onCloseMobile }: HeaderS
             </button>
           ) : (
             <kbd className="hidden lg:inline-flex items-center px-1.5 py-0.5 text-[9px] font-mono font-bold text-stone-400 bg-white border border-stone-200 rounded shadow-2xs">
-              /
+              ⌘K
             </kbd>
           )}
         </div>
@@ -159,20 +175,20 @@ export default function HeaderSearchBar({ isMobileOpen, onCloseMobile }: HeaderS
         <div className="absolute top-full mt-2 left-0 right-0 bg-white rounded-2xl sm:rounded-3xl shadow-2xl border border-stone-200/90 overflow-hidden z-50 animate-in fade-in-90 slide-in-from-top-2 duration-150 max-h-[80vh] flex flex-col">
           {/* Quick Keyword Pills (when query is short) */}
           {!query && (
-            <div className="p-4 space-y-2.5 border-b border-stone-100 bg-[#FAF8F5]/60">
+            <div className="p-4 space-y-2.5 border-b border-stone-100 bg-[#FAF8F5]/80">
               <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-forest" />
-                <span>{isBn ? "জনপ্রিয় অনুসন্ধান:" : "Popular Searches:"}</span>
+                <span>{isBn ? "জনপ্রিয় অনুসন্ধান ট্রেন্ড:" : "Trending Searches:"}</span>
               </span>
               <div className="flex flex-wrap gap-1.5">
-                {quickKeywords.map((kw, i) => (
+                {quickKeywords.map((item, i) => (
                   <button
                     key={i}
                     type="button"
-                    onClick={() => handleKeywordClick(kw)}
-                    className="px-2.5 py-1 rounded-full bg-white border border-stone-200 text-stone-700 hover:border-forest hover:text-forest text-xs font-semibold transition-all cursor-pointer shadow-2xs"
+                    onClick={() => handleKeywordClick(item.query)}
+                    className="px-3 py-1.5 rounded-full bg-white border border-stone-200 text-stone-700 hover:border-forest hover:text-forest text-xs font-semibold transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
                   >
-                    {kw}
+                    {item.label}
                   </button>
                 ))}
               </div>
@@ -185,7 +201,7 @@ export default function HeaderSearchBar({ isMobileOpen, onCloseMobile }: HeaderS
               {loading ? (
                 <div className="py-8 flex flex-col items-center justify-center text-stone-400 gap-2">
                   <Loader2 className="w-5 h-5 animate-spin text-forest" />
-                  <span className="text-xs">{isBn ? "পণ্য খোঁজা হচ্ছে..." : "Searching products..."}</span>
+                  <span className="text-xs font-medium">{isBn ? "পণ্য খোঁজা হচ্ছে..." : "Searching products..."}</span>
                 </div>
               ) : results.length > 0 ? (
                 results.map((product) => {
@@ -245,10 +261,10 @@ export default function HeaderSearchBar({ isMobileOpen, onCloseMobile }: HeaderS
               <button
                 type="button"
                 onClick={handleSubmit}
-                className="w-full py-2 px-4 rounded-xl bg-forest hover:bg-forest/90 text-white text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
+                className="w-full py-2 px-4 rounded-xl bg-forest hover:bg-forest/90 text-white text-xs font-bold transition-all shadow-xs cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
               >
                 <span>{isBn ? `"${query}" এর সকল ফলাফল দেখুন` : `View all results for "${query}"`}</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
               </button>
             </div>
           )}

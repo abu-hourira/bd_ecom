@@ -34,16 +34,16 @@ export default function CartDrawer() {
     <div className="fixed inset-0 z-50 overflow-hidden">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
+        className="absolute inset-0 bg-black/65 backdrop-blur-xs transition-opacity animate-in fade-in duration-200"
         onClick={() => setIsCartOpen(false)}
       />
 
       <div className="fixed inset-y-0 right-0 max-w-full flex">
         <div className="w-screen max-w-md bg-white border-l border-stone-200 shadow-2xl flex flex-col justify-between animate-in slide-in-from-right duration-300">
           {/* 1. Header */}
-          <div className="p-4 sm:p-5 border-b border-stone-200 flex items-center justify-between bg-stone-50/70">
+          <div className="p-4 sm:p-5 border-b border-stone-200 flex items-center justify-between bg-[#FAF8F5]/80">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-2xl bg-forest text-amber-400 flex items-center justify-center shadow-xs">
+              <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-[#092C15] to-[#0F4A24] text-amber-400 flex items-center justify-center shadow-xs">
                 <ShoppingBag className="w-4 h-4" />
               </div>
               <div>
@@ -68,8 +68,8 @@ export default function CartDrawer() {
           {/* 2. Free Shipping Threshold Bar */}
           <div className="px-4 py-3 bg-[#FAF8F5] border-b border-stone-200/90 text-xs">
             {hasFreeShipping ? (
-              <div className="flex items-center gap-2 text-forest font-bold text-xs bg-emerald-50 border border-emerald-200/80 px-3 py-1.5 rounded-xl">
-                <Truck className="w-4 h-4 text-emerald-600 shrink-0" />
+              <div className="flex items-center gap-2 text-forest font-extrabold text-xs bg-emerald-50 border border-emerald-300 px-3.5 py-2 rounded-xl shadow-xs animate-in zoom-in-95">
+                <Truck className="w-4 h-4 text-emerald-600 shrink-0 animate-bounce-slow" />
                 <span>{isBn ? "🎉 অভিনন্দন! আপনি পাচ্ছেন ১০০% ফ্রি ডেলিভারি!" : "🎉 Congratulations! You unlocked Free Shipping!"}</span>
               </div>
             ) : (
@@ -78,7 +78,7 @@ export default function CartDrawer() {
                   <span>
                     {isBn
                       ? `আর ${formatTaka(amountNeededForFreeShipping)} টাকার পণ্য যোগ করলেই ফ্রি ডেলিভারি!`
-                      : `Add ${formatTaka(amountNeededForFreeShipping)} more to get Free Delivery!`}
+                      : `Add ${formatTaka(amountNeededForFreeShipping)} more for Free Delivery!`}
                   </span>
                   <span className="font-mono font-bold text-forest">{Math.round(progressPercent)}%</span>
                 </div>
@@ -107,7 +107,7 @@ export default function CartDrawer() {
                 </p>
                 <button
                   onClick={() => setIsCartOpen(false)}
-                  className="mt-2 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-forest text-white text-xs font-bold shadow-xs hover:bg-forest/90 transition-all cursor-pointer"
+                  className="mt-2 inline-flex items-center gap-1.5 px-6 py-2.5 rounded-xl bg-forest text-white text-xs font-bold shadow-xs hover:bg-forest/90 transition-all cursor-pointer active:scale-95"
                 >
                   <span>{isBn ? "পণ্য দেখুন" : "Browse Products"}</span>
                 </button>
@@ -119,7 +119,7 @@ export default function CartDrawer() {
 
                 return (
                   <div key={item.id} className="pt-3.5 first:pt-0 flex items-center gap-3">
-                    <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-b from-[#FAF8F5] to-[#F4EFEB] border border-stone-200/80 overflow-hidden shrink-0 flex items-center justify-center p-1.5 shadow-xs">
+                    <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-b from-[#FAF8F5] to-[#F4EFEB] border border-stone-200/80 overflow-hidden shrink-0 flex items-center justify-center p-1 shadow-xs">
                       <Image
                         src={imageSrc}
                         alt={item.name}
@@ -189,10 +189,10 @@ export default function CartDrawer() {
 
               {/* Weight & Delivery Preview */}
               <div className="flex items-center justify-between text-xs bg-white px-3 py-2 rounded-xl border border-stone-200">
-                <span className="text-stone-600 flex items-center gap-1 font-medium">
+                <span className="text-stone-600 flex items-center gap-1 font-medium text-[11px]">
                   📦 পার্সেল ওজন: <strong className="text-stone-900 font-mono">{totalCartWeightKg} কেজি</strong>
                 </span>
-                <span className="text-stone-700 font-medium">
+                <span className="text-stone-700 font-medium text-[11px]">
                   ডেলিভারি: <strong className="text-forest font-mono">{deliveryFee === 0 ? "ফ্রি" : formatTaka(deliveryFee)}</strong>
                 </span>
               </div>
@@ -201,7 +201,7 @@ export default function CartDrawer() {
                 <Link
                   href="/checkout"
                   onClick={() => setIsCartOpen(false)}
-                  className="w-full py-3.5 rounded-2xl bg-forest hover:bg-forest/90 text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-lg shadow-forest/20 hover:shadow-xl transition-all active:scale-[0.98] cursor-pointer"
+                  className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-[#0F4A24] to-[#1B6334] hover:from-[#0A381A] hover:to-[#0F4A24] text-white font-extrabold text-sm flex items-center justify-center gap-2 shadow-lg shadow-forest/25 hover:shadow-xl transition-all active:scale-[0.98] cursor-pointer"
                 >
                   <Zap className="w-4 h-4 text-amber-400 fill-amber-400" />
                   <span>{isBn ? "সরাসরি চেকআউট করুন" : "Proceed to Checkout"}</span>

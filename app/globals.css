@@ -80,7 +80,7 @@
   }
 }
 
-/* Custom Utilities */
+/* Custom Utilities & Micro-Animations */
 @layer utilities {
   .text-balance {
     text-wrap: balance;
@@ -89,17 +89,19 @@
   .glass-card {
     background: rgba(255, 255, 255, 0.92);
     backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(229, 231, 235, 0.8);
   }
 
   .glass-card-dark {
     background: rgba(17, 24, 19, 0.88);
     backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .organic-gradient {
-    background: linear-gradient(135deg, #0F4A24 0%, #1B6334 100%);
+    background: linear-gradient(135deg, #0F4A24 0%, #1B6334 50%, #092C15 100%);
   }
 
   .warm-gradient {
@@ -110,19 +112,45 @@
     background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
   }
 
+  .gold-gradient {
+    background: linear-gradient(135deg, #FCD34D 0%, #F59E0B 50%, #D97706 100%);
+  }
+
+  .hover-lift {
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .hover-lift:hover {
+    transform: translateY(-3px);
+  }
+
   .content-auto {
     content-visibility: auto;
     contain-intrinsic-size: 0 320px;
   }
 
-  /* Hide scrollbar for Chrome, Safari and Opera */
+  /* Silky Smooth Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #FAF8F5;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #D1D5DB;
+    border-radius: 9999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #0F4A24;
+  }
+
+  /* Hide scrollbar for clean carousels */
   .scrollbar-none::-webkit-scrollbar {
     display: none;
   }
-  /* Hide scrollbar for IE, Edge and Firefox */
   .scrollbar-none {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }
 
@@ -136,10 +164,28 @@
   50% { transform: translateY(-5px); }
 }
 
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(15, 74, 36, 0.3); }
+  50% { box-shadow: 0 0 15px 4px rgba(15, 74, 36, 0.2); }
+}
+
+@keyframes goldGlow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+  50% { box-shadow: 0 0 18px 5px rgba(245, 158, 11, 0.25); }
+}
+
 .animate-spin-slow {
   animation: spinSlow 8s linear infinite;
 }
 
 .animate-bounce-slow {
   animation: bounceSlow 2.5s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2.5s infinite;
+}
+
+.animate-gold-glow {
+  animation: goldGlow 2.5s infinite;
 }
