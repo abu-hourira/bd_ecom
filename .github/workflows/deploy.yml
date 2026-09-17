@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
@@ -26,6 +27,12 @@ jobs:
         run: npx prisma generate
 
       - name: ⚡ Build Standalone Next.js App
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'mysql://2E8LEA49oMcJPMU.root:s0BfZSWqb1duWBx3@gateway01.ap-northeast-1.prod.aws.tidbcloud.com:4000/enmar_db?sslaccept=strict' }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET || 'enmar_nextauth_secret_key_2026_super_secure' }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET || 'enmar_jwt_secret_key_2026_production' }}
+          ENCRYPTION_SECRET: ${{ secrets.ENCRYPTION_SECRET || 'enmar_secure_master_aes_vault_key_2026_bd' }}
+          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL || 'http://localhost:3000' }}
         run: npx next build
 
       - name: 📂 Prepare Deployment Package
