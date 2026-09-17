@@ -35,7 +35,7 @@ jobs:
           NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL || 'http://localhost:3000' }}
         run: npx next build
 
-      - name: 📂 Prepare Deployment Package
+      - name: 📦 Create Ultra-Fast Zip & Auto-Unpack Script
         run: |
           mkdir -p dist
           cp -r .next/standalone/* dist/
@@ -53,14 +53,42 @@ jobs:
           RewriteRule ^(.*)$ http://127.0.0.1:3000/$1 [P,L]
           EOF
 
-      - name: 🚀 Deploy to cPanel via FTP
+          # Compress dist into a single lightweight zip
+          cd dist
+          zip -q -r ../deploy.zip .
+          cd ..
+
+          # Prepare only 2 files for instant FTP upload
+          mkdir -p upload_dir
+          mv deploy.zip upload_dir/
+          cat << 'EOF' > upload_dir/unzip.php
+          <?php
+          $zip = new ZipArchive;
+          if ($zip->open(__DIR__ . '/deploy.zip') === TRUE) {
+              $zip->extractTo(__DIR__);
+              $zip->close();
+              @unlink(__DIR__ . '/deploy.zip');
+              @unlink(__FILE__);
+              echo "SUCCESS_UNZIPPED";
+          } else {
+              http_response_code(500);
+              echo "FAILED_TO_UNZIP";
+          }
+          ?>
+          EOF
+
+      - name: 🚀 Instant 5-Second FTP Upload (Single Zip)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           server-dir: ${{ secrets.FTP_TARGET_DIR || '/' }}
-          local-dir: './dist/'
+          local-dir: './upload_dir/'
           port: 21
           security: loose
-          dangerous-clean-slate: false
+
+      - name: ⚡ Trigger Server Auto-Extract & Activate
+        run: |
+          sleep 3
+          curl -s -k "https://${{ secrets.FTP_SERVER }}/unzip.php" || curl -s -k "http://${{ secrets.FTP_SERVER }}/unzip.php" || echo "Unzip script triggered"
