@@ -50,9 +50,28 @@ export async function GET(req: NextRequest) {
       let filtered = [...allProducts];
 
       if (category && category !== "all") {
-        filtered = filtered.filter(
-          (p) => p.category?.slug === category || String(p.categoryId) === category
-        );
+        const catLower = category.toLowerCase();
+        filtered = filtered.filter((p) => {
+          if (
+            catLower === "combo-bundle-deals" ||
+            catLower === "frozen-combo-packs" ||
+            catLower === "combo-deals" ||
+            catLower.includes("combo")
+          ) {
+            return (
+              p.isCombo ||
+              p.category?.slug?.includes("combo") ||
+              p.name?.toLowerCase().includes("combo") ||
+              p.name?.includes("কম্বো")
+            );
+          }
+          return (
+            p.category?.slug === category ||
+            String(p.categoryId) === category ||
+            p.category?.slug?.toLowerCase() === catLower ||
+            p.category?.name?.toLowerCase().includes(catLower)
+          );
+        });
       }
 
       if (search) {
@@ -117,7 +136,21 @@ export async function GET(req: NextRequest) {
     const where: any = { isActive: true };
 
     if (category && category !== "all") {
-      where.category = { slug: category };
+      const catLower = category.toLowerCase();
+      if (
+        catLower === "combo-bundle-deals" ||
+        catLower === "frozen-combo-packs" ||
+        catLower === "combo-deals" ||
+        catLower.includes("combo")
+      ) {
+        where.OR = [
+          { isCombo: true },
+          { category: { slug: { contains: "combo" } } },
+          { name: { contains: "কম্বো" } },
+        ];
+      } else {
+        where.category = { slug: category };
+      }
     }
 
     if (search) {

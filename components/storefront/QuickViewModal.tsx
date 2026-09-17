@@ -105,7 +105,7 @@ export default function QuickViewModal({ product, onClose }: QuickViewModalProps
               )}
 
               <div className="flex items-baseline gap-2 pt-1">
-                <span className="text-xl sm:text-2xl font-black font-mono text-[#0F4A24]">
+                <span className="text-xl sm:text-2xl font-black font-mono text-forest">
                   {formatTaka(effectivePrice)}
                 </span>
                 {hasDiscount && (
@@ -174,7 +174,7 @@ export default function QuickViewModal({ product, onClose }: QuickViewModalProps
                 <button
                   type="button"
                   onClick={handleBuyNow}
-                  className="py-3 px-3 rounded-xl font-extrabold text-xs bg-gradient-to-r from-[#0F4A24] to-[#1B6334] hover:from-[#0A381A] hover:to-[#0F4A24] text-white flex items-center justify-center gap-1.5 shadow-md transition-all active:scale-95 cursor-pointer"
+                  className="py-3 px-3 rounded-xl font-extrabold text-xs bg-gradient-to-r from-forest to-forest-light hover:from-forest-deep hover:to-forest text-white flex items-center justify-center gap-1.5 shadow-md transition-all active:scale-95 cursor-pointer"
                 >
                   <Zap className="w-4 h-4 text-amber-400 fill-amber-400" />
                   <span>{isBn ? "এখনই কিনুন" : "Buy Now"}</span>

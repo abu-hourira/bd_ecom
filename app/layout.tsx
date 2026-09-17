@@ -121,9 +121,15 @@ export const metadata: Metadata = {
     creator: "@enmar_organic",
   },
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/favicon.png", type: "image/png" },
+      { url: "/assets/logo/logo-circle.png", type: "image/png" },
+    ],
     shortcut: "/favicon.ico",
-    apple: "/assets/logo/logo.png",
+    apple: [
+      { url: "/assets/logo/logo-circle.png", sizes: "180x180", type: "image/png" },
+    ],
   },
 };
 

@@ -5,7 +5,6 @@
   "description": "ENMAR — Full-Stack Organic E-Commerce Storefront & Admin Platform",
   "scripts": {
     "dev": "next dev",
-    "ai:server": "python gemini/gemini_web2api.py",
     "build": "prisma generate && prisma db push --accept-data-loss && next build",
     "start": "node server.js",
     "cpanel:pack": "node scripts/cpanel-pack.mjs",
@@ -32,7 +31,9 @@
   },
   "dependencies": {
     "@prisma/client": "^6.4.1",
+    "@types/canvas-confetti": "^1.9.0",
     "bcryptjs": "^3.0.3",
+    "canvas-confetti": "^1.9.4",
     "clsx": "^2.1.1",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.33.0",

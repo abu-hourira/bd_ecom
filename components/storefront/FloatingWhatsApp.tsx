@@ -21,8 +21,10 @@ export default function FloatingWhatsApp() {
       className="fixed bottom-20 right-3.5 sm:bottom-6 sm:right-6 z-40 p-3 sm:p-3.5 rounded-full bg-[#25D366] hover:bg-[#20bd5a] text-white shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 flex items-center justify-center group"
       aria-label="Chat on WhatsApp"
     >
-      <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6 fill-current" />
-      <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs transition-all duration-300 text-xs font-bold font-display px-0 group-hover:px-2">
+      {/* Outer Pulse Wave */}
+      <span className="absolute inset-0 rounded-full bg-[#25D366] animate-ping opacity-40 pointer-events-none" />
+      <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6 fill-current relative z-10" />
+      <span className="max-w-0 overflow-hidden whitespace-nowrap group-hover:max-w-xs transition-all duration-300 text-xs font-bold font-display px-0 group-hover:px-2 relative z-10">
         WhatsApp
       </span>
     </a>

@@ -59,7 +59,7 @@ export default function AdminLayout({
     if (path.startsWith("/admin/content")) return { module: "content" };
     if (path.startsWith("/admin/settings")) return { module: "settings" };
     if (path.startsWith("/admin/notifications")) return { module: "notifications" };
-    if (path.startsWith("/admin/api-access") || path.startsWith("/admin/api-import") || path.startsWith("/admin/ai")) return { module: "api" };
+    if (path.startsWith("/admin/api-access") || path.startsWith("/admin/api-import")) return { module: "api" };
     return { module: "dashboard" };
   };
 
@@ -139,14 +139,14 @@ export default function AdminLayout({
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 lg:pl-64">
+      <div className="flex-1 flex flex-col min-w-0 lg:pl-60">
         <AdminHeader
           onOpenMobile={() => setMobileOpen(true)}
           title="ENMAR Operations Suite"
           subtitle="Real-time Storefront & Order Management"
         />
 
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-3 sm:p-4 lg:p-6 max-w-7xl w-full mx-auto">
           {permsLoaded && !isAccessAllowed() ? (
             <div className="py-16 flex flex-col items-center justify-center text-center max-w-md mx-auto space-y-4 animate-in fade-in zoom-in-95">
               <div className="w-16 h-16 rounded-3xl bg-rose-50 border border-rose-200 text-rose-600 flex items-center justify-center shadow-card">
@@ -175,3 +175,4 @@ export default function AdminLayout({
     </div>
   );
 }
+

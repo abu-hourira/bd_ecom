@@ -66,6 +66,74 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    if (action === "update_stock") {
+      const stock = Number(body.stock);
+      if (isNaN(stock) || stock < 0) {
+        return NextResponse.json({ error: "Invalid stock quantity." }, { status: 400 });
+      }
+
+      await prisma.product.updateMany({
+        where: { id: { in: numericIds } },
+        data: { stockQuantity: stock },
+      });
+
+      revalidatePath("/", "layout");
+      revalidatePath("/products");
+      return NextResponse.json({
+        success: true,
+        message: `Successfully updated stock to ${stock} for ${numericIds.length} products.`,
+      });
+    }
+
+    if (action === "update_price") {
+      const percentChange = Number(body.percentChange);
+      if (isNaN(percentChange)) {
+        return NextResponse.json({ error: "Invalid price percentage change." }, { status: 400 });
+      }
+
+      const products = await prisma.product.findMany({
+        where: { id: { in: numericIds } },
+        select: { id: true, price: true },
+      });
+
+      await prisma.$transaction(
+        products.map((p) => {
+          const currentPrice = Number(p.price);
+          const newPrice = Math.max(1, Math.round(currentPrice * (1 + percentChange / 100)));
+          return prisma.product.update({
+            where: { id: p.id },
+            data: { price: newPrice },
+          });
+        })
+      );
+
+      revalidatePath("/", "layout");
+      revalidatePath("/products");
+      return NextResponse.json({
+        success: true,
+        message: `Successfully updated prices (${percentChange > 0 ? "+" : ""}${percentChange}%) for ${products.length} products.`,
+      });
+    }
+
+    if (action === "set_category") {
+      const categoryId = Number(body.categoryId);
+      if (isNaN(categoryId)) {
+        return NextResponse.json({ error: "Invalid category ID." }, { status: 400 });
+      }
+
+      await prisma.product.updateMany({
+        where: { id: { in: numericIds } },
+        data: { categoryId },
+      });
+
+      revalidatePath("/", "layout");
+      revalidatePath("/products");
+      return NextResponse.json({
+        success: true,
+        message: `Successfully updated category for ${numericIds.length} products.`,
+      });
+    }
+
     return NextResponse.json({ error: "Invalid action." }, { status: 400 });
   } catch (error: any) {
     console.error("[Bulk Products API Error]:", error);

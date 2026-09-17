@@ -180,56 +180,145 @@ export default function AdminProductsPage() {
     }
   };
 
+  const handleBulkStockUpdate = async () => {
+    if (selectedIds.length === 0) return;
+    const input = window.prompt(`Enter new stock quantity for ${selectedIds.length} selected products:`, "50");
+    if (input === null) return;
+    const stock = parseInt(input, 10);
+    if (isNaN(stock) || stock < 0) {
+      alert("Please enter a valid non-negative number.");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/admin/products/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "update_stock", ids: selectedIds, stock }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setAlertState({
+          isOpen: true,
+          title: "Stock Updated",
+          message: json.message,
+          type: "success",
+        });
+        fetchProducts();
+      } else {
+        setAlertState({
+          isOpen: true,
+          title: "Update Failed",
+          message: json.error,
+          type: "error",
+        });
+      }
+    } catch (e: any) {
+      setAlertState({
+        isOpen: true,
+        title: "Error",
+        message: e.message,
+        type: "error",
+      });
+    }
+  };
+
+  const handleBulkPriceUpdate = async () => {
+    if (selectedIds.length === 0) return;
+    const input = window.prompt(
+      `Enter price percentage change for ${selectedIds.length} products (e.g. 10 for +10%, -5 for -5% discount):`,
+      "10"
+    );
+    if (input === null) return;
+    const percentChange = parseFloat(input);
+    if (isNaN(percentChange)) {
+      alert("Please enter a valid percentage number.");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/admin/products/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "update_price", ids: selectedIds, percentChange }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setAlertState({
+          isOpen: true,
+          title: "Prices Updated",
+          message: json.message,
+          type: "success",
+        });
+        fetchProducts();
+      } else {
+        setAlertState({
+          isOpen: true,
+          title: "Update Failed",
+          message: json.error,
+          type: "error",
+        });
+      }
+    } catch (e: any) {
+      setAlertState({
+        isOpen: true,
+        title: "Error",
+        message: e.message,
+        type: "error",
+      });
+    }
+  };
+
   return (
-    <div className="space-y-6 pb-16">
+    <div className="space-y-4 pb-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-paper p-4 rounded-2xl border border-line shadow-card">
         <div>
-          <h2 className="text-2xl font-bold font-display text-ink">Product Catalog</h2>
-          <p className="text-sm text-ink-soft">
+          <h2 className="text-xl font-bold font-display text-ink">Product Catalog</h2>
+          <p className="text-xs text-ink-soft">
             Manage your organic food products, inventory stock, and bulk product management.
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <Link
             href="/admin/bin"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold text-xs transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-bg hover:bg-stone-200 text-ink-soft hover:text-ink font-semibold text-xs border border-line transition-colors"
           >
-            <Trash2 className="w-4 h-4 text-stone-500" />
+            <Trash2 className="w-3.5 h-3.5" />
             <span>Recycle Bin</span>
           </Link>
           <Link
             href="/admin/products/new"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-forest hover:bg-forest-deep text-white font-semibold text-sm shadow-premium transition-all hover:-translate-y-0.5"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-forest hover:bg-forest-deep text-white font-semibold text-xs shadow-xs transition-colors"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-3.5 h-3.5" />
             <span>Add Product</span>
           </Link>
         </div>
       </div>
 
       {/* Filters Toolbar */}
-      <div className="bg-paper p-4 rounded-2xl border border-line shadow-card flex flex-col md:flex-row gap-4 items-center justify-between">
-        <div className="relative w-full md:w-80">
-          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-soft" />
+      <div className="bg-paper p-3 rounded-2xl border border-line shadow-xs flex flex-col md:flex-row gap-2.5 items-center justify-between">
+        <div className="relative w-full md:w-72">
+          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-ink-soft" />
           <input
             type="text"
             placeholder="Search by product name..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-xl bg-bg border border-line text-sm focus:outline-none focus:ring-2 focus:ring-forest/20"
+            className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-bg border border-line text-xs focus:outline-hidden"
           />
         </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="flex items-center gap-2 text-xs font-semibold text-ink-soft">
-            <Filter className="w-3.5 h-3.5" />
+        <div className="flex items-center gap-2 w-full md:w-auto">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-ink-soft shrink-0">
+            <Filter className="w-3 h-3" />
             <span>Category:</span>
           </div>
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="px-3 py-2 rounded-xl bg-bg border border-line text-xs font-medium focus:outline-none focus:ring-2 focus:ring-forest/20"
+            className="px-2.5 py-1.5 rounded-lg bg-bg border border-line text-xs font-medium focus:outline-hidden cursor-pointer"
           >
             <option value="all">All Categories ({products.length})</option>
             {categories.map((c) => (
@@ -238,52 +327,74 @@ export default function AdminProductsPage() {
               </option>
             ))}
           </select>
+          <button
+            onClick={fetchProducts}
+            className="p-1.5 rounded-lg bg-bg border border-line hover:bg-stone-200 text-ink-soft hover:text-ink transition-colors cursor-pointer"
+            title="Refresh Catalog"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+          </button>
         </div>
       </div>
 
       {/* Bulk Action Sticky Bar */}
       {selectedIds.length > 0 && (
-        <div className="bg-forest-deep text-white px-5 py-3.5 rounded-2xl shadow-xl flex items-center justify-between animate-fadeIn sticky top-20 z-20 border border-white/20">
-          <div className="flex items-center gap-3">
-            <div className="w-7 h-7 rounded-lg bg-accent text-forest-deep flex items-center justify-center font-bold text-xs">
+        <div className="bg-forest-deep text-white px-4 py-2.5 rounded-xl shadow-lg flex items-center justify-between animate-in fade-in sticky top-16 z-20 border border-white/20">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-md bg-accent text-forest-deep flex items-center justify-center font-bold text-xs">
               {selectedIds.length}
             </div>
-            <span className="text-xs sm:text-sm font-semibold">
+            <span className="text-xs font-semibold">
               {selectedIds.length} Products Selected
             </span>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              onClick={handleBulkStockUpdate}
+              className="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-stone-950 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shadow-xs"
+            >
+              <Package className="w-3 h-3" />
+              <span>Stock</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleBulkPriceUpdate}
+              className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shadow-xs"
+            >
+              <span>৳ Price %</span>
+            </button>
             <button
               type="button"
               onClick={() => setSelectedIds([])}
-              className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-medium transition-colors cursor-pointer"
+              className="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-medium transition-colors cursor-pointer"
             >
-              Deselect All
+              Deselect
             </button>
             <button
               type="button"
               onClick={() => setBulkDeleteModalOpen(true)}
-              className="px-4 py-1.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+              className="px-3 py-1 rounded-lg bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold flex items-center gap-1 shadow-xs transition-all cursor-pointer"
             >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>Delete Selected</span>
+              <Trash2 className="w-3 h-3" />
+              <span>Delete</span>
             </button>
           </div>
         </div>
       )}
 
       {/* Products Table */}
-      <div className="bg-paper rounded-3xl border border-line shadow-card overflow-hidden">
+      <div className="bg-paper rounded-2xl border border-line shadow-card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-bg text-ink-soft text-xs uppercase tracking-wider border-b border-line">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-bg/60 text-ink-soft text-[10px] uppercase tracking-wider border-b border-line">
               <tr>
-                <th className="py-4 px-4 pl-5 w-10">
+                <th className="py-2.5 px-3 w-8 text-center">
                   <button
                     type="button"
                     onClick={handleSelectAll}
-                    className="flex items-center justify-center text-ink-soft hover:text-forest cursor-pointer"
+                    className="cursor-pointer text-ink-soft hover:text-forest"
                     title={selectedIds.length === products.length ? "Deselect All" : "Select All"}
                   >
                     {products.length > 0 && selectedIds.length === products.length ? (
@@ -293,25 +404,25 @@ export default function AdminProductsPage() {
                     )}
                   </button>
                 </th>
-                <th className="py-4 px-4">Product</th>
-                <th className="py-4 px-4">Category</th>
-                <th className="py-4 px-4">Price</th>
-                <th className="py-4 px-4">Stock Status</th>
-                <th className="py-4 px-4">Badge / Deal</th>
-                <th className="py-4 px-5 text-right">Actions</th>
+                <th className="py-2.5 px-3">Product</th>
+                <th className="py-2.5 px-3">Category</th>
+                <th className="py-2.5 px-3">Price</th>
+                <th className="py-2.5 px-3">Stock Status</th>
+                <th className="py-2.5 px-3">Badge / Deal</th>
+                <th className="py-2.5 px-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-ink-soft space-y-2">
-                    <Loader2 className="w-6 h-6 animate-spin text-forest mx-auto" />
+                  <td colSpan={7} className="py-10 text-center text-ink-soft space-y-1">
+                    <Loader2 className="w-5 h-5 animate-spin text-forest mx-auto" />
                     <p className="text-xs">Loading catalog...</p>
                   </td>
                 </tr>
               ) : products.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-ink-soft">
+                  <td colSpan={7} className="py-10 text-center text-ink-soft text-xs">
                     No products found matching your search.
                   </td>
                 </tr>
@@ -329,13 +440,13 @@ export default function AdminProductsPage() {
                   return (
                     <tr
                       key={p.id}
-                      className={"transition-colors " + (isSelected ? "bg-forest/5 hover:bg-forest/10" : "hover:bg-bg/50")}
+                      className={"transition-colors " + (isSelected ? "bg-forest-soft/30" : "hover:bg-bg/50")}
                     >
-                      <td className="py-4 px-4 pl-5">
+                      <td className="py-2.5 px-3 text-center">
                         <button
                           type="button"
                           onClick={() => handleToggleSelect(p.id)}
-                          className="flex items-center justify-center cursor-pointer"
+                          className="cursor-pointer"
                         >
                           {isSelected ? (
                             <CheckSquare className="w-4 h-4 text-forest" />
@@ -345,26 +456,26 @@ export default function AdminProductsPage() {
                         </button>
                       </td>
 
-                      <td className="py-4 px-4">
-                        <div className="flex items-center gap-3">
-                          <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-gradient-to-b from-[#FAF8F5] to-[#F4EFEB] border border-stone-200/80 shrink-0 flex items-center justify-center p-1 shadow-xs">
+                      <td className="py-2.5 px-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="relative w-9 h-9 rounded-lg overflow-hidden bg-bg border border-line shrink-0 flex items-center justify-center p-0.5 shadow-2xs">
                             <Image
                               src={imageSrc}
                               alt={p.name}
                               fill
-                              className="object-contain p-0.5 drop-shadow-xs"
+                              className="object-contain p-0.5"
                               unoptimized={imageSrc.startsWith("/uploads/")}
                             />
                           </div>
-                          <div>
-                            <div className="font-semibold text-ink hover:text-forest transition-colors">
+                          <div className="min-w-0">
+                            <div className="font-semibold text-ink text-xs truncate max-w-[200px] sm:max-w-xs">
                               {p.name}
                             </div>
-                            <div className="text-xs text-ink-soft flex items-center gap-2 mt-0.5">
+                            <div className="text-[10px] text-ink-soft flex items-center gap-1.5 mt-0.5">
                               <span>Unit: {formatProductUnit(p.unitQuantity, p.unit)}</span>
                               {p.organicCertified && (
-                                <span className="inline-flex items-center gap-0.5 text-forest font-medium text-[11px] bg-forest/10 px-1.5 py-0.5 rounded">
-                                  <Leaf className="w-3 h-3" />
+                                <span className="inline-flex items-center gap-0.5 text-forest font-semibold text-[9px] bg-forest/10 px-1 py-0.2 rounded">
+                                  <Leaf className="w-2.5 h-2.5" />
                                   Organic
                                 </span>
                               )}
@@ -373,83 +484,92 @@ export default function AdminProductsPage() {
                         </div>
                       </td>
 
-                      <td className="py-4 px-4">
-                        <span className="inline-flex items-center gap-1 text-xs font-medium text-ink-soft bg-bg px-2.5 py-1 rounded-lg border border-line">
+                      <td className="py-2.5 px-3">
+                        <span className="inline-flex items-center gap-1 text-[11px] font-medium text-ink-soft bg-bg px-2 py-0.5 rounded-md border border-line">
                           <Layers className="w-3 h-3 text-ink-soft" />
                           {p.category?.name || "Uncategorized"}
                         </span>
                       </td>
 
-                      <td className="py-4 px-4">
+                      <td className="py-2.5 px-3">
                         <div>
                           {p.discountPrice ? (
                             <div className="flex flex-col">
-                              <span className="font-bold text-forest">
+                              <span className="font-bold text-forest text-xs font-mono">
                                 {formatTaka(p.discountPrice)}
                               </span>
-                              <span className="text-xs text-ink-soft line-through">
+                              <span className="text-[10px] text-ink-soft line-through font-mono">
                                 {formatTaka(p.price)}
                               </span>
                             </div>
                           ) : (
-                            <span className="font-semibold text-ink">
+                            <span className="font-semibold text-ink text-xs font-mono">
                               {formatTaka(p.price)}
                             </span>
                           )}
                         </div>
                       </td>
 
-                      <td className="py-4 px-4">
+                      <td className="py-2.5 px-3">
                         <div>
                           {isOutOfStock ? (
-                            <span className="inline-flex items-center gap-1 text-xs font-bold text-rose-600 bg-rose-50 px-2.5 py-1 rounded-lg border border-rose-200">
-                              <AlertCircle className="w-3.5 h-3.5" />
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200">
+                              <AlertCircle className="w-3 h-3" />
                               Out of Stock
                             </span>
                           ) : isLowStock ? (
-                            <span className="inline-flex items-center gap-1 text-xs font-bold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
-                              <AlertCircle className="w-3.5 h-3.5" />
-                              Low Stock ({p.stockQuantity})
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                              <AlertCircle className="w-3 h-3" />
+                              Low ({p.stockQuantity})
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 text-xs font-medium text-forest bg-forest/10 px-2.5 py-1 rounded-lg">
-                              <CheckCircle className="w-3.5 h-3.5" />
-                              In Stock ({p.stockQuantity})
+                            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-forest bg-forest/10 px-2 py-0.5 rounded-md">
+                              <CheckCircle className="w-3 h-3" />
+                              {p.stockQuantity} in stock
                             </span>
                           )}
                         </div>
                       </td>
 
-                      <td className="py-4 px-4">
-                        {p.badge ? (
-                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-accent/20 text-forest-deep border border-accent/40">
-                            {p.badge}
-                          </span>
-                        ) : p.savingsPercentage ? (
-                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-200">
-                            Save {p.savingsPercentage}%
-                          </span>
-                        ) : (
-                          <span className="text-xs text-ink-soft/40">—</span>
-                        )}
+                      <td className="py-2.5 px-3">
+                        <div className="flex flex-wrap items-center gap-1">
+                          {p.isCombo && (
+                            <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                              Combo
+                            </span>
+                          )}
+                          {p.isFeatured && (
+                            <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                              Featured
+                            </span>
+                          )}
+                          {p.badge && (
+                            <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                              {p.badge}
+                            </span>
+                          )}
+                          {!p.isCombo && !p.isFeatured && !p.badge && (
+                            <span className="text-ink-soft text-[10px]">—</span>
+                          )}
+                        </div>
                       </td>
 
-                      <td className="py-4 px-5 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
+                      <td className="py-2.5 px-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
                           <Link
-                            href={"/admin/products/" + p.id}
-                            className="p-2 rounded-xl text-ink-soft hover:text-forest hover:bg-forest/10 transition-colors"
+                            href={`/admin/products/${p.id}`}
+                            className="p-1 rounded-md bg-bg hover:bg-forest hover:text-white border border-line text-ink-soft transition-colors cursor-pointer"
                             title="Edit Product"
                           >
-                            <Edit2 className="w-4 h-4" />
+                            <Edit2 className="w-3.5 h-3.5" />
                           </Link>
                           <button
                             type="button"
                             onClick={() => setSingleDeleteProduct(p)}
-                            className="p-2 rounded-xl text-ink-soft hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                            className="p-1 rounded-md bg-bg hover:bg-rose-50 hover:text-rose-600 border border-line text-ink-soft transition-colors cursor-pointer"
                             title="Move to Recycle Bin"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </td>

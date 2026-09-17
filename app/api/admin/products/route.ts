@@ -106,6 +106,11 @@ export async function POST(req: NextRequest) {
       badge: badge || null,
       featured: Boolean(featured),
       isActive: true,
+      sourceOrigin: body.sourceOrigin || null,
+      harvestDate: body.harvestDate || null,
+      batchNumber: body.batchNumber || null,
+      purityCertificateUrl: body.purityCertificateUrl || null,
+      labTestReportSummary: body.labTestReportSummary || null,
     };
 
     if (resolvedUnitQty !== null && !isNaN(resolvedUnitQty)) {

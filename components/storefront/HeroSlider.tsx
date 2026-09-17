@@ -86,13 +86,13 @@ export default function HeroSlider({ banners }: HeroSliderProps) {
 
   return (
     <div
-      className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden shadow-card border border-stone-200/90 bg-stone-900 group"
+      className="relative w-full rounded-2xl sm:rounded-3xl md:rounded-4xl overflow-hidden shadow-sm hover:shadow-card transition-all duration-300 border border-stone-200/80 bg-stone-900 group"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      {/* Slider Carousel Aspect Ratio */}
-      <div className="relative w-full aspect-[16/8] sm:aspect-[21/9] md:aspect-[2.4/1]">
+      {/* Slider Carousel Aspect Ratio: Ultra-Sleek & Compact (Not dominating the screen) */}
+      <div className="relative w-full aspect-[2.3/1] sm:aspect-[2.8/1] md:aspect-[3.2/1] max-h-[170px] sm:max-h-[240px] md:max-h-[300px]">
         {activeBanners.map((banner, index) => {
           const isActive = index === currentIndex;
           const targetUrl = banner.targetCategory
@@ -113,39 +113,32 @@ export default function HeroSlider({ banners }: HeroSliderProps) {
                   alt={banner.title || "Promotion Banner"}
                   fill
                   priority={index === 0}
-                  className="object-cover object-center"
-                  sizes="100vw"
+                  className="object-cover object-center transform transition-transform duration-7000 ease-out scale-100 group-hover:scale-103"
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, 1200px"
                 />
 
-                {/* Subtle Gradient Shadow for readability */}
-                {(banner.title || banner.subtitle) && (
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent flex flex-col justify-end p-4 sm:p-8 md:p-10">
-                    <div className="max-w-xl space-y-1.5 sm:space-y-2.5 text-white">
+                {/* Elegant subtle gradient overlay only on bottom text area */}
+                {(banner.title || banner.subtitle || banner.badgeText) && (
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-3 sm:p-6 md:p-8">
+                    <div className="max-w-md sm:max-w-lg space-y-1 text-white">
                       {banner.badgeText && (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-400 text-stone-950 font-extrabold text-[9px] sm:text-xs uppercase tracking-wider shadow-sm">
-                          <Sparkles className="w-3 h-3 text-stone-950" />
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-400 text-stone-950 font-extrabold text-[8px] sm:text-[10px] uppercase tracking-wider shadow-xs w-fit">
+                          <Sparkles className="w-2.5 h-2.5 text-stone-950" />
                           <span>{banner.badgeText}</span>
                         </span>
                       )}
 
                       {banner.title && (
-                        <h2 className="text-sm sm:text-2xl md:text-3xl font-display font-bold leading-tight drop-shadow-md text-white">
+                        <h2 className="text-xs sm:text-lg md:text-xl font-display font-bold leading-snug drop-shadow-sm text-white line-clamp-1">
                           {banner.title}
                         </h2>
                       )}
 
                       {banner.subtitle && (
-                        <p className="text-[10px] sm:text-sm text-white/90 line-clamp-1 sm:line-clamp-2 drop-shadow-sm">
+                        <p className="hidden sm:block text-[11px] md:text-xs text-stone-200/90 line-clamp-1 drop-shadow-xs">
                           {banner.subtitle}
                         </p>
                       )}
-
-                      <div className="pt-1">
-                        <span className="inline-flex items-center gap-1.5 text-[11px] sm:text-xs font-bold text-amber-300 hover:text-amber-200 group-hover:underline">
-                          <span>{locale === "bn" ? "অফার দেখুন" : "Explore Offers"}</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </span>
-                      </div>
                     </div>
                   </div>
                 )}
@@ -160,32 +153,34 @@ export default function HeroSlider({ banners }: HeroSliderProps) {
         <>
           <button
             onClick={prevSlide}
-            className="hidden sm:flex absolute left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 md:w-10 md:h-10 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-xs items-center justify-center transition-all cursor-pointer opacity-0 group-hover:opacity-100"
+            className="hidden sm:flex absolute left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 md:w-9 md:h-9 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-md items-center justify-center transition-all cursor-pointer opacity-0 group-hover:opacity-100 hover:scale-105 active:scale-95 border border-white/20"
             aria-label="Previous slide"
           >
-            <ChevronLeft className="w-4 h-4 md:w-5 md:h-5" />
+            <ChevronLeft className="w-4 h-4" />
           </button>
           <button
             onClick={nextSlide}
-            className="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 md:w-10 md:h-10 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-xs items-center justify-center transition-all cursor-pointer opacity-0 group-hover:opacity-100"
+            className="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 md:w-9 md:h-9 rounded-full bg-black/40 hover:bg-black/70 text-white backdrop-blur-md items-center justify-center transition-all cursor-pointer opacity-0 group-hover:opacity-100 hover:scale-105 active:scale-95 border border-white/20"
             aria-label="Next slide"
           >
-            <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
+            <ChevronRight className="w-4 h-4" />
           </button>
 
           {/* Dots Indicator */}
-          <div className="absolute bottom-2.5 sm:bottom-3.5 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 bg-black/30 backdrop-blur-xs px-2.5 py-1 rounded-full">
-            {activeBanners.map((_, i) => (
+          <div className="absolute bottom-2 right-3 z-20 flex items-center gap-1 bg-black/40 px-2 py-0.5 rounded-full backdrop-blur-md">
+            {activeBanners.map((_, idx) => (
               <button
-                key={i}
+                key={idx}
                 onClick={() => {
-                  setCurrentIndex(i);
+                  setCurrentIndex(idx);
                   resetTimer();
                 }}
                 className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
-                  i === currentIndex ? "w-5 bg-amber-400" : "w-1.5 bg-white/60 hover:bg-white"
+                  idx === currentIndex
+                    ? "w-4 bg-amber-400"
+                    : "w-1.5 bg-white/50 hover:bg-white/80"
                 }`}
-                aria-label={`Go to slide ${i + 1}`}
+                aria-label={`Go to slide ${idx + 1}`}
               />
             ))}
           </div>

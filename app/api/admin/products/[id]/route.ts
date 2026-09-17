@@ -107,6 +107,11 @@ export async function PUT(
       badge: badge !== undefined ? badge : existing.badge,
       featured: featured !== undefined ? Boolean(featured) : existing.featured,
       isActive: isActive !== undefined ? Boolean(isActive) : existing.isActive,
+      sourceOrigin: body.sourceOrigin !== undefined ? body.sourceOrigin : existing.sourceOrigin,
+      harvestDate: body.harvestDate !== undefined ? body.harvestDate : existing.harvestDate,
+      batchNumber: body.batchNumber !== undefined ? body.batchNumber : existing.batchNumber,
+      purityCertificateUrl: body.purityCertificateUrl !== undefined ? body.purityCertificateUrl : existing.purityCertificateUrl,
+      labTestReportSummary: body.labTestReportSummary !== undefined ? body.labTestReportSummary : existing.labTestReportSummary,
     };
 
     if (parsedUnitQty !== undefined) {

@@ -24,13 +24,16 @@ import {
   X,
   FileText,
   Camera,
+  MessageCircle,
 } from "lucide-react";
 import StorefrontHeader from "@/components/storefront/Header";
 import StorefrontFooter from "@/components/storefront/Footer";
 import ProductCard from "@/components/storefront/ProductCard";
+import QuickOrderModal from "@/components/storefront/QuickOrderModal";
 import { formatTaka, getProductImages, getSafeImageUrl, formatProductUnit, formatBengaliNumber } from "@/lib/utils";
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
+import { useStorefront } from "@/context/StorefrontContext";
 
 export default function ProductDetailClient({
   initialProduct,
@@ -44,6 +47,7 @@ export default function ProductDetailClient({
   const router = useRouter();
   const { addToCart, setIsCartOpen } = useCart();
   const { t, locale } = useLanguage();
+  const { settings } = useStorefront();
 
   const [product, setProduct] = useState<any>(initialProduct);
   const [related, setRelated] = useState<any[]>(initialRelated);
@@ -52,6 +56,7 @@ export default function ProductDetailClient({
   const [quantity, setQuantity] = useState(1);
   const [copied, setCopied] = useState(false);
   const [added, setAdded] = useState(false);
+  const [isQuickOrderOpen, setIsQuickOrderOpen] = useState(false);
 
   // Advantage states: Lab report modal & Photo reviews
   const [reviewsList, setReviewsList] = useState<any[]>([]);
@@ -191,9 +196,22 @@ export default function ProductDetailClient({
 
   const handleBuyNow = () => {
     if (isOutOfStock) return;
-    addToCart(product, quantity);
-    setIsCartOpen(false);
-    router.push("/checkout");
+    setIsQuickOrderOpen(true);
+  };
+
+  const handleWhatsAppOrder = () => {
+    const rawPhone = settings?.whatsappNumber || settings?.contactPhone || "01700000000";
+    let cleanPhone = rawPhone.replace(/\D/g, "");
+    if (cleanPhone.startsWith("0")) cleanPhone = "88" + cleanPhone;
+
+    const unitPrice = Number(product.discountPrice || product.price);
+    const totalPrice = unitPrice * quantity;
+    const prodUrl = typeof window !== "undefined" ? window.location.href : "";
+
+    const msg = `আসসালামু আলাইকুম! 🌿\nআমি ENMAR থেকে এই পণ্যটি সরাসরি অর্ডার করতে চাই:\n\n📦 পণ্য: ${product.name}\n🔢 পরিমাণ: ${quantity} ${product.unit || "টি"}\n💰 মূল্য: ৳${totalPrice}\n🔗 লিংক: ${prodUrl}\n\nআমার ডেলিভারির জন্য আপনার সাথে যোগাযোগ করতে চাই।`;
+
+    const waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, "_blank");
   };
 
   const handleShare = () => {
@@ -507,6 +525,16 @@ export default function ProductDetailClient({
               </button>
             </div>
 
+            {/* Direct WhatsApp Order Button */}
+            <button
+              onClick={handleWhatsAppOrder}
+              disabled={isOutOfStock}
+              className="w-full py-2.5 sm:py-3 px-4 rounded-xl font-bold text-xs sm:text-sm bg-[#25D366] hover:bg-[#20bd5a] active:bg-[#1da850] text-stone-950 shadow-sm transition-all cursor-pointer flex items-center justify-center gap-2 border border-emerald-500/40"
+            >
+              <MessageCircle className="w-4 h-4 fill-stone-950 text-stone-950" />
+              <span>{locale === "bn" ? "📲 হোয়াটসঅ্যাপে সরাসরি অর্ডার করুন" : "📲 Order Directly via WhatsApp"}</span>
+            </button>
+
             {/* Trust Badges */}
             <div className="grid grid-cols-2 gap-2 sm:gap-3 pt-2">
               <div className="p-2.5 sm:p-3 rounded-xl bg-white border border-stone-200 flex items-center gap-2.5">
@@ -714,7 +742,7 @@ export default function ProductDetailClient({
               <span>{locale === "bn" ? "সম্পর্কিত অন্যান্য পণ্য" : "Related Organic Products"}</span>
             </h2>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-6">
+            <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-1.5 sm:gap-3.5">
               {related.map((item: any) => (
                 <ProductCard key={item.id} product={item} />
               ))}
@@ -916,6 +944,13 @@ export default function ProductDetailClient({
           </div>
         )}
       </main>
+
+      {/* 1-Click Fast Checkout Modal */}
+      <QuickOrderModal
+        product={product}
+        isOpen={isQuickOrderOpen}
+        onClose={() => setIsQuickOrderOpen(false)}
+      />
 
       <StorefrontFooter />
     </div>

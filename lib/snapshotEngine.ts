@@ -136,7 +136,6 @@ export async function generateStorefrontSnapshots(): Promise<StorefrontSnapshots
       const featuresMap: Record<string, boolean> = {
         wishlist: true,
         reviews: true,
-        customer_ai_widget: true,
         promo_codes: true,
         wellness_tools: true,
         new_product_notifications: true,
@@ -145,6 +144,7 @@ export async function generateStorefrontSnapshots(): Promise<StorefrontSnapshots
         payment_card: true,
         homepage_testimonials: true,
         homepage_combos_banner: true,
+        homepage_promo_banners: true,
         whatsapp_floating_button: true,
         cookie_consent_banner: true,
         search_autocomplete: true,
@@ -152,6 +152,10 @@ export async function generateStorefrontSnapshots(): Promise<StorefrontSnapshots
       featureFlags.forEach((f: any) => {
         featuresMap[f.key] = f.isEnabled;
       });
+
+      const isPromoBannerEnabled =
+        settingsMap["homepage_promo_banner_enabled"] !== "false" &&
+        featuresMap["homepage_promo_banners"] !== false;
 
       const serializedProducts = serializePrisma(allProducts);
       const cardOptimizedProducts = sanitizeProductCards(serializedProducts);
@@ -164,7 +168,7 @@ export async function generateStorefrontSnapshots(): Promise<StorefrontSnapshots
         comboDeals,
         settings: settingsMap,
         theme: serializePrisma(theme),
-        banners: serializePrisma(banners),
+        banners: isPromoBannerEnabled ? serializePrisma(banners) : [],
       };
 
       const snapshotData: StorefrontSnapshots = {

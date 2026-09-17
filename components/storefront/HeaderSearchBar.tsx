@@ -29,18 +29,20 @@ export default function HeaderSearchBar({ isMobileOpen, onCloseMobile }: HeaderS
 
   const quickKeywords = isBn
     ? [
-        { label: "🍯 সুন্দরবনের মধু", query: "মধু" },
-        { label: "🧈 খাঁটি গাওয়া ঘি", query: "ঘি" },
-        { label: "🌱 সরিষার তেল", query: "সরিষার তেল" },
-        { label: "🌴 মরিয়ম খেজুর", query: "খেজুর" },
-        { label: "🥟 ফ্রোজেন মোমো", query: "মোমো" },
+        { label: "🫓 লাল আটার রুটি", query: "লাল আটা" },
+        { label: "🥟 পাতা শেইপ মোমো", query: "মোমো" },
+        { label: "🌯 চিকেন স্প্রিং রোল", query: "রোল" },
+        { label: "🥐 খাস্তা সিঙ্গারা", query: "সিঙ্গারা" },
+        { label: "🥟 ঝাল পুলি পিঠা", query: "পুলি পিঠা" },
+        { label: "🎁 ফ্যামিলি মেগা কম্বো", query: "কম্বো" },
       ]
     : [
-        { label: "🍯 Sundarban Honey", query: "Honey" },
-        { label: "🧈 Pure Deshi Ghee", query: "Ghee" },
-        { label: "🌱 Mustard Oil", query: "Mustard Oil" },
-        { label: "🌴 Organic Dates", query: "Dates" },
-        { label: "🥟 Frozen Paratha", query: "Paratha" },
+        { label: "🫓 Whole Wheat Roti", query: "Roti" },
+        { label: "🥟 Chicken Momos", query: "Momo" },
+        { label: "🌯 Chicken Rolls", query: "Roll" },
+        { label: "🥐 Crispy Shingara", query: "Shingara" },
+        { label: "🥟 Spicy Puli Pitha", query: "Puli Pitha" },
+        { label: "🎁 Family Combo Box", query: "Combo" },
       ];
 
   // Handle outside click to close dropdown
@@ -140,8 +142,8 @@ export default function HeaderSearchBar({ isMobileOpen, onCloseMobile }: HeaderS
           }}
           placeholder={
             isBn
-              ? "খাঁটি মধু, সরিষার তেল, ঘি, পরোটা খুঁজুন... (টাইপ করুন বা / চাপুন)"
-              : "Search organic food, honey, ghee, spices... (Press / to search)"
+              ? "ফ্রোজেন রুটি, চিকেন মোমো, স্প্রিং রোল, সিঙ্গারা খুঁজুন... (টাইপ করুন বা / চাপুন)"
+              : "Search frozen roti, chicken momo, spring rolls, shingara... (Press /)"
           }
           className="w-full pl-9 pr-10 py-2 sm:py-2.5 rounded-full bg-[#F8F6F2] hover:bg-stone-100 focus:bg-white text-xs sm:text-sm text-stone-900 placeholder:text-stone-400 border border-stone-200/90 focus:border-forest/60 focus:ring-2 focus:ring-forest/15 transition-all outline-none shadow-2xs"
         />

@@ -9,5 +9,71 @@
     "_count": {
       "products": 8
     }
+  },
+  {
+    "id": 60001,
+    "name": "ফ্রোজেন রুটি ও পরোটা",
+    "slug": "frozen-roti-paratha",
+    "icon": "bread",
+    "image": null,
+    "displayOrder": 1,
+    "_count": {
+      "products": 2
+    }
+  },
+  {
+    "id": 60002,
+    "name": "ফ্রোজেন মোমো ও ডাম্পলিং",
+    "slug": "frozen-momos-dumplings",
+    "icon": "leaf",
+    "image": null,
+    "displayOrder": 2,
+    "_count": {
+      "products": 1
+    }
+  },
+  {
+    "id": 60003,
+    "name": "ফ্রোজেন রোল ও কাটলেট",
+    "slug": "frozen-rolls-snacks",
+    "icon": "snack",
+    "image": null,
+    "displayOrder": 3,
+    "_count": {
+      "products": 1
+    }
+  },
+  {
+    "id": 60004,
+    "name": "সিঙ্গারা ও সমুচা",
+    "slug": "frozen-shingara-samosa",
+    "icon": "triangle",
+    "image": null,
+    "displayOrder": 4,
+    "_count": {
+      "products": 2
+    }
+  },
+  {
+    "id": 60005,
+    "name": "ঐতিহ্যবাহী পুলি পিঠা",
+    "slug": "frozen-puli-pitha",
+    "icon": "pitha",
+    "image": null,
+    "displayOrder": 5,
+    "_count": {
+      "products": 1
+    }
+  },
+  {
+    "id": 60006,
+    "name": "ফ্যামিলি কম্বো ও পার্টি বক্স",
+    "slug": "frozen-combo-packs",
+    "icon": "bundle",
+    "image": null,
+    "displayOrder": 6,
+    "_count": {
+      "products": 1
+    }
   }
 ]

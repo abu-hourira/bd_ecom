@@ -9,11 +9,11 @@ import { calculateDeliveryFee } from "@/lib/delivery-calculator";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    const customerName = (body.customerName || body.name || "").trim();
+    const customerPhone = (body.customerPhone || body.phone || "").trim();
+    const customerEmail = (body.customerEmail || body.email || "quick-order@enmar.bd").trim();
+    const shippingAddress = (body.shippingAddress || body.customerAddress || body.address || "").trim();
     const {
-      customerName,
-      customerEmail,
-      customerPhone,
-      shippingAddress,
       deliveryZone = "Inside Dhaka",
       paymentMethod = "COD",
       items = [],
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
       coinsDiscount = 0,
     } = body;
 
-    if (!customerName?.trim() || !customerPhone?.trim() || !shippingAddress?.trim()) {
+    if (!customerName || !customerPhone || !shippingAddress) {
       return NextResponse.json(
         { error: "অনুগ্রহ করে আপনার নাম, মোবাইল নম্বর এবং সম্পূর্ণ ডেলিভারি ঠিকানা প্রদান করুন।" },
         { status: 400 }
@@ -190,6 +190,14 @@ export async function POST(req: NextRequest) {
       totalPrice: it.totalPrice,
     }));
 
+    let mappedPaymentMethod: PaymentMethod = PaymentMethod.COD;
+    const pmUpper = String(paymentMethod || "").toUpperCase();
+    if (pmUpper === "BKASH") mappedPaymentMethod = PaymentMethod.BKASH;
+    else if (pmUpper === "NAGAD") mappedPaymentMethod = PaymentMethod.NAGAD;
+    else if (pmUpper === "ROCKET") mappedPaymentMethod = PaymentMethod.ROCKET;
+    else if (pmUpper === "SSLCOMMERZ" || pmUpper === "ONLINE" || pmUpper === "CARD") mappedPaymentMethod = PaymentMethod.CARD;
+    else mappedPaymentMethod = PaymentMethod.COD;
+
     const order = await prisma.$transaction(async (tx) => {
       const createdOrder = await tx.order.create({
         data: {
@@ -211,7 +219,7 @@ export async function POST(req: NextRequest) {
           coinsEarned,
           coinsRedeemed: numCoinsRedeemed,
           coinsDiscount: numCoinsDiscount,
-          paymentMethod: (paymentMethod as PaymentMethod) || PaymentMethod.COD,
+          paymentMethod: mappedPaymentMethod,
           paymentStatus: PaymentStatus.PENDING,
           orderStatus: OrderStatus.PENDING,
           userId: userId ? Number(userId) : null,

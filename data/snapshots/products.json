@@ -1,5 +1,341 @@
 [
   {
+    "id": 270008,
+    "name": "অল-ইন-ওয়ান ফ্রোজেন স্ন্যাক্স ফ্যামিলি মেগা কম্বো",
+    "slug": "all-in-one-frozen-family-mega-combo-box",
+    "categoryId": 60006,
+    "subcategory": null,
+    "price": "1100",
+    "discountPrice": "890",
+    "stockQuantity": 23,
+    "unitQuantity": "1",
+    "unit": "bundle",
+    "images": "[\"/uploads/upload-1787287799462-wp72o_1000019010.jpg\",\"/uploads/upload-1787287578589-3cv3w_1000019650.jpg\",\"/uploads/upload-1787287687330-fwbvn_1000019648.jpg\",\"/uploads/upload-1787287646578-7y92p_1000019649.jpg\"]",
+    "description": "সারা সপ্তাহের সকালের নাস্তা ও বিকালের নাস্তার টেনশন দূর করতে নিয়ে নিন আমাদের অল-ইন-ওয়ান ফ্রোজেন মেগা কম্বো বক্স! থাকছে ২০ পিস নরম রুটি, ১২ পিস জুসি চিকেন মোমো, ১০ পিস ক্রিস্পি চিকেন স্প্রিং রোল এবং ১০ পিস খাস্তা সিঙ্গারা। একসাথে কিনলে পাচ্ছেন বিশাল ২১০ টাকা ছাড় ও ফ্রি ডেলিভারি সুযোগ!",
+    "shortDescription": "রুটি (২০ পিস) + মোমো (১২ পিস) + স্প্রিং রোল (১০ পিস) + সিঙ্গারা (১০ পিস) এর মেগা সেভার কম্বো প্যাক!",
+    "organicCertified": true,
+    "isCombo": true,
+    "comboProductIds": null,
+    "savingsPercentage": "19",
+    "badge": null,
+    "featured": true,
+    "weightInGrams": 2100,
+    "deliveryDiscountMinQty": 1,
+    "deliveryDiscountAmount": "60",
+    "deliveryDiscountType": "FIXED",
+    "deliveryDiscountTiers": [
+      {
+        "discountAmount": 60,
+        "minQty": 1
+      },
+      {
+        "discountAmount": 120,
+        "minQty": 2
+      }
+    ],
+    "createdAt": "2026-09-17T16:13:05.949Z",
+    "category": {
+      "id": 60006,
+      "name": "ফ্যামিলি কম্বো ও পার্টি বক্স",
+      "slug": "frozen-combo-packs",
+      "icon": "bundle"
+    }
+  },
+  {
+    "id": 270007,
+    "name": "ফ্রোজেন ট্রায়াঙ্গেল সমুচা ও স্ন্যাক্স বাইট (১০ পিস)",
+    "slug": "frozen-triangle-samosa-bites-10pcs",
+    "categoryId": 60004,
+    "subcategory": null,
+    "price": "240",
+    "discountPrice": "200",
+    "stockQuantity": 40,
+    "unitQuantity": "10",
+    "unit": "piece",
+    "images": "[\"/uploads/WhatsApp_Image_2026-08-14_at_12_17_01_PM_1787527594680_in6zn.jpeg\",\"/uploads/WhatsApp_Image_2026-08-14_at_12_17_01_PM__1__1787526933364_nfx26.jpeg\"]",
+    "description": "অতিথি আপ্যায়ন কিংবা বিকালের নাস্তায় মাত্র ৫ মিনিটে তৈরি করুন মুচমুচে গরম সমুচা। মশলাদার পুর ও খাস্তা ক্রিস্পি লেয়ার মুখে দিলেই অসাধারণ ক্রাঞ্চ অনুভূতি দেয়।",
+    "shortDescription": "পাতলা খাস্তা খোসায় মোড়ানো ক্রিস্পি ট্রায়াঙ্গেল সমুচা। বিকেলে মেহমানদারির সেরা নাস্তা।",
+    "organicCertified": true,
+    "isCombo": false,
+    "comboProductIds": null,
+    "savingsPercentage": null,
+    "badge": null,
+    "featured": true,
+    "weightInGrams": 350,
+    "deliveryDiscountMinQty": 2,
+    "deliveryDiscountAmount": "25",
+    "deliveryDiscountType": "FIXED",
+    "deliveryDiscountTiers": [
+      {
+        "discountAmount": 25,
+        "minQty": 2
+      },
+      {
+        "discountAmount": 60,
+        "minQty": 4
+      }
+    ],
+    "createdAt": "2026-09-17T16:13:05.080Z",
+    "category": {
+      "id": 60004,
+      "name": "সিঙ্গারা ও সমুচা",
+      "slug": "frozen-shingara-samosa",
+      "icon": "triangle"
+    }
+  },
+  {
+    "id": 270006,
+    "name": "ঐতিহ্যবাহী ঝাল পুলি পিঠা (১০ পিস প্যাক)",
+    "slug": "traditional-frozen-spicy-puli-pitha-10pcs",
+    "categoryId": 60005,
+    "subcategory": null,
+    "price": "280",
+    "discountPrice": "240",
+    "stockQuantity": 30,
+    "unitQuantity": "10",
+    "unit": "piece",
+    "images": "[\"/uploads/WhatsApp_Image_2026-08-14_at_12_17_00_PM_1787526929366_7lz8b.jpeg\",\"/uploads/WhatsApp_Image_2026-08-14_at_12_17_01_PM__1__1787526933364_nfx26.jpeg\"]",
+    "description": "গ্রাম-বাংলার খাঁটি ঐতিহ্যের স্বাদে তৈরি ঝাল পুলি পিঠা। সুন্দর নকশাদার মোড়কে ভরা সুস্বাদু মাংস ও মসলার পুর। এটি ডুবোতেলে ভেজে অথবা ফুটন্ত পানির ভাপে স্টিম করে — দুইভাবেই অত্যন্ত সুস্বাদুভাবে খাওয়া যায়। চাটনি বা টমেটো সসের সাথে জাস্ট অসাধারণ!",
+    "shortDescription": "চালের গুঁড়ার মোড়ানো জিভে জল আনা ঝাল চিকেন ও আলু পুরের স্পেশাল পুলি পিঠা।",
+    "organicCertified": true,
+    "isCombo": false,
+    "comboProductIds": null,
+    "savingsPercentage": null,
+    "badge": null,
+    "featured": true,
+    "weightInGrams": 400,
+    "deliveryDiscountMinQty": 2,
+    "deliveryDiscountAmount": "30",
+    "deliveryDiscountType": "FIXED",
+    "deliveryDiscountTiers": [
+      {
+        "discountAmount": 30,
+        "minQty": 2
+      },
+      {
+        "discountAmount": 70,
+        "minQty": 4
+      }
+    ],
+    "createdAt": "2026-09-17T16:13:04.350Z",
+    "category": {
+      "id": 60005,
+      "name": "ঐতিহ্যবাহী পুলি পিঠা",
+      "slug": "frozen-puli-pitha",
+      "icon": "pitha"
+    }
+  },
+  {
+    "id": 270005,
+    "name": "হোমমেড ফ্রোজেন সিঙ্গারা (১০ পিস প্যাক)",
+    "slug": "homemade-frozen-shingara-kalojira-10pcs",
+    "categoryId": 60004,
+    "subcategory": null,
+    "price": "220",
+    "discountPrice": "190",
+    "stockQuantity": 50,
+    "unitQuantity": "10",
+    "unit": "piece",
+    "images": "[\"/uploads/upload-1787287646578-7y92p_1000019649.jpg\"]",
+    "description": "ছোটবেলার পাড়ার মোড়ের দোকানের খাস্তা সিঙ্গারার আসল স্বাদ এখন আপনার ফ্রিজে! কালোজিরার সুগন্ধি খামির এবং ভেতরে মশলাদার আলু, চিনাবাদাম ও আদার পুর। হালকা গরম ডুবোতেলে ছেড়ে মৃদু আঁচে ৬-৮ মিনিট ভেজে নিলেই পেয়ে যাবেন সুপার খাস্তা ও মুচমুচে গরম সিঙ্গারা।",
+    "shortDescription": "কালোজিরা দেওয়া খাস্তা সিঙ্গারা — খাঁটি আলু, বাদাম ও গরম মসলার পুর দিয়ে তৈরি।",
+    "organicCertified": true,
+    "isCombo": false,
+    "comboProductIds": null,
+    "savingsPercentage": null,
+    "badge": null,
+    "featured": true,
+    "weightInGrams": 450,
+    "deliveryDiscountMinQty": 3,
+    "deliveryDiscountAmount": "30",
+    "deliveryDiscountType": "FIXED",
+    "deliveryDiscountTiers": [
+      {
+        "discountAmount": 30,
+        "minQty": 3
+      },
+      {
+        "discountAmount": 60,
+        "minQty": 6
+      }
+    ],
+    "createdAt": "2026-09-17T16:13:03.621Z",
+    "category": {
+      "id": 60004,
+      "name": "সিঙ্গারা ও সমুচা",
+      "slug": "frozen-shingara-samosa",
+      "icon": "triangle"
+    }
+  },
+  {
+    "id": 270004,
+    "name": "মুচমুচে ফ্রোজেন চিকেন স্প্রিং রোল (১০ পিস প্যাক)",
+    "slug": "crispy-frozen-chicken-spring-rolls-10pcs",
+    "categoryId": 60003,
+    "subcategory": null,
+    "price": "340",
+    "discountPrice": "299",
+    "stockQuantity": 40,
+    "unitQuantity": "10",
+    "unit": "piece",
+    "images": "[\"/uploads/upload-1787287687330-fwbvn_1000019648.jpg\"]",
+    "description": "প্রিমিয়াম ব্রেডক্রাম্ব ও তাজা ডিমের প্রলেপে মোড়ানো চিকেন ভেজিটেবল স্প্রিং রোল। ফ্রিজ থেকে বের করে মাঝারি আঁচে গরম তেলে ৫-৬ মিনিট হালকা উল্টেপাল্টে সোনালী করে ভেজে নিন। বাইরে ক্রাঞ্চি ব্রেডক্রাম্ব এবং ভেতরে সুস্বাদু চিকেন পুরের অসাধারণ স্বাদ বড়-ছোট সবার মুখে জল এনে দেবে।",
+    "shortDescription": "গোল্ডেন ব্রেডক্রাম্ব কোটেড মুচমুচে চিকেন রোল। ডুবোতেলে গোল্ডেন ব্রাউন করে ভাজলেই সেরা নাস্তা।",
+    "organicCertified": true,
+    "isCombo": false,
+    "comboProductIds": null,
+    "savingsPercentage": null,
+    "badge": null,
+    "featured": true,
+    "weightInGrams": 500,
+    "deliveryDiscountMinQty": 2,
+    "deliveryDiscountAmount": "30",
+    "deliveryDiscountType": "FIXED",
+    "deliveryDiscountTiers": [
+      {
+        "discountAmount": 30,
+        "minQty": 2
+      },
+      {
+        "discountAmount": 70,
+        "minQty": 4
+      }
+    ],
+    "createdAt": "2026-09-17T16:13:02.892Z",
+    "category": {
+      "id": 60003,
+      "name": "ফ্রোজেন রোল ও কাটলেট",
+      "slug": "frozen-rolls-snacks",
+      "icon": "snack"
+    }
+  },
+  {
+    "id": 270003,
+    "name": "পাতা শেইপ প্রিমিয়াম চিকেন মোমো (১২ পিস প্যাক)",
+    "slug": "handmade-leaf-shape-chicken-momo-12pcs",
+    "categoryId": 60002,
+    "subcategory": null,
+    "price": "320",
+    "discountPrice": "280",
+    "stockQuantity": 35,
+    "unitQuantity": "12",
+    "unit": "piece",
+    "images": "[\"/uploads/upload-1787287578589-3cv3w_1000019650.jpg\"]",
+    "description": "দেশি মুরগির কিমা, তাজা পেঁয়াজপাতা, ধনেপাতা, আদা-রসুন ও সিক্রেট হোমমেড মসলার পুরে ঠাসা অনন্য পাতা শেইপের ফ্রোজেন চিকেন মোমো। কোনো কৃত্রিম টেস্টিং সল্ট ছাড়া শতভাগ নিরাপদ ও স্বাস্থ্যকর। রাইস কুকার, স্ট্রিমার বা ফুটন্ত পানির ওপর ৮-১০ মিনিট স্টিম করলেই ভেতরে জুসি ও বাইরে সিল্কি মোমো তৈরি। চাইলে ডুবোতেলে ভেজে ক্রিস্পি ফ্রাইড মোমোও বানাতে পারেন!",
+    "shortDescription": "সুন্দর পাতার ডিজাইনে হাতে মোড়ানো সুস্বাদু জুসি চিকেন মোমো। সাথে থাকে স্পেশাল চাটনি/সস তৈরির গাইড।",
+    "organicCertified": true,
+    "isCombo": false,
+    "comboProductIds": null,
+    "savingsPercentage": null,
+    "badge": null,
+    "featured": true,
+    "weightInGrams": 400,
+    "deliveryDiscountMinQty": 2,
+    "deliveryDiscountAmount": "40",
+    "deliveryDiscountType": "FIXED",
+    "deliveryDiscountTiers": [
+      {
+        "discountAmount": 40,
+        "minQty": 2
+      },
+      {
+        "discountAmount": 80,
+        "minQty": 4
+      }
+    ],
+    "createdAt": "2026-09-17T16:13:02.165Z",
+    "category": {
+      "id": 60002,
+      "name": "ফ্রোজেন মোমো ও ডাম্পলিং",
+      "slug": "frozen-momos-dumplings",
+      "icon": "leaf"
+    }
+  },
+  {
+    "id": 270002,
+    "name": "হাতে তৈরি সাদা আটার নরম ফ্রোজেন রুটি (২০ পিস প্যাক)",
+    "slug": "handmade-white-flour-frozen-roti-20pcs",
+    "categoryId": 60001,
+    "subcategory": null,
+    "price": "240",
+    "discountPrice": "210",
+    "stockQuantity": 60,
+    "unitQuantity": "20",
+    "unit": "piece",
+    "images": "[\"/uploads/upload-1787287799462-wp72o_1000019010.jpg\",\"/uploads/upload-1787287421822-94qjf_1000019651.jpg\"]",
+    "description": "ঘরে তৈরি স্বাদের পাতলা ও নরম সাদা আটার ফ্রোজেন রুটি। আধুনিক ডিপ-ফ্রিজিং প্রযুক্তিতে প্রতিটি রুটি আলাদা ও সতেজ রাখা হয় যাতে একটির সাথে আরেকটি লেগে না যায়। সরাসরি তাওয়ায় সেকে নিয়ে চা, মাংসের ঝোল, ডিম বা ভাজির সাথে পরিবেশন করুন।",
+    "shortDescription": "পাতলা ও নরম তুলতুলে সাদা আটার ফ্রোজেন রুটি। সকালের নাস্তা বা রাতের ডিনারের জন্য ঝটপট প্রস্তুত।",
+    "organicCertified": true,
+    "isCombo": false,
+    "comboProductIds": null,
+    "savingsPercentage": null,
+    "badge": null,
+    "featured": true,
+    "weightInGrams": 750,
+    "deliveryDiscountMinQty": 3,
+    "deliveryDiscountAmount": "30",
+    "deliveryDiscountType": "FIXED",
+    "deliveryDiscountTiers": [
+      {
+        "discountAmount": 30,
+        "minQty": 3
+      },
+      {
+        "discountAmount": 50,
+        "minQty": 5
+      }
+    ],
+    "createdAt": "2026-09-17T16:13:01.435Z",
+    "category": {
+      "id": 60001,
+      "name": "ফ্রোজেন রুটি ও পরোটা",
+      "slug": "frozen-roti-paratha",
+      "icon": "bread"
+    }
+  },
+  {
+    "id": 270001,
+    "name": "হাতে তৈরি লাল আটার ফ্রোজেন রুটি (২০ পিস প্যাক)",
+    "slug": "handmade-whole-wheat-red-flour-frozen-roti-20pcs",
+    "categoryId": 60001,
+    "subcategory": null,
+    "price": "260",
+    "discountPrice": "230",
+    "stockQuantity": 41,
+    "unitQuantity": "20",
+    "unit": "piece",
+    "images": "[\"/uploads/upload-1787287847493-t5opy_1000018931.jpg\",\"/uploads/upload-1787287421822-94qjf_1000019651.jpg\"]",
+    "description": "আমাদের এই লাল আটার রুটি সম্পূর্ণ খাঁটি গম ভাঙা আটা দিয়ে তৈরি, যাতে ফাইবার ও পুষ্টিমান অটুট থাকে। কোনো ক্ষতিকর প্রিজারভেটিভ বা কেমিক্যাল ছাড়া হাইজিনিক উপায়ে বেলন-পিরিতে হাতে তৈরি। ফ্রিজ থেকে বের করে বরফ না গলিয়ে সরাসরি গরম তাওয়ায় ৩০-৪০ সেকেন্ড প্রতি পাশ সেকে নিলেই পাবেন একদম তুলতুলে নরম ও ফোলা রুটি। ডায়াবেটিস রোগী ও স্বাস্থ্যসচেতন পরিবারের জন্য শ্রেষ্ঠ পছন্দ।",
+    "shortDescription": "১০০% খাঁটি লাল গমের আটার নরম তুলতুলে ফ্রোজেন রুটি। তাওয়ায় ২ মিনিট সেকলেই গরম ফুলকো রুটি প্রস্তুত।",
+    "organicCertified": true,
+    "isCombo": false,
+    "comboProductIds": null,
+    "savingsPercentage": null,
+    "badge": null,
+    "featured": true,
+    "weightInGrams": 800,
+    "deliveryDiscountMinQty": 3,
+    "deliveryDiscountAmount": "30",
+    "deliveryDiscountType": "FIXED",
+    "deliveryDiscountTiers": [
+      {
+        "discountAmount": 30,
+        "minQty": 3
+      },
+      {
+        "discountAmount": 60,
+        "minQty": 6
+      }
+    ],
+    "createdAt": "2026-09-17T16:13:00.235Z",
+    "category": {
+      "id": 60001,
+      "name": "ফ্রোজেন রুটি ও পরোটা",
+      "slug": "frozen-roti-paratha",
+      "icon": "bread"
+    }
+  },
+  {
     "id": 240001,
     "name": "ফ্রোজেন স্কোয়ার পরোটা ",
     "slug": "--2090",
@@ -80,9 +416,9 @@
     "slug": "--9846",
     "categoryId": 30001,
     "subcategory": "Homemade",
-    "price": "100",
+    "price": "110",
     "discountPrice": null,
-    "stockQuantity": 46,
+    "stockQuantity": 53,
     "unitQuantity": "10",
     "unit": "piece",
     "images": [

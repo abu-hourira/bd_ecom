@@ -54,6 +54,12 @@ function ProductsContent() {
 
   const { t, locale } = useLanguage();
 
+  // Sync category state when URL searchParams changes
+  useEffect(() => {
+    const currentCat = searchParams.get("category") || "all";
+    setSelectedCategory(currentCat);
+  }, [searchParams]);
+
   useEffect(() => {
     try {
       const catCache = localStorage.getItem("enmar_categories_cache");
@@ -313,7 +319,7 @@ function ProductsContent() {
           {/* Product Grid */}
           <div className="lg:col-span-3">
             {loading && products.length === 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3.5 sm:gap-6">
+              <div className="grid grid-cols-3 sm:grid-cols-2 md:grid-cols-3 gap-1.5 sm:gap-4">
                 {Array.from({ length: 6 }).map((_, i) => (
                   <ProductCardSkeleton key={i} />
                 ))}
@@ -339,7 +345,7 @@ function ProductsContent() {
               </div>
             ) : (
               <div className="space-y-8">
-                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 gap-3.5 sm:gap-6">
+                <div className="grid grid-cols-3 sm:grid-cols-2 md:grid-cols-3 gap-1.5 sm:gap-4">
                   {products.map((p) => (
                     <ProductCard key={p.id} product={p} />
                   ))}

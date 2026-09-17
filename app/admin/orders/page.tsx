@@ -270,31 +270,31 @@ export default function AdminOrdersPage() {
   };
 
   return (
-    <div className="p-4 sm:p-8 space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-4 pb-8">
       {/* Top Header & Search */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-paper p-4 rounded-2xl border border-line shadow-card">
         <div>
-          <h1 className="text-2xl font-bold font-display text-ink">Order Management</h1>
-          <p className="text-xs text-ink-soft mt-0.5">
+          <h1 className="text-xl font-bold font-display text-ink">Order Management</h1>
+          <p className="text-xs text-ink-soft">
             Monitor real-time live customer orders, courier dispatch, and history purging.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <div className="relative">
-            <Search className="w-4 h-4 text-ink-soft absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-3.5 h-3.5 text-ink-soft absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search order #, phone, tracking ID..."
-              className="pl-9 pr-4 py-2 rounded-xl bg-paper border border-line text-xs w-64 focus:outline-none focus:border-forest"
+              placeholder="Search order #, phone, tracking..."
+              className="pl-8 pr-3 py-1.5 rounded-lg bg-bg border border-line text-xs w-56 sm:w-64 focus:outline-hidden"
             />
           </div>
 
           <button
             onClick={() => fetchOrders(false)}
-            className="p-2 rounded-xl bg-paper border border-line hover:bg-bg text-ink-soft hover:text-ink shadow-xs cursor-pointer"
+            className="p-1.5 rounded-lg bg-bg border border-line hover:bg-stone-200 text-ink-soft hover:text-ink shadow-xs cursor-pointer"
             title="Refresh"
           >
             <RefreshCw className="w-4 h-4" />
@@ -303,12 +303,12 @@ export default function AdminOrdersPage() {
       </div>
 
       {/* Tabs & Quick Selection Bar */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-paper p-3 rounded-2xl border border-line shadow-card">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 bg-paper p-2.5 rounded-2xl border border-line shadow-xs">
         {/* Status Tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto text-xs pb-1 lg:pb-0">
+        <div className="flex items-center gap-1 overflow-x-auto text-xs pb-1 lg:pb-0">
           {[
             { key: "ALL", label: "All Orders" },
-            { key: "AI_ORDERS", label: "🤖 AI Chat Orders" },
+            { key: "AI_ORDERS", label: "🤖 AI Orders" },
             { key: "PENDING", label: "Pending" },
             { key: "CONFIRMED", label: "Confirmed" },
             { key: "PACKED", label: "Packed" },
@@ -321,7 +321,7 @@ export default function AdminOrdersPage() {
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-3 py-1.5 rounded-xl font-bold whitespace-nowrap transition-all cursor-pointer ${
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                 activeTab === tab.key
                   ? "bg-forest text-white shadow-xs"
                   : "text-ink-soft hover:text-ink hover:bg-bg"
@@ -333,61 +333,61 @@ export default function AdminOrdersPage() {
         </div>
 
         {/* Quick Mark Buttons */}
-        <div className="flex items-center gap-2 text-[11px] pt-2 lg:pt-0 border-t lg:border-t-0 border-line">
+        <div className="flex items-center gap-1.5 text-[10px] pt-1.5 lg:pt-0 border-t lg:border-t-0 border-line">
           <span className="text-ink-soft font-semibold">Mark:</span>
           <button
             onClick={() => selectByStatus(["DELIVERED"])}
-            className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 font-bold transition-colors cursor-pointer"
+            className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100 font-bold transition-colors cursor-pointer"
           >
             Delivered
           </button>
           <button
             onClick={() => selectByStatus(["CANCELLED"])}
-            className="px-2.5 py-1 rounded-lg bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100 font-bold transition-colors cursor-pointer"
+            className="px-2 py-0.5 rounded bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100 font-bold transition-colors cursor-pointer"
           >
             Cancelled
           </button>
           <button
             onClick={() => selectByStatus(["RETURNED"])}
-            className="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 font-bold transition-colors cursor-pointer"
+            className="px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 font-bold transition-colors cursor-pointer"
           >
             Returned
           </button>
           <button
             onClick={() => selectByStatus(["DELIVERED", "CANCELLED", "RETURNED"])}
-            className="px-2.5 py-1 rounded-lg bg-purple-50 text-purple-800 border border-purple-200 hover:bg-purple-100 font-bold transition-colors cursor-pointer"
+            className="px-2 py-0.5 rounded bg-purple-50 text-purple-800 border border-purple-200 hover:bg-purple-100 font-bold transition-colors cursor-pointer"
           >
-            All Completed (Delivered/Cancel/Return)
+            All Done
           </button>
         </div>
       </div>
 
       {/* Bulk Action Bar */}
       {selectedIds.length > 0 && (
-        <div className="flex items-center justify-between p-4 rounded-2xl bg-forest-soft border border-forest/20 animate-in fade-in slide-in-from-top-2">
+        <div className="flex items-center justify-between p-3 rounded-xl bg-forest-soft border border-forest/20 animate-in fade-in">
           <div className="flex items-center gap-2">
-            <CheckSquare className="w-5 h-5 text-forest" />
+            <CheckSquare className="w-4 h-4 text-forest" />
             <span className="text-xs font-bold text-forest">
               {selectedIds.length} orders selected
             </span>
           </div>
           <button
             onClick={() => setConfirmBulkDelete(true)}
-            className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+            className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-xs transition-colors flex items-center gap-1 cursor-pointer"
           >
-            <Trash2 className="w-4 h-4" />
-            <span>Purge / Delete Selected</span>
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Purge Selected</span>
           </button>
         </div>
       )}
 
       {/* Orders Table Card */}
-      <div className="bg-paper rounded-3xl border border-line shadow-card overflow-hidden">
+      <div className="bg-paper rounded-2xl border border-line shadow-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="border-b border-line bg-bg/50 text-ink-soft font-bold uppercase tracking-wider text-[10px]">
-                <th className="py-3 px-4 w-10 text-center">
+              <tr className="border-b border-line bg-bg/60 text-ink-soft font-bold uppercase tracking-wider text-[10px]">
+                <th className="py-2.5 px-3 w-8 text-center">
                   <button
                     onClick={toggleSelectAll}
                     className="cursor-pointer text-forest hover:text-forest-deep"
@@ -399,15 +399,16 @@ export default function AdminOrdersPage() {
                     )}
                   </button>
                 </th>
-                <th className="py-3 px-4">Order / Tracking</th>
-                <th className="py-3 px-4">Customer & Phone</th>
-                <th className="py-3 px-4">Items & Total</th>
-                <th className="py-3 px-4">Payment</th>
-                <th className="py-3 px-4">Status</th>
-                <th className="py-3 px-4">Courier / Rider</th>
-                <th className="py-3 px-4 text-right">Actions</th>
+                <th className="py-2.5 px-3">Order / Tracking</th>
+                <th className="py-2.5 px-3">Customer & Phone</th>
+                <th className="py-2.5 px-3">Items & Total</th>
+                <th className="py-2.5 px-3">Payment</th>
+                <th className="py-2.5 px-3">Status</th>
+                <th className="py-2.5 px-3">Courier / Rider</th>
+                <th className="py-2.5 px-3 text-right">Actions</th>
               </tr>
             </thead>
+
 
             <tbody className="divide-y divide-line">
               {loading && (

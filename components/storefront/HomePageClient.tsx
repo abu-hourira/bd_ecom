@@ -1,13 +1,14 @@
 "use client";
 // components/storefront/HomePageClient.tsx - Ultra-Advanced World-Class Dynamic Storefront
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import Link from "next/link";
 import {
   Leaf,
   ArrowRight,
   Sparkles,
   Flame,
+  ChevronLeft,
   ChevronRight,
   ShoppingBag,
   Loader2,
@@ -23,19 +24,73 @@ import {
   Eye,
   MessageCircle,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import StorefrontHeader from "@/components/storefront/Header";
 import StorefrontFooter from "@/components/storefront/Footer";
 import HeroSlider from "@/components/storefront/HeroSlider";
 import ProductCard from "@/components/storefront/ProductCard";
-import QuickViewModal from "@/components/storefront/QuickViewModal";
 import { ProductCardSkeleton } from "@/components/storefront/ProductCardSkeleton";
+import MealTimeFilterBar from "@/components/storefront/MealTimeFilterBar";
 import { useLanguage } from "@/context/LanguageContext";
 import { setCachedHomeData } from "@/lib/storeCache";
+
+const QuickViewModal = dynamic(
+  () => import("@/components/storefront/QuickViewModal"),
+  { ssr: false }
+);
+const InteractiveCookingGuide = dynamic(
+  () => import("@/components/storefront/InteractiveCookingGuide"),
+  { ssr: false }
+);
+const CustomComboBuilder = dynamic(
+  () => import("@/components/storefront/CustomComboBuilder"),
+  { ssr: false }
+);
+const BeforeAfterFoodSlider = dynamic(
+  () => import("@/components/storefront/BeforeAfterFoodSlider"),
+  { ssr: false }
+);
+const PartySnackCalculator = dynamic(
+  () => import("@/components/storefront/PartySnackCalculator"),
+  { ssr: false }
+);
+const FoodStoryBubbles = dynamic(
+  () => import("@/components/storefront/FoodStoryBubbles"),
+  { ssr: false }
+);
+const SocialProofToast = dynamic(
+  () => import("@/components/storefront/SocialProofToast"),
+  { ssr: false }
+);
+const VerifiedPhotoReviews = dynamic(
+  () => import("@/components/storefront/VerifiedPhotoReviews"),
+  { ssr: false }
+);
+const ComboDealsSlider = dynamic(
+  () => import("@/components/storefront/ComboDealsSlider"),
+  { ssr: false }
+);
+
+function getCategoryEmoji(name: string): string {
+  const n = (name || "").toLowerCase();
+  if (n.includes("মধু") || n.includes("honey")) return "🍯";
+  if (n.includes("ঘি") || n.includes("ghee")) return "🧈";
+  if (n.includes("তেল") || n.includes("oil")) return "🌱";
+  if (n.includes("খেজুর") || n.includes("date")) return "🌴";
+  if (n.includes("মসলা") || n.includes("spice")) return "🌶️";
+  if (n.includes("চাল") || n.includes("ডাল") || n.includes("rice") || n.includes("dal")) return "🌾";
+  if (n.includes("বাদাম") || n.includes("nut") || n.includes("seed")) return "🥜";
+  if (n.includes("চা") || n.includes("কফি") || n.includes("tea") || n.includes("coffee")) return "☕";
+  if (n.includes("ফ্রোজেন") || n.includes("frozen") || n.includes("মোমো") || n.includes("পরোটা")) return "🥟";
+  if (n.includes("কম্বো") || n.includes("combo") || n.includes("deal")) return "🎁";
+  return "🌿";
+}
 
 export default function HomePageClient({ initialData }: { initialData: any }) {
   const [data, setData] = useState<any>(initialData);
   const [loading, setLoading] = useState<boolean>(!initialData?.featuredProducts?.length);
   const [selectedCategoryTab, setSelectedCategoryTab] = useState<string>("all");
+  const [selectedMeal, setSelectedMeal] = useState<string>("all");
   const [quickViewProduct, setQuickViewProduct] = useState<any | null>(null);
   const { locale } = useLanguage();
   const isBn = locale === "bn";
@@ -53,6 +108,59 @@ export default function HomePageClient({ initialData }: { initialData: any }) {
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Category slider refs & scroll logic
+  const catScrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollCatLeft, setCanScrollCatLeft] = useState(false);
+  const [canScrollCatRight, setCanScrollCatRight] = useState(true);
+  const [isCatHovered, setIsCatHovered] = useState(false);
+
+  const checkCatScroll = useCallback(() => {
+    if (!catScrollRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = catScrollRef.current;
+    setCanScrollCatLeft(scrollLeft > 10);
+    setCanScrollCatRight(scrollLeft < scrollWidth - clientWidth - 10);
+  }, []);
+
+  const slideCatLeft = () => {
+    if (!catScrollRef.current) return;
+    const container = catScrollRef.current;
+    const scrollAmount = container.clientWidth * 0.7;
+    container.scrollBy({ left: -scrollAmount, behavior: "smooth" });
+  };
+
+  const slideCatRight = useCallback(() => {
+    if (!catScrollRef.current) return;
+    const container = catScrollRef.current;
+    const scrollAmount = container.clientWidth * 0.7;
+    if (container.scrollLeft >= container.scrollWidth - container.clientWidth - 15) {
+      container.scrollTo({ left: 0, behavior: "smooth" });
+    } else {
+      container.scrollBy({ left: scrollAmount, behavior: "smooth" });
+    }
+  }, []);
+
+  useEffect(() => {
+    checkCatScroll();
+    const el = catScrollRef.current;
+    if (el) {
+      el.addEventListener("scroll", checkCatScroll, { passive: true });
+      window.addEventListener("resize", checkCatScroll);
+    }
+    return () => {
+      if (el) el.removeEventListener("scroll", checkCatScroll);
+      window.removeEventListener("resize", checkCatScroll);
+    };
+  }, [checkCatScroll]);
+
+  // Auto-Slide categories every 4.5 seconds
+  useEffect(() => {
+    if (isCatHovered) return;
+    const timer = setInterval(() => {
+      slideCatRight();
+    }, 4500);
+    return () => clearInterval(timer);
+  }, [isCatHovered, slideCatRight]);
 
   useEffect(() => {
     if (initialData?.featuredProducts?.length) {
@@ -79,232 +187,173 @@ export default function HomePageClient({ initialData }: { initialData: any }) {
   const comboDeals = data?.comboDeals || [];
   const banners = data?.banners || [];
 
-  const filteredProducts =
-    selectedCategoryTab === "all"
-      ? products
-      : products.filter((p: any) => p.category?.slug === selectedCategoryTab);
+  const filteredProducts = products.filter((p: any) => {
+    // 1. Category Tab Filter
+    if (selectedCategoryTab !== "all" && p.category?.slug !== selectedCategoryTab) {
+      return false;
+    }
+    // 2. Meal Time Filter
+    if (selectedMeal === "breakfast") {
+      const n = (p.name || "").toLowerCase();
+      return n.includes("রুটি") || n.includes("roti") || n.includes("পরোটা");
+    }
+    if (selectedMeal === "evening") {
+      const n = (p.name || "").toLowerCase();
+      return n.includes("মোমো") || n.includes("রোল") || n.includes("সিঙ্গারা") || n.includes("সমুচা") || n.includes("পিঠা");
+    }
+    if (selectedMeal === "tiffin") {
+      const n = (p.name || "").toLowerCase();
+      return n.includes("মোমো") || n.includes("রোল");
+    }
+    if (selectedMeal === "combo") {
+      const n = (p.name || "").toLowerCase();
+      return n.includes("কম্বো") || n.includes("combo") || p.isCombo;
+    }
+    return true;
+  });
 
   return (
-    <div className="min-h-screen bg-[#FAF8F5] text-stone-900 flex flex-col justify-between overflow-x-hidden">
+    <div className="min-h-screen bg-[#FAF8F5] text-stone-900 flex flex-col justify-between overflow-x-hidden selection:bg-forest selection:text-white">
       <StorefrontHeader />
 
-      <main className="space-y-6 sm:space-y-12 pb-24 md:pb-20">
+      <main className="space-y-4 sm:space-y-8 pb-20 md:pb-16">
         <h1 className="sr-only">
           ENMAR — 100% Pure Organic Food & Pantry Essentials | খাঁটি অর্গানিক খাদ্য বাংলাদেশ
         </h1>
 
-        {/* 1. Dynamic Top Ad Banners or Brand Spotlight */}
-        {banners && banners.length > 0 ? (
-          <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-3 sm:pt-6">
+        {/* Dynamic Top Ad Banners or Brand Spotlight */}
+        {banners && banners.length > 0 && (
+          <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8 pt-2 sm:pt-4">
             <HeroSlider banners={banners} />
-          </div>
-        ) : (
-          /* Brand Spotlight Showcase */
-          <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-3 sm:pt-6">
-            <div className="relative overflow-hidden rounded-3xl sm:rounded-4xl bg-gradient-to-br from-[#092C15] via-[#0F4A24] to-[#1B6334] text-white p-6 sm:p-12 shadow-2xl border border-forest-light/30">
-              <div className="absolute top-0 right-0 w-96 h-96 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
-              <div className="relative z-10 max-w-2xl space-y-3 sm:space-y-4">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-amber-300 text-xs font-bold uppercase tracking-wider">
-                  <Leaf className="w-3.5 h-3.5 text-amber-400" />
-                  <span>{isBn ? "১০০% খাঁটি ও নির্ভেজাল পণ্য" : "100% Pure & Organic"}</span>
-                </div>
-
-                <h2 className="text-xl sm:text-3xl md:text-4xl font-extrabold font-display leading-tight text-white drop-shadow-sm">
-                  {isBn
-                    ? "সুস্থ ও দীর্ঘায়ু জীবনের জন্য সেরা অর্গানিক খাদ্য"
-                    : "Pure Organic Essentials For Your Healthy Life"}
-                </h2>
-
-                <p className="text-xs sm:text-base text-white/85 leading-relaxed max-w-xl">
-                  {isBn
-                    ? "সরাসরি মাঠ ও প্রাকৃতিক মৌচাক থেকে সংগৃহীত খাঁটি খাদ্যপণ্য পৌঁছে দিচ্ছি আপনার দোরগোড়ায়।"
-                    : "Delivering chemical-free, farm-fresh organic food and pantry staples directly to your doorstep."}
-                </p>
-
-                <div className="pt-2 flex flex-wrap items-center gap-3">
-                  <Link
-                    href="/products"
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-amber-400 hover:bg-amber-300 text-stone-950 font-extrabold text-xs sm:text-sm shadow-lg shadow-amber-400/20 transition-all hover:scale-105 active:scale-95 cursor-pointer"
-                  >
-                    <span>{isBn ? "পণ্যসমূহ দেখুন" : "Shop All Products"}</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
-                  <Link
-                    href="/track"
-                    className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-white/15 hover:bg-white/25 text-white font-bold text-xs sm:text-sm backdrop-blur-md border border-white/20 transition-all cursor-pointer"
-                  >
-                    <span>{isBn ? "অর্ডার ট্র্যাক করুন" : "Track Order"}</span>
-                  </Link>
-                </div>
-              </div>
-            </div>
           </div>
         )}
 
-        {/* 2. Flash Deal / Daily Specials Ticker Bar */}
-        <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-          <div className="bg-gradient-to-r from-amber-500 via-amber-600 to-amber-500 text-stone-950 px-4 py-3 sm:px-6 sm:py-3.5 rounded-2xl sm:rounded-3xl shadow-md flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-center sm:text-left">
-              <span className="p-1.5 rounded-xl bg-stone-950 text-amber-400">
-                <Flame className="w-4 h-4 fill-current" />
-              </span>
-              <div>
-                <span className="text-xs sm:text-sm font-black tracking-wide uppercase">
-                  {isBn ? "🔥 আজকের বিশেষ অফার — সীমিত সময়ের সুযোগ!" : "🔥 Flash Harvest Deal — Limited Time!"}
-                </span>
-                <span className="hidden md:inline-block text-[11px] font-semibold text-stone-900 ml-2">
-                  {isBn ? "(৳২,৫০০+ অর্ডারে সম্পূর্ণ ফ্রি ডেলিভারি)" : "(Free delivery on ৳2,500+)"}
-                </span>
-              </div>
-            </div>
+        {/* Instagram-Style Top Food Highlights Stories */}
+        <FoodStoryBubbles />
 
-            {/* Countdown Badge */}
-            <div className="flex items-center gap-1.5 font-mono text-xs font-black">
-              <span className="px-2 py-1 bg-stone-950 text-white rounded-lg">
-                {String(timeLeft.hours).padStart(2, "0")}
-              </span>
-              <span className="font-bold">:</span>
-              <span className="px-2 py-1 bg-stone-950 text-white rounded-lg">
-                {String(timeLeft.minutes).padStart(2, "0")}
-              </span>
-              <span className="font-bold">:</span>
-              <span className="px-2 py-1 bg-stone-950 text-amber-400 rounded-lg animate-pulse">
-                {String(timeLeft.seconds).padStart(2, "0")}
-              </span>
-            </div>
-          </div>
-        </section>
-
-        {/* 3. Trust Value Propositions Bar (4 Key Trust Pillars) */}
-        <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4">
-            <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-stone-200/90 shadow-card flex items-center gap-3 hover:-translate-y-0.5 transition-all">
-              <div className="p-2.5 rounded-xl bg-emerald-50 text-forest shrink-0">
-                <Leaf className="w-5 h-5 text-emerald-600" />
-              </div>
-              <div>
-                <h3 className="text-xs sm:text-sm font-bold text-stone-900 leading-snug">
-                  {isBn ? "১০০% খাঁটি পণ্য" : "100% Organic"}
-                </h3>
-                <p className="text-[10px] sm:text-xs text-stone-500 mt-0.5">
-                  {isBn ? "কোনো রাসায়নিক নেই" : "No harmful chemicals"}
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-stone-200/90 shadow-card flex items-center gap-3 hover:-translate-y-0.5 transition-all">
-              <div className="p-2.5 rounded-xl bg-amber-50 text-amber-700 shrink-0">
-                <Truck className="w-5 h-5 text-amber-600" />
-              </div>
-              <div>
-                <h3 className="text-xs sm:text-sm font-bold text-stone-900 leading-snug">
-                  {isBn ? "সারা দেশে ডেলিভারি" : "Fast Delivery"}
-                </h3>
-                <p className="text-[10px] sm:text-xs text-stone-500 mt-0.5">
-                  {isBn ? "২৪-৪৮ ঘণ্টার মধ্যে" : "Across Bangladesh"}
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-stone-200/90 shadow-card flex items-center gap-3 hover:-translate-y-0.5 transition-all">
-              <div className="p-2.5 rounded-xl bg-blue-50 text-blue-700 shrink-0">
-                <ShieldCheck className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <h3 className="text-xs sm:text-sm font-bold text-stone-900 leading-snug">
-                  {isBn ? "ক্যাশ অন ডেলিভারি" : "Cash On Delivery"}
-                </h3>
-                <p className="text-[10px] sm:text-xs text-stone-500 mt-0.5">
-                  {isBn ? "পণ্য দেখে মূল্য দিন" : "Pay at doorstep"}
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-stone-200/90 shadow-card flex items-center gap-3 hover:-translate-y-0.5 transition-all">
-              <div className="p-2.5 rounded-xl bg-purple-50 text-purple-700 shrink-0">
-                <RotateCcw className="w-5 h-5 text-purple-600" />
-              </div>
-              <div>
-                <h3 className="text-xs sm:text-sm font-bold text-stone-900 leading-snug">
-                  {isBn ? "সহজ রিটার্ন সুবিধা" : "Easy Returns"}
-                </h3>
-                <p className="text-[10px] sm:text-xs text-stone-500 mt-0.5">
-                  {isBn ? "শতভাগ সন্তুষ্টি" : "100% Satisfaction"}
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* 4. Dynamic Categories Filter Slider */}
+        {/* 4. Dynamic Categories & Fast Filter Rail (With Slide Controls & Auto-Slide) */}
         {categories && categories.length > 0 && (
-          <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm sm:text-xl font-bold font-display text-stone-900 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-forest" />
+          <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-xs sm:text-sm font-bold font-display text-stone-900 flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-forest" />
                 <span>{isBn ? "পণ্য ক্যাটাগরি" : "Categories"}</span>
               </h2>
-              <Link
-                href="/products"
-                className="text-xs font-bold text-forest hover:underline flex items-center gap-1"
-              >
-                <span>{isBn ? "সবগুলো দেখুন" : "View All"}</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </Link>
+
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/products"
+                  className="text-[10.5px] sm:text-xs font-bold text-forest hover:underline flex items-center gap-0.5 cursor-pointer"
+                >
+                  <span>{isBn ? "সবগুলো দেখুন" : "View All"}</span>
+                  <ChevronRight className="w-3 h-3" />
+                </Link>
+
+                {/* Category Slider Arrow Buttons */}
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={slideCatLeft}
+                    disabled={!canScrollCatLeft}
+                    className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white text-stone-700 hover:bg-forest hover:text-white border border-stone-200 shadow-2xs flex items-center justify-center transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed active:scale-90"
+                    aria-label="Previous categories"
+                  >
+                    <ChevronLeft className="w-3 h-3" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={slideCatRight}
+                    disabled={!canScrollCatRight}
+                    className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white text-stone-700 hover:bg-forest hover:text-white border border-stone-200 shadow-2xs flex items-center justify-center transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed active:scale-90"
+                    aria-label="Next categories"
+                  >
+                    <ChevronRight className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <div className="flex items-center gap-2 sm:gap-3 overflow-x-auto pb-2 scrollbar-none snap-x">
-              {/* All Category Pill */}
-              <button
-                onClick={() => setSelectedCategoryTab("all")}
-                className={`snap-start shrink-0 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all duration-200 flex items-center gap-2 border cursor-pointer ${
-                  selectedCategoryTab === "all"
-                    ? "bg-forest text-white border-forest shadow-md shadow-forest/20 scale-105"
-                    : "bg-white text-stone-700 border-stone-200 hover:border-forest/40 shadow-xs"
-                }`}
+            {/* Smooth Edge-to-Edge Scrollable Filter Strip */}
+            <div
+              onMouseEnter={() => setIsCatHovered(true)}
+              onMouseLeave={() => setIsCatHovered(false)}
+              onTouchStart={() => setIsCatHovered(true)}
+              onTouchEnd={() => setIsCatHovered(false)}
+              className="relative -mx-3 px-3 sm:-mx-0 sm:px-0"
+            >
+              <div
+                ref={catScrollRef}
+                className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 scrollbar-none snap-x touch-pan-x scroll-smooth"
               >
-                <Leaf className="w-4 h-4 text-amber-400" />
-                <span>{isBn ? "সকল পণ্য" : "All Products"}</span>
-              </button>
+                {/* All Category Pill */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedCategoryTab("all");
+                    setSelectedMeal("all");
+                  }}
+                  className={`snap-start shrink-0 whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-1.5 border cursor-pointer ${
+                    selectedCategoryTab === "all" && selectedMeal === "all"
+                      ? "bg-forest text-amber-300 border-forest shadow-xs font-extrabold"
+                      : "bg-white text-stone-700 border-stone-200 hover:border-amber-400 hover:bg-[#FBF4EA]"
+                  }`}
+                >
+                  <Leaf className="w-3 h-3 text-amber-400" />
+                  <span>{isBn ? "সকল পণ্য" : "All Products"}</span>
+                  {products.length > 0 && (
+                    <span className="text-[9.5px] px-1.5 py-0.2 rounded-full font-mono bg-black/20 text-amber-200">
+                      {products.length}
+                    </span>
+                  )}
+                </button>
 
-              {/* Dynamic DB Categories */}
-              {categories.map((c: any) => {
-                const isSelected = selectedCategoryTab === c.slug;
-                return (
-                  <button
-                    key={c.id}
-                    onClick={() => setSelectedCategoryTab(c.slug)}
-                    className={`snap-start shrink-0 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all duration-200 flex items-center gap-2 border cursor-pointer ${
-                      isSelected
-                        ? "bg-forest text-white border-forest shadow-md shadow-forest/20 scale-105"
-                        : "bg-white text-stone-700 border-stone-200 hover:border-forest/40 shadow-xs"
-                    }`}
-                  >
-                    <span>{c.name}</span>
-                    {c._count?.products ? (
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${isSelected ? "bg-white/20 text-white" : "bg-stone-100 text-stone-500"}`}>
-                        {c._count.products}
-                      </span>
-                    ) : null}
-                  </button>
-                );
-              })}
+                {/* Dynamic DB Categories */}
+                {categories.map((c: any) => {
+                  const isSelected = selectedCategoryTab === c.slug;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCategoryTab(c.slug);
+                        setSelectedMeal("all");
+                      }}
+                      className={`snap-start shrink-0 whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-1.5 border cursor-pointer ${
+                        isSelected
+                          ? "bg-forest text-amber-300 border-forest shadow-xs font-extrabold"
+                          : "bg-white text-stone-700 border-stone-200 hover:border-amber-400 hover:bg-[#FBF4EA]"
+                      }`}
+                    >
+                      <span>{c.name}</span>
+                      {c._count?.products ? (
+                        <span
+                          className={`text-[9.5px] px-1.5 py-0.2 rounded-full font-mono ${
+                            isSelected ? "bg-black/20 text-amber-200" : "bg-stone-100 text-stone-500"
+                          }`}
+                        >
+                          {c._count.products}
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </section>
         )}
 
-        {/* 5. Main Product Grid & Loading States */}
-        <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 space-y-4">
-          <div className="flex items-center justify-between border-b border-stone-200/90 pb-3">
+        {/* 5. Main Product Grid & Loading States (DIRECTLY HERE!) */}
+        <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 space-y-3.5">
+          <div className="flex items-center justify-between border-b border-stone-200/90 pb-2.5">
             <div>
-              <h2 className="text-lg sm:text-2xl font-bold font-display text-stone-900 flex items-center gap-2">
-                <Flame className="w-5 h-5 text-red-500 fill-red-500" />
+              <h2 className="text-base sm:text-2xl font-bold font-display text-stone-900 flex items-center gap-2">
+                <Flame className="w-4 h-4 sm:w-5 sm:h-5 text-red-500 fill-red-500" />
                 <span>{isBn ? "জনপ্রিয় অর্গানিক পণ্যসমূহ" : "Featured Organic Products"}</span>
               </h2>
             </div>
 
             {filteredProducts.length > 0 && (
-              <span className="text-[11px] sm:text-xs font-mono font-bold text-forest bg-forest/10 px-3 py-1 rounded-full border border-forest/20">
+              <span className="text-[10px] sm:text-xs font-mono font-bold text-forest bg-forest/10 px-2.5 py-0.5 rounded-full border border-forest/20">
                 {filteredProducts.length} {isBn ? "টি পণ্য" : "items"}
               </span>
             )}
@@ -317,15 +366,15 @@ export default function HomePageClient({ initialData }: { initialData: any }) {
                 <Loader2 className="w-4 h-4 animate-spin text-forest" />
                 <span>{isBn ? "পণ্য লোড হচ্ছে..." : "Loading products from database..."}</span>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
-                {Array.from({ length: 8 }).map((_, i) => (
+              <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-1.5 sm:gap-3.5">
+                {Array.from({ length: 9 }).map((_, i) => (
                   <ProductCardSkeleton key={i} />
                 ))}
               </div>
             </div>
           ) : (
-            /* Rendered Live DB Products */
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+            /* Rendered Live DB Products - 3 side-by-side on mobile */
+            <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-1.5 sm:gap-3.5">
               {filteredProducts.map((p: any) => (
                 <ProductCard
                   key={p.id}
@@ -340,7 +389,7 @@ export default function HomePageClient({ initialData }: { initialData: any }) {
             <div className="text-center pt-4">
               <Link
                 href="/products"
-                className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-gradient-to-r from-[#0F4A24] to-[#1B6334] hover:from-[#0A381A] hover:to-[#0F4A24] text-white font-extrabold text-xs sm:text-sm shadow-lg shadow-forest/20 transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-gradient-to-r from-[#843A02] via-[#A34E08] to-[#843A02] hover:from-[#5C2B04] hover:to-[#843A02] text-white font-extrabold text-xs sm:text-sm shadow-lg shadow-forest/25 transition-all hover:scale-105 active:scale-95 cursor-pointer"
               >
                 <span>{isBn ? "সকল পণ্য দেখুন" : "View All Products"}</span>
                 <ArrowRight className="w-4 h-4 text-amber-400" />
@@ -349,174 +398,104 @@ export default function HomePageClient({ initialData }: { initialData: any }) {
           )}
         </section>
 
-        {/* 6. Family Combo & Bundle Deals (If combos exist in DB) */}
+        {/* 6. Family Combo & Bundle Deals (3-Item Side-by-Side Sliding Carousel) */}
         {comboDeals && comboDeals.length > 0 && (
-          <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-            <div className="bg-gradient-to-br from-[#F7F4EE] to-[#EFEAE1] p-5 sm:p-10 rounded-3xl sm:rounded-4xl border border-stone-200/90 shadow-card space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="px-3 py-1 rounded-full bg-amber-500 text-stone-950 text-[10px] sm:text-xs font-black tracking-wider uppercase shadow-xs">
-                    {isBn ? "🔥 স্পেশাল কম্বো অফার" : "Special Bundles"}
-                  </span>
-                  <h2 className="text-lg sm:text-2xl lg:text-3xl font-bold font-display text-stone-900 mt-2">
-                    {isBn ? "সাশ্রয়ী ফ্যামিলি কম্বো প্যাকেজ" : "Super Saver Family Combos"}
-                  </h2>
-                </div>
-
-                <Link
-                  href="/products?category=combo-bundle-deals"
-                  className="inline-flex items-center gap-1 text-xs sm:text-sm font-bold text-forest hover:underline cursor-pointer"
-                >
-                  <span>{isBn ? "সব দেখুন" : "View All"}</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-                {comboDeals.map((combo: any) => (
-                  <ProductCard
-                    key={combo.id}
-                    product={combo}
-                    onQuickView={(prod) => setQuickViewProduct(prod)}
-                  />
-                ))}
-              </div>
-            </div>
-          </section>
+          <ComboDealsSlider
+            comboDeals={comboDeals}
+            onQuickView={(prod) => setQuickViewProduct(prod)}
+          />
         )}
 
-        {/* 7. Why Choose ENMAR / Organic Guarantee Section */}
-        <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-          <div className="bg-white rounded-3xl sm:rounded-4xl p-6 sm:p-12 border border-stone-200/90 shadow-card">
-            <div className="text-center max-w-2xl mx-auto space-y-2 mb-8">
-              <span className="inline-flex items-center gap-1 text-xs font-extrabold uppercase tracking-widest text-forest bg-forest-soft px-3 py-1 rounded-full border border-forest/15">
-                <ShieldCheck className="w-3.5 h-3.5 text-forest" />
-                <span>{isBn ? "আমাদের বিশুদ্ধতার অঙ্গীকার" : "Our Purity Guarantee"}</span>
+        {/* 6. Custom 4-Pack Combo Box Builder */}
+        <CustomComboBuilder />
+
+        {/* 6.5. Interactive Cooking Mode Guide (Pan-Fry, Steam, Deep-Fry) */}
+        <InteractiveCookingGuide />
+
+        {/* 6.8. Raw Frozen vs Golden Cooked Comparison Slider */}
+        <BeforeAfterFoodSlider />
+
+        {/* 7. Why Choose ENMAR / Freshness Guarantee Section */}
+        <section className="max-w-7xl mx-auto px-2.5 sm:px-4 lg:px-6 py-2.5 sm:py-3.5">
+          <div className="bg-white rounded-2xl p-3.5 sm:p-5 border border-stone-200/90 shadow-sm">
+            <div className="text-center max-w-xl mx-auto space-y-1 mb-4">
+              <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-extrabold uppercase tracking-widest text-forest bg-forest-soft px-2.5 py-0.5 rounded-full border border-forest/15">
+                <ShieldCheck className="w-3 h-3 text-forest" />
+                <span>{isBn ? "আমাদের অঙ্গীকার" : "Our Freshness Guarantee"}</span>
               </span>
-              <h2 className="text-xl sm:text-3xl font-bold font-display text-stone-900">
-                {isBn ? "কেন ENMAR অর্গানিক ফুড বেছে নেবেন?" : "Why Choose ENMAR Organics?"}
+              <h2 className="text-sm sm:text-lg font-bold font-display text-stone-900">
+                {isBn ? "কেন ENMAR এর ফ্রোজেন খাবার সেরা?" : "Why Choose ENMAR Frozen Foods?"}
               </h2>
-              <p className="text-xs sm:text-sm text-stone-600">
+              <p className="text-[11px] sm:text-xs text-stone-600 leading-relaxed">
                 {isBn
-                  ? "আমরা শুধু খাবার বিক্রি করি না, নিশ্চিত করি আপনার পরিবারের সুস্বাস্থ্য ও শতভাগ প্রাকৃতিক পুষ্টি।"
-                  : "We believe pure, unadulterated food is the foundation of a vibrant and healthy life."}
+                  ? "১০০% ঘরোয়া পরিচ্ছন্নতায় তৈরি ও হিমায়িত, যাতে প্রতিটি কামড়ে পান তাজা ও আসল স্বাদ।"
+                  : "Prepared in 100% hygienic home kitchens and flash frozen for authentic taste."}
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="p-6 rounded-2xl bg-[#F8F6F2] border border-stone-200/70 space-y-3">
-                <div className="w-10 h-10 rounded-xl bg-forest text-amber-400 flex items-center justify-center font-bold">
-                  🌱
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="p-3 sm:p-3.5 rounded-xl bg-[#FBF4EA] border border-stone-200/80 space-y-1.5 hover:-translate-y-0.5 transition-all">
+                <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-900 flex items-center justify-center font-bold text-base shadow-xs">
+                  🌾
                 </div>
-                <h3 className="font-bold font-display text-base text-stone-900">
-                  {isBn ? "সরাসরি মাঠ ও প্রাকৃতিক উৎস" : "Direct Farm Sourcing"}
+                <h3 className="font-bold font-display text-xs sm:text-sm text-stone-900">
+                  {isBn ? "১০০% খাঁটি লাল ও সাদা আটা" : "100% Pure Wheat Flour"}
                 </h3>
-                <p className="text-xs text-stone-600 leading-relaxed">
+                <p className="text-[10.5px] sm:text-[11px] text-stone-600 leading-snug">
                   {isBn
-                    ? "সুন্দরবনের মৌয়াল ও প্রান্তিক চাষীদের থেকে কোনো মধ্যস্বত্বভোগী ছাড়াই খাঁটি উপাদান সংগ্রহ করা হয়।"
-                    : "Sourced directly from certified organic beekeepers and sustainable traditional farmers."}
+                    ? "কোনো ক্ষতিকর প্রিজারভেটিভ ছাড়া সম্পূর্ণ হাতে তৈরি নরম তুলতুলে রুটি।"
+                    : "No chemicals or preservatives. Hand-rolled for maximum softness."}
                 </p>
               </div>
 
-              <div className="p-6 rounded-2xl bg-[#F8F6F2] border border-stone-200/70 space-y-3">
-                <div className="w-10 h-10 rounded-xl bg-forest text-amber-400 flex items-center justify-center font-bold">
-                  🧪
+              <div className="p-3 sm:p-3.5 rounded-xl bg-[#FBF4EA] border border-stone-200/80 space-y-1.5 hover:-translate-y-0.5 transition-all">
+                <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-900 flex items-center justify-center font-bold text-base shadow-xs">
+                  🍗
                 </div>
-                <h3 className="font-bold font-display text-base text-stone-900">
-                  {isBn ? "ল্যাব টেস্টেড ১০০% বিশুদ্ধ" : "Lab Tested Purity"}
+                <h3 className="font-bold font-display text-xs sm:text-sm text-stone-900">
+                  {isBn ? "জুসি ফ্রেশ চিকেন ও খাঁটি মসলা" : "Fresh Chicken & Pure Spices"}
                 </h3>
-                <p className="text-xs text-stone-600 leading-relaxed">
+                <p className="text-[10.5px] sm:text-[11px] text-stone-600 leading-snug">
                   {isBn
-                    ? "প্রতিটি ব্যাচের মধু, সরিষার তেল ও গাওয়া ঘি মান নিয়ন্ত্রক ল্যাব টেস্টের মাধ্যমে যাচাই করা হয়।"
-                    : "Every harvest is tested for moisture, pure sucrose levels, and absolute chemical freedom."}
+                    ? "চিকেন মোমো ও রোলে ব্যবহৃত হয় তাজা ব্রয়লার-মুক্ত চিকেন কিমা ও প্রিমিয়াম মসলা।"
+                    : "Packed with juicy minced chicken and rich aromatic natural spices."}
                 </p>
               </div>
 
-              <div className="p-6 rounded-2xl bg-[#F8F6F2] border border-stone-200/70 space-y-3">
-                <div className="w-10 h-10 rounded-xl bg-forest text-amber-400 flex items-center justify-center font-bold">
-                  🍯
+              <div className="p-3 sm:p-3.5 rounded-xl bg-[#FBF4EA] border border-stone-200/80 space-y-1.5 hover:-translate-y-0.5 transition-all">
+                <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-900 flex items-center justify-center font-bold text-base shadow-xs">
+                  ❄️
                 </div>
-                <h3 className="font-bold font-display text-base text-stone-900">
-                  {isBn ? "ফুড-গ্রেড নিরাপদ প্যাকেজিং" : "Eco Glass Packaging"}
+                <h3 className="font-bold font-display text-xs sm:text-sm text-stone-900">
+                  {isBn ? "ইন্ডিভিজুয়াল ডিপ-ফ্রোজেন প্রযুক্তি" : "Flash-Freeze Technology"}
                 </h3>
-                <p className="text-xs text-stone-600 leading-relaxed">
+                <p className="text-[10.5px] sm:text-[11px] text-stone-600 leading-snug">
                   {isBn
-                    ? "স্বাস্থ্যসম্মত কাঁচের জার ও লিক-প্রুফ ফুড-গ্রেড প্যাকেজিং নিশ্চিত করে আসল স্বাদ ও সুবাস।"
-                    : "Packed in premium food-grade airtight glass containers to preserve aroma and enzymes."}
+                    ? "প্রতিটি পিস আলাদাভাবে ডিপ-ফ্রোজেন করা থাকে, তাই ফ্রিজে একটিও জড়াবে না।"
+                    : "Individually frozen so pieces never stick together in the pack."}
                 </p>
               </div>
             </div>
           </div>
         </section>
 
-        {/* 8. Customer Reviews / Social Proof Showcase */}
-        <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
-          <div className="bg-gradient-to-r from-[#092C15] to-[#0F4A24] text-white rounded-3xl sm:rounded-4xl p-6 sm:p-12 shadow-xl">
-            <div className="text-center max-w-2xl mx-auto space-y-2 mb-8">
-              <div className="inline-flex items-center gap-1 text-amber-300 text-xs font-bold uppercase tracking-wider">
-                <Star className="w-3.5 h-3.5 fill-current" />
-                <Star className="w-3.5 h-3.5 fill-current" />
-                <Star className="w-3.5 h-3.5 fill-current" />
-                <Star className="w-3.5 h-3.5 fill-current" />
-                <Star className="w-3.5 h-3.5 fill-current" />
-                <span className="ml-1 text-white">৫.০ / ৫.০ রেটিং</span>
-              </div>
-              <h2 className="text-xl sm:text-3xl font-bold font-display text-white">
-                {isBn ? "গ্রাহকদের সন্তুষ্টি ও অভিজ্ঞতা" : "What Our Happy Customers Say"}
-              </h2>
-            </div>
+        {/* 7.5. Smart Guest & Party Snack Calculator */}
+        <PartySnackCalculator />
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-              {[
-                {
-                  name: "আহমেদ তানভীর",
-                  city: "ধানমন্ডি, ঢাকা",
-                  comment: "সুন্দরবনের চাকভাঙা মধুটা আসলেই অসাধারণ! স্বাদ ও ঘ্রাণে শতভাগ খাঁটি। খুব দ্রুত ডেলিভারি পেয়েছি।",
-                  product: "সুন্দরবনের চাকভাঙা কাঁচা মধু",
-                },
-                {
-                  name: "ফারহানা ইয়াসমিন",
-                  city: "উত্তরা, ঢাকা",
-                  comment: "ঘানিতে ভাঙা সরিষার তেল ও ঘি দুটোর কোয়ালিটি চমৎকার। রান্নায় আসল ঘরোয়া ঘ্রাণ পাওয়া যায়।",
-                  product: "গাওয়া ঘি ও সরিষার তেল",
-                },
-                {
-                  name: "মোঃ রফিকুল ইসলাম",
-                  city: "চট্টগ্রাম",
-                  comment: "ক্যাশ অন ডেলিভারিতে চেক করে নিয়েছি। প্যাকেজিং খুবই নিরাপদ ছিল। নিয়মিত নেব ইনশাআল্লাহ।",
-                  product: "ফ্যামিলি সুপার কম্বো প্যাক",
-                },
-              ].map((rev, idx) => (
-                <div key={idx} className="bg-white/10 backdrop-blur-md p-5 rounded-2xl border border-white/15 space-y-3">
-                  <div className="flex items-center gap-1 text-amber-400">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star key={i} className="w-3.5 h-3.5 fill-current" />
-                    ))}
-                  </div>
-                  <p className="text-xs text-white/90 leading-relaxed italic">
-                    "{rev.comment}"
-                  </p>
-                  <div className="pt-2 border-t border-white/10 flex items-center justify-between">
-                    <div>
-                      <h4 className="text-xs font-bold text-white">{rev.name}</h4>
-                      <span className="text-[10px] text-white/70">{rev.city}</span>
-                    </div>
-                    <span className="text-[9px] px-2 py-0.5 rounded-md bg-white/20 text-amber-300 font-medium">
-                      ভেরিফাইড ক্রেতা
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        {/* 8. Customer Photo Reviews & Social Proof Showcase */}
+        <VerifiedPhotoReviews />
       </main>
 
+      {/* Live Social Proof Ticker */}
+      <SocialProofToast />
+
       {/* Quick View Product Modal */}
-      <QuickViewModal
-        product={quickViewProduct}
-        onClose={() => setQuickViewProduct(null)}
-      />
+      {quickViewProduct && (
+        <QuickViewModal
+          product={quickViewProduct}
+          onClose={() => setQuickViewProduct(null)}
+        />
+      )}
 
       <StorefrontFooter />
     </div>

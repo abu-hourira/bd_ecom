@@ -56,7 +56,6 @@ model User {
   orders          Order[]
   reviews         Review[]
   addresses       Address[]
-  conversations   AIConversationLog[]
   comments        CommunityComment[]
   auditLogs       StaffAuditLog[]
   wellnessProfile WellnessProfile?
@@ -541,50 +540,6 @@ model PromotionBanner {
 
   @@index([isActive, displayOrder])
   @@map("promotion_banners")
-}
-
-// ─────────────────────────────────────────────────────────────
-// 9. AI INTEGRATION & CONVERSATIONS
-// ─────────────────────────────────────────────────────────────
-
-model AISetting {
-  id               Int      @id @default(autoincrement())
-  provider         String   @default("openai")
-  apiKeyEncrypted  String   @db.Text
-  baseUrl          String?  @db.Text
-  modelName        String   @default("gpt-4o")
-  temperature      Float?   @default(0.7)
-  maxTokens        Int?     @default(1000)
-  systemPrompt     String   @db.LongText
-  adminPrompt      String?  @db.LongText
-  rateLimitPerMin  Int      @default(30)
-  isActive         Boolean  @default(false)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  @@map("ai_settings")
-}
-
-model AIConversationLog {
-  id           Int      @id @default(autoincrement())
-  sessionId    String
-  userId       Int?
-  provider     String?  @default("gemini_web2api")
-  modelName    String?  @default("gemini-3.6-flash")
-  latencyMs    Int?     @default(0)
-  source       String?  @default("STOREFRONT") // STOREFRONT | ADMIN
-  userMessage  String   @db.Text
-  aiResponse   String   @db.Text
-  tokensUsed   Int      @default(0)
-  isFlagged    Boolean  @default(false)
-  createdAt    DateTime @default(now())
-
-  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@index([sessionId])
-  @@index([createdAt])
-  @@index([provider])
-  @@map("ai_conversation_logs")
 }
 
 // ─────────────────────────────────────────────────────────────
