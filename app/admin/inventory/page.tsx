@@ -17,7 +17,7 @@ import {
   Minus,
   RefreshCw,
 } from "lucide-react";
-import { formatTaka, formatProductUnit } from "@/lib/utils";
+import { formatTaka, formatProductUnit, getSafeImageUrl } from "@/lib/utils";
 
 export default function AdminInventoryPage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -200,10 +200,7 @@ export default function AdminInventoryPage() {
                 filteredProducts.map((p) => {
                   const isLow = p.stockQuantity <= 10;
                   const isOut = p.stockQuantity === 0;
-                  const imageSrc =
-                    Array.isArray(p.images) && p.images.length > 0
-                      ? p.images[0]
-                      : "/assets/products/placeholder.jpg";
+                  const imageSrc = getSafeImageUrl(p.images);
 
                   return (
                     <tr key={p.id} className="hover:bg-bg/50 transition-colors">

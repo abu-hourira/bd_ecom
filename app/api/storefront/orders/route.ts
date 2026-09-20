@@ -1,7 +1,7 @@
 // app/api/storefront/orders/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { generateOrderNumber, generateTrackingId } from "@/lib/utils";
+import { generateOrderNumber, generateTrackingId, getProductImages, getSafeImageUrl } from "@/lib/utils";
 import { PaymentMethod, PaymentStatus, OrderStatus } from "@prisma/client";
 import { notifyOrderPlaced } from "@/lib/notifications";
 import { calculateDeliveryFee } from "@/lib/delivery-calculator";
@@ -79,10 +79,11 @@ export async function POST(req: NextRequest) {
         const itemTotal = unitPrice * qty;
         subtotal += itemTotal;
 
+        const productImgs = getProductImages(product.images);
         const imageSrc =
-          Array.isArray(product.images) && product.images.length > 0
-            ? (product.images[0] as string)
-            : (item.itemImage || "/assets/products/placeholder.jpg");
+          productImgs.length > 0
+            ? productImgs[0]
+            : getSafeImageUrl(item.itemImage);
 
         validatedItems.push({
           productId: product.id,

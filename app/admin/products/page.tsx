@@ -20,7 +20,7 @@ import {
   RefreshCw,
   Loader2,
 } from "lucide-react";
-import { formatTaka, formatProductUnit } from "@/lib/utils";
+import { formatTaka, formatProductUnit, getSafeImageUrl } from "@/lib/utils";
 import ConfirmModal from "@/components/ui/ConfirmModal";
 import AlertModal from "@/components/ui/AlertModal";
 
@@ -428,10 +428,7 @@ export default function AdminProductsPage() {
                 </tr>
               ) : (
                 products.map((p) => {
-                  const imageSrc =
-                    Array.isArray(p.images) && p.images.length > 0
-                      ? p.images[0]
-                      : "/assets/products/placeholder.jpg";
+                  const imageSrc = getSafeImageUrl(p.images);
 
                   const isSelected = selectedIds.includes(p.id);
                   const isLowStock = p.stockQuantity <= 10;
