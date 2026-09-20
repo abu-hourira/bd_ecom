@@ -23,7 +23,7 @@ import StorefrontFooter from "@/components/storefront/Footer";
 import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useStorefront } from "@/context/StorefrontContext";
-import { formatTaka } from "@/lib/utils";
+import { formatTaka, getSafeImageUrl } from "@/lib/utils";
 
 export default function CartPage() {
   const router = useRouter();
@@ -167,9 +167,12 @@ export default function CartPage() {
                     <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden bg-stone-100 shrink-0 border border-stone-200">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={item.image || "/placeholder.png"}
+                        src={getSafeImageUrl(item.image)}
                         alt={item.name}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          (e.currentTarget as HTMLImageElement).src = "/placeholder.png";
+                        }}
                       />
                     </div>
 

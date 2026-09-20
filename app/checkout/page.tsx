@@ -32,7 +32,7 @@ import { useCart } from "@/context/CartContext";
 import { useLanguage } from "@/context/LanguageContext";
 import { useFeatures } from "@/context/FeatureFlagContext";
 import { useAuth } from "@/context/AuthContext";
-import { formatTaka } from "@/lib/utils";
+import { formatTaka, getSafeImageUrl } from "@/lib/utils";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -739,7 +739,18 @@ export default function CheckoutPage() {
                   <div key={item.id} className="flex items-center justify-between gap-3 text-xs">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-gradient-to-b from-[#FAF8F5] to-[#F4EFEB] border border-stone-200/80 shrink-0 flex items-center justify-center p-0.5 shadow-xs">
-                        <Image src={item.image} alt={item.name} fill className="object-contain p-0.5 drop-shadow-xs" />
+                        <Image
+                          src={getSafeImageUrl(item.image)}
+                          alt={item.name}
+                          fill
+                          className="object-contain p-0.5 drop-shadow-xs"
+                          sizes="40px"
+                          onError={(e) => {
+                            const target = e.currentTarget as HTMLImageElement;
+                            target.srcset = "";
+                            target.src = "/placeholder.png";
+                          }}
+                        />
                       </div>
                       <div className="min-w-0">
                         <h4 className="font-semibold text-stone-900 truncate">{item.name}</h4>

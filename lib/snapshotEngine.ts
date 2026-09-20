@@ -4,6 +4,7 @@ import { writeFile, readFile, mkdir } from "fs/promises";
 import path from "path";
 import prisma from "@/lib/prisma";
 import { serverCache } from "@/lib/serverCache";
+import { getProductImages, getSafeImageUrl } from "@/lib/utils";
 
 const SNAPSHOT_DIR = path.join(process.cwd(), "data", "snapshots");
 
@@ -19,20 +20,10 @@ function serializePrisma(obj: any): any {
 
 function sanitizeProductCards(list: any[]): any[] {
   return list.map((p) => {
-    let imgs: any[] = [];
-    if (Array.isArray(p.images)) {
-      imgs = p.images.slice(0, 2);
-    } else if (typeof p.images === "string") {
-      try {
-        const parsed = JSON.parse(p.images);
-        imgs = Array.isArray(parsed) ? parsed.slice(0, 2) : [p.images];
-      } catch (e) {
-        imgs = [p.images];
-      }
-    }
+    const imgs = getProductImages(p.images);
     return {
       ...p,
-      images: imgs,
+      images: imgs.length > 0 ? imgs : ["/placeholder.png"],
     };
   });
 }
@@ -173,7 +164,7 @@ export async function generateStorefrontSnapshots(): Promise<StorefrontSnapshots
 
       const snapshotData: StorefrontSnapshots = {
         home: homePayload,
-        products: serializedProducts,
+        products: cardOptimizedProducts,
         categories: serializePrisma(categories),
         settings: settingsMap,
         theme: serializePrisma(theme),
@@ -184,7 +175,7 @@ export async function generateStorefrontSnapshots(): Promise<StorefrontSnapshots
       // 1. Sync directly to RAM memory cache (0.1ms access, 30 min TTL with bounded memory guard)
       const CACHE_TTL = 1800; // 30 minutes in Node RAM
       serverCache.set("snapshot_home", homePayload, CACHE_TTL, ["home", "products", "settings", "categories", "banners"]);
-      serverCache.set("snapshot_products", serializedProducts, CACHE_TTL, ["products"]);
+      serverCache.set("snapshot_products", cardOptimizedProducts, CACHE_TTL, ["products"]);
       serverCache.set("snapshot_categories", categories, CACHE_TTL, ["categories"]);
       serverCache.set("snapshot_settings", { settings: settingsMap, theme }, CACHE_TTL, ["settings", "theme"]);
       serverCache.set("snapshot_bootstrap", { settings: settingsMap, categories, features: featuresMap }, CACHE_TTL, ["settings", "categories", "features"]);
@@ -198,7 +189,7 @@ export async function generateStorefrontSnapshots(): Promise<StorefrontSnapshots
         };
         await Promise.all([
           writeFile(path.join(SNAPSHOT_DIR, "home.json"), JSON.stringify(homePayload, null, 2)),
-          writeFile(path.join(SNAPSHOT_DIR, "products.json"), JSON.stringify(serializedProducts, null, 2)),
+          writeFile(path.join(SNAPSHOT_DIR, "products.json"), JSON.stringify(cardOptimizedProducts, null, 2)),
           writeFile(path.join(SNAPSHOT_DIR, "categories.json"), JSON.stringify(categories, null, 2)),
           writeFile(path.join(SNAPSHOT_DIR, "settings.json"), JSON.stringify({ settings: settingsMap, theme }, null, 2)),
           writeFile(path.join(SNAPSHOT_DIR, "bootstrap.json"), JSON.stringify({ settings: settingsMap, categories, features: featuresMap }, null, 2)),

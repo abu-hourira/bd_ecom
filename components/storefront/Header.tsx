@@ -224,20 +224,6 @@ export default function StorefrontHeader() {
             {locale === "bn" ? "সকল পণ্য" : "All Products"}
           </Link>
 
-          <Link
-            href="/subscription"
-            className="text-xs font-bold text-amber-900 hover:text-amber-950 transition-all py-1 cursor-pointer flex items-center gap-1 bg-amber-100/80 hover:bg-amber-100 px-3 py-0.5 rounded-full border border-amber-300 shadow-2xs hover:-translate-y-0.5"
-          >
-            <span>{locale === "bn" ? "📦 মাসিক বক্স" : "📦 Subscription Box"}</span>
-          </Link>
-
-          <Link
-            href="/recipes"
-            className="text-xs font-semibold text-stone-600 hover:text-forest transition-all py-1 cursor-pointer flex items-center gap-1 hover:-translate-y-0.5"
-          >
-            <span>{locale === "bn" ? "🌿 রেসিপি ও ভেষজ" : "🌿 Recipes & Remedies"}</span>
-          </Link>
-
           {navCategories.map((c: any) => (
             <Link
               key={c.id}
@@ -271,23 +257,6 @@ export default function StorefrontHeader() {
               <ChevronRight className="w-4 h-4 text-forest" />
             </Link>
 
-            <Link
-              href="/subscription"
-              onClick={() => setMobileMenuOpen(false)}
-              className="py-2.5 border-b border-stone-100 font-bold text-amber-900 bg-amber-50/90 px-3 rounded-2xl flex items-center justify-between"
-            >
-              <span>{locale === "bn" ? "📦 মাসিক সাবস্ক্রিপশন বক্স" : "📦 Subscription Boxes"}</span>
-              <ChevronRight className="w-4 h-4 text-amber-800" />
-            </Link>
-
-            <Link
-              href="/recipes"
-              onClick={() => setMobileMenuOpen(false)}
-              className="py-2 border-b border-stone-100 font-semibold text-forest flex items-center justify-between"
-            >
-              <span>{locale === "bn" ? "🌿 স্বাস্থ্যকর রেসিপি ও ভেষজ যত্ন" : "🌿 Recipes & Remedies"}</span>
-              <span className="text-stone-400">›</span>
-            </Link>
 
             {navCategories.map((c: any) => (
               <Link

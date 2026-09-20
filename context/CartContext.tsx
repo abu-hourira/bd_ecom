@@ -2,7 +2,7 @@
 // context/CartContext.tsx
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { formatProductUnit } from "@/lib/utils";
+import { formatProductUnit, getProductImages, getSafeImageUrl } from "@/lib/utils";
 import { calculateDeliveryFee, DeliveryCalculationResult } from "@/lib/delivery-calculator";
 
 export interface CartItem {
@@ -107,11 +107,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Multi-tab real-time storage sync
+  // Multi-tab real-time storage sync
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
       if (e.key === "enmar_cart_v1" && e.newValue) {
         try {
-          setCart(JSON.parse(e.newValue));
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) {
+            setCart(
+              parsed.map((item) => ({
+                ...item,
+                image: getSafeImageUrl(item.image),
+              }))
+            );
+          }
         } catch (err) {}
       }
     };
@@ -119,12 +128,22 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
-  // Load from localStorage on mount
+  // Load from localStorage on mount & sanitize legacy / broken image paths
   useEffect(() => {
     try {
       const saved = localStorage.getItem("enmar_cart_v1");
       if (saved) {
-        setCart(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const sanitized = parsed.map((item) => {
+            const cleanImg = getSafeImageUrl(item.image);
+            return {
+              ...item,
+              image: cleanImg === "/assets/products/placeholder.jpg" ? "/placeholder.png" : cleanImg,
+            };
+          });
+          setCart(sanitized);
+        }
       }
     } catch (e) {
       console.error("[CartContext] Error loading cart:", e);
@@ -145,16 +164,19 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const addToCart = (product: any, quantity = 1) => {
     const effectivePrice = Number(product.discountPrice || product.price);
-    const imageSrc =
-      Array.isArray(product.images) && product.images.length > 0
-        ? product.images[0]
-        : "/assets/products/placeholder.jpg";
+    // Bulletproof image resolution from images array, stringified array, or single image field
+    const imageList = getProductImages(product.images || product.image);
+    const imageSrc = imageList[0] ? getSafeImageUrl(imageList[0]) : "/placeholder.png";
 
     setCart((prev) => {
       const existingIndex = prev.findIndex((item) => item.id === product.id);
       if (existingIndex > -1) {
         const updated = [...prev];
         updated[existingIndex].quantity += quantity;
+        // Also refresh image in case it was previously a broken placeholder
+        if (!updated[existingIndex].image || updated[existingIndex].image === "/placeholder.png" || updated[existingIndex].image.includes("placeholder.jpg")) {
+          updated[existingIndex].image = imageSrc;
+        }
         return updated;
       } else {
         return [

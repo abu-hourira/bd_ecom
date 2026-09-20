@@ -71,6 +71,11 @@ export default function QuickViewModal({ product, onClose }: QuickViewModalProps
               fill
               className="object-cover object-center transition-transform duration-500 hover:scale-105"
               sizes="380px"
+              onError={(e) => {
+                const target = e.currentTarget as HTMLImageElement;
+                target.srcset = "";
+                target.src = "/placeholder.png";
+              }}
             />
             {hasDiscount && (
               <span className="absolute top-3.5 right-3.5 px-2.5 py-0.5 rounded-lg bg-red-600 text-white text-xs font-black shadow-md z-10">

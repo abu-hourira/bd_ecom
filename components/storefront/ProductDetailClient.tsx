@@ -272,6 +272,11 @@ export default function ProductDetailClient({
                 priority
                 className="object-cover object-center transition-all duration-300 hover:scale-105"
                 sizes="(max-width: 1024px) 100vw, 50vw"
+                onError={(e) => {
+                  const target = e.currentTarget as HTMLImageElement;
+                  target.srcset = "";
+                  target.src = "/placeholder.png";
+                }}
               />
 
               {/* Badges */}
@@ -319,6 +324,11 @@ export default function ProductDetailClient({
                       fill
                       className="object-cover"
                       sizes="80px"
+                      onError={(e) => {
+                        const target = e.currentTarget as HTMLImageElement;
+                        target.srcset = "";
+                        target.src = "/placeholder.png";
+                      }}
                     />
                   </button>
                 ))}

@@ -38,34 +38,6 @@ const QuickViewModal = dynamic(
   () => import("@/components/storefront/QuickViewModal"),
   { ssr: false }
 );
-const InteractiveCookingGuide = dynamic(
-  () => import("@/components/storefront/InteractiveCookingGuide"),
-  { ssr: false }
-);
-const CustomComboBuilder = dynamic(
-  () => import("@/components/storefront/CustomComboBuilder"),
-  { ssr: false }
-);
-const BeforeAfterFoodSlider = dynamic(
-  () => import("@/components/storefront/BeforeAfterFoodSlider"),
-  { ssr: false }
-);
-const PartySnackCalculator = dynamic(
-  () => import("@/components/storefront/PartySnackCalculator"),
-  { ssr: false }
-);
-const FoodStoryBubbles = dynamic(
-  () => import("@/components/storefront/FoodStoryBubbles"),
-  { ssr: false }
-);
-const SocialProofToast = dynamic(
-  () => import("@/components/storefront/SocialProofToast"),
-  { ssr: false }
-);
-const VerifiedPhotoReviews = dynamic(
-  () => import("@/components/storefront/VerifiedPhotoReviews"),
-  { ssr: false }
-);
 const ComboDealsSlider = dynamic(
   () => import("@/components/storefront/ComboDealsSlider"),
   { ssr: false }
@@ -95,19 +67,6 @@ export default function HomePageClient({ initialData }: { initialData: any }) {
   const { locale } = useLanguage();
   const isBn = locale === "bn";
 
-  // Flash Deal Live Countdown Timer
-  const [timeLeft, setTimeLeft] = useState({ hours: 4, minutes: 28, seconds: 45 });
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
-        if (prev.minutes > 0) return { ...prev, minutes: 59, seconds: 59 };
-        if (prev.hours > 0) return { hours: prev.hours - 1, minutes: 59, seconds: 59 };
-        return { hours: 12, minutes: 0, seconds: 0 };
-      });
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   // Category slider refs & scroll logic
   const catScrollRef = useRef<HTMLDivElement>(null);
@@ -228,8 +187,6 @@ export default function HomePageClient({ initialData }: { initialData: any }) {
           </div>
         )}
 
-        {/* Instagram-Style Top Food Highlights Stories */}
-        <FoodStoryBubbles />
 
         {/* 4. Dynamic Categories & Fast Filter Rail (With Slide Controls & Auto-Slide) */}
         {categories && categories.length > 0 && (
@@ -406,14 +363,6 @@ export default function HomePageClient({ initialData }: { initialData: any }) {
           />
         )}
 
-        {/* 6. Custom 4-Pack Combo Box Builder */}
-        <CustomComboBuilder />
-
-        {/* 6.5. Interactive Cooking Mode Guide (Pan-Fry, Steam, Deep-Fry) */}
-        <InteractiveCookingGuide />
-
-        {/* 6.8. Raw Frozen vs Golden Cooked Comparison Slider */}
-        <BeforeAfterFoodSlider />
 
         {/* 7. Why Choose ENMAR / Freshness Guarantee Section */}
         <section className="max-w-7xl mx-auto px-2.5 sm:px-4 lg:px-6 py-2.5 sm:py-3.5">
@@ -478,16 +427,7 @@ export default function HomePageClient({ initialData }: { initialData: any }) {
             </div>
           </div>
         </section>
-
-        {/* 7.5. Smart Guest & Party Snack Calculator */}
-        <PartySnackCalculator />
-
-        {/* 8. Customer Photo Reviews & Social Proof Showcase */}
-        <VerifiedPhotoReviews />
       </main>
-
-      {/* Live Social Proof Ticker */}
-      <SocialProofToast />
 
       {/* Quick View Product Modal */}
       {quickViewProduct && (

@@ -56,11 +56,22 @@ export function slugify(text: string): string {
  */
 export function getSafeImageUrl(
   url: any,
-  fallback = "/assets/products/placeholder.jpg"
+  fallback = "/placeholder.png"
 ): string {
   if (!url || typeof url !== "string") return fallback;
   const trimmed = url.trim();
-  if (!trimmed) return fallback;
+  if (!trimmed || trimmed === "/assets/products/placeholder.jpg") return fallback;
+
+  // Handle accidental stringified JSON array e.g. '["/uploads/..."]'
+  if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === "string") {
+        return getSafeImageUrl(parsed[0], fallback);
+      }
+    } catch (e) {}
+    return fallback;
+  }
 
   // Handle Windows paths or missing leading slash
   if (trimmed.startsWith("uploads/")) return `/${trimmed}`;
@@ -73,7 +84,7 @@ export function getSafeImageUrl(
  */
 export function getProductImages(
   rawImages: any,
-  fallback = "/assets/products/placeholder.jpg"
+  fallback = "/placeholder.png"
 ): string[] {
   if (!rawImages) return [fallback];
 

@@ -127,6 +127,11 @@ export default function CartDrawer() {
                         fill
                         className="object-contain p-1 drop-shadow-xs"
                         sizes="64px"
+                        onError={(e) => {
+                          const target = e.currentTarget as HTMLImageElement;
+                          target.srcset = "";
+                          target.src = "/placeholder.png";
+                        }}
                       />
                     </div>
 
