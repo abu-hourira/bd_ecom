@@ -315,3 +315,21 @@
   }
 }
 
+/* Hide Netlify Injected Drawer / Badge Widget */
+iframe#netlify-drawer,
+div#netlify-drawer,
+[data-netlify-drawer],
+.netlify-drawer,
+[class*="netlify-drawer"],
+[id*="netlify-drawer"],
+button[aria-label*="Netlify"],
+button:has(svg path[d*="netlify"]),
+a[href*="netlify.com"][class*="badge"],
+div[class*="badge"][class*="netlify"] {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+
