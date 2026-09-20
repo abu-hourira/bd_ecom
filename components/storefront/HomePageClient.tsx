@@ -42,6 +42,18 @@ const ComboDealsSlider = dynamic(
   () => import("@/components/storefront/ComboDealsSlider"),
   { ssr: false }
 );
+const CustomComboBuilder = dynamic(
+  () => import("@/components/storefront/CustomComboBuilder"),
+  { ssr: false }
+);
+const InteractiveCookingGuide = dynamic(
+  () => import("@/components/storefront/InteractiveCookingGuide"),
+  { ssr: false }
+);
+const PartySnackCalculator = dynamic(
+  () => import("@/components/storefront/PartySnackCalculator"),
+  { ssr: false }
+);
 
 function getCategoryEmoji(name: string): string {
   const n = (name || "").toLowerCase();
@@ -299,6 +311,15 @@ export default function HomePageClient({ initialData }: { initialData: any }) {
           </section>
         )}
 
+        {/* Dynamic Meal-Time Occasion Filter */}
+        <MealTimeFilterBar
+          selectedMeal={selectedMeal}
+          onSelectMeal={(m) => {
+            setSelectedMeal(m);
+            if (m !== "all") setSelectedCategoryTab("all");
+          }}
+        />
+
         {/* 5. Main Product Grid & Loading States (DIRECTLY HERE!) */}
         <section className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 space-y-3.5">
           <div className="flex items-center justify-between border-b border-stone-200/90 pb-2.5">
@@ -363,8 +384,16 @@ export default function HomePageClient({ initialData }: { initialData: any }) {
           />
         )}
 
+        {/* 7. Build Your Own Custom Combo Box */}
+        <CustomComboBuilder />
 
-        {/* 7. Why Choose ENMAR / Freshness Guarantee Section */}
+        {/* 8. Ready-to-Cook Quick Guide */}
+        <InteractiveCookingGuide />
+
+        {/* 9. Smart Party & Guest Snack Calculator */}
+        <PartySnackCalculator />
+
+        {/* 10. Why Choose ENMAR / Freshness Guarantee Section */}
         <section className="max-w-7xl mx-auto px-2.5 sm:px-4 lg:px-6 py-2.5 sm:py-3.5">
           <div className="bg-white rounded-2xl p-3.5 sm:p-5 border border-stone-200/90 shadow-sm">
             <div className="text-center max-w-xl mx-auto space-y-1 mb-4">

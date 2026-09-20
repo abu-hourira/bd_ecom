@@ -1,6 +1,17 @@
 {
   "categories": [
     {
+      "id": 30001,
+      "name": "ফ্রোজেন আইটেমস",
+      "slug": "frozen",
+      "icon": "leaf",
+      "image": "data:image/png;base64,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",
+      "displayOrder": 0,
+      "_count": {
+        "products": 8
+      }
+    },
+    {
       "id": 60001,
       "name": "ফ্রোজেন রুটি ও পরোটা",
       "slug": "frozen-roti-paratha",
@@ -79,20 +90,6 @@
       "stockQuantity": 23,
       "unitQuantity": "1",
       "unit": "bundle",
-      "weightInGrams": 2100,
-      "deliveryDiscountMinQty": 1,
-      "deliveryDiscountAmount": "60",
-      "deliveryDiscountType": "FIXED",
-      "deliveryDiscountTiers": [
-        {
-          "discountAmount": 60,
-          "minQty": 1
-        },
-        {
-          "discountAmount": 120,
-          "minQty": 2
-        }
-      ],
       "images": [
         "/uploads/upload-1787287799462-wp72o_1000019010.jpg",
         "/uploads/upload-1787287578589-3cv3w_1000019650.jpg",
@@ -107,14 +104,21 @@
       "savingsPercentage": "19",
       "badge": null,
       "featured": true,
-      "isActive": true,
-      "sourceOrigin": null,
-      "harvestDate": null,
-      "batchNumber": null,
-      "purityCertificateUrl": null,
-      "labTestReportSummary": null,
+      "weightInGrams": 2100,
+      "deliveryDiscountMinQty": 1,
+      "deliveryDiscountAmount": "60",
+      "deliveryDiscountType": "FIXED",
+      "deliveryDiscountTiers": [
+        {
+          "discountAmount": 60,
+          "minQty": 1
+        },
+        {
+          "discountAmount": 120,
+          "minQty": 2
+        }
+      ],
       "createdAt": "2026-09-17T16:13:05.949Z",
-      "updatedAt": "2026-09-17T20:39:41.403Z",
       "category": {
         "id": 60006,
         "name": "ফ্যামিলি কম্বো ও পার্টি বক্স",
@@ -133,6 +137,18 @@
       "stockQuantity": 40,
       "unitQuantity": "10",
       "unit": "piece",
+      "images": [
+        "/uploads/WhatsApp_Image_2026-08-14_at_12_17_01_PM_1787527594680_in6zn.jpeg",
+        "/uploads/WhatsApp_Image_2026-08-14_at_12_17_01_PM__1__1787526933364_nfx26.jpeg"
+      ],
+      "description": "অতিথি আপ্যায়ন কিংবা বিকালের নাস্তায় মাত্র ৫ মিনিটে তৈরি করুন মুচমুচে গরম সমুচা। মশলাদার পুর ও খাস্তা ক্রিস্পি লেয়ার মুখে দিলেই অসাধারণ ক্রাঞ্চ অনুভূতি দেয়।",
+      "shortDescription": "পাতলা খাস্তা খোসায় মোড়ানো ক্রিস্পি ট্রায়াঙ্গেল সমুচা। বিকেলে মেহমানদারির সেরা নাস্তা।",
+      "organicCertified": true,
+      "isCombo": false,
+      "comboProductIds": null,
+      "savingsPercentage": null,
+      "badge": null,
+      "featured": true,
       "weightInGrams": 350,
       "deliveryDiscountMinQty": 2,
       "deliveryDiscountAmount": "25",
@@ -147,26 +163,7 @@
           "minQty": 4
         }
       ],
-      "images": [
-        "/uploads/WhatsApp_Image_2026-08-14_at_12_17_01_PM_1787527594680_in6zn.jpeg",
-        "/uploads/WhatsApp_Image_2026-08-14_at_12_17_01_PM__1__1787526933364_nfx26.jpeg"
-      ],
-      "description": "অতিথি আপ্যায়ন কিংবা বিকালের নাস্তায় মাত্র ৫ মিনিটে তৈরি করুন মুচমুচে গরম সমুচা। মশলাদার পুর ও খাস্তা ক্রিস্পি লেয়ার মুখে দিলেই অসাধারণ ক্রাঞ্চ অনুভূতি দেয়।",
-      "shortDescription": "পাতলা খাস্তা খোসায় মোড়ানো ক্রিস্পি ট্রায়াঙ্গেল সমুচা। বিকেলে মেহমানদারির সেরা নাস্তা।",
-      "organicCertified": true,
-      "isCombo": false,
-      "comboProductIds": null,
-      "savingsPercentage": null,
-      "badge": null,
-      "featured": true,
-      "isActive": true,
-      "sourceOrigin": null,
-      "harvestDate": null,
-      "batchNumber": null,
-      "purityCertificateUrl": null,
-      "labTestReportSummary": null,
       "createdAt": "2026-09-17T16:13:05.080Z",
-      "updatedAt": "2026-09-17T16:13:05.080Z",
       "category": {
         "id": 60004,
         "name": "সিঙ্গারা ও সমুচা",
@@ -185,6 +182,18 @@
       "stockQuantity": 30,
       "unitQuantity": "10",
       "unit": "piece",
+      "images": [
+        "/uploads/WhatsApp_Image_2026-08-14_at_12_17_00_PM_1787526929366_7lz8b.jpeg",
+        "/uploads/WhatsApp_Image_2026-08-14_at_12_17_01_PM__1__1787526933364_nfx26.jpeg"
+      ],
+      "description": "গ্রাম-বাংলার খাঁটি ঐতিহ্যের স্বাদে তৈরি ঝাল পুলি পিঠা। সুন্দর নকশাদার মোড়কে ভরা সুস্বাদু মাংস ও মসলার পুর। এটি ডুবোতেলে ভেজে অথবা ফুটন্ত পানির ভাপে স্টিম করে — দুইভাবেই অত্যন্ত সুস্বাদুভাবে খাওয়া যায়। চাটনি বা টমেটো সসের সাথে জাস্ট অসাধারণ!",
+      "shortDescription": "চালের গুঁড়ার মোড়ানো জিভে জল আনা ঝাল চিকেন ও আলু পুরের স্পেশাল পুলি পিঠা।",
+      "organicCertified": true,
+      "isCombo": false,
+      "comboProductIds": null,
+      "savingsPercentage": null,
+      "badge": null,
+      "featured": true,
       "weightInGrams": 400,
       "deliveryDiscountMinQty": 2,
       "deliveryDiscountAmount": "30",
@@ -199,26 +208,7 @@
           "minQty": 4
         }
       ],
-      "images": [
-        "/uploads/WhatsApp_Image_2026-08-14_at_12_17_00_PM_1787526929366_7lz8b.jpeg",
-        "/uploads/WhatsApp_Image_2026-08-14_at_12_17_01_PM__1__1787526933364_nfx26.jpeg"
-      ],
-      "description": "গ্রাম-বাংলার খাঁটি ঐতিহ্যের স্বাদে তৈরি ঝাল পুলি পিঠা। সুন্দর নকশাদার মোড়কে ভরা সুস্বাদু মাংস ও মসলার পুর। এটি ডুবোতেলে ভেজে অথবা ফুটন্ত পানির ভাপে স্টিম করে — দুইভাবেই অত্যন্ত সুস্বাদুভাবে খাওয়া যায়। চাটনি বা টমেটো সসের সাথে জাস্ট অসাধারণ!",
-      "shortDescription": "চালের গুঁড়ার মোড়ানো জিভে জল আনা ঝাল চিকেন ও আলু পুরের স্পেশাল পুলি পিঠা।",
-      "organicCertified": true,
-      "isCombo": false,
-      "comboProductIds": null,
-      "savingsPercentage": null,
-      "badge": null,
-      "featured": true,
-      "isActive": true,
-      "sourceOrigin": null,
-      "harvestDate": null,
-      "batchNumber": null,
-      "purityCertificateUrl": null,
-      "labTestReportSummary": null,
       "createdAt": "2026-09-17T16:13:04.350Z",
-      "updatedAt": "2026-09-17T16:13:04.350Z",
       "category": {
         "id": 60005,
         "name": "ঐতিহ্যবাহী পুলি পিঠা",
@@ -237,6 +227,17 @@
       "stockQuantity": 50,
       "unitQuantity": "10",
       "unit": "piece",
+      "images": [
+        "/uploads/upload-1787287646578-7y92p_1000019649.jpg"
+      ],
+      "description": "ছোটবেলার পাড়ার মোড়ের দোকানের খাস্তা সিঙ্গারার আসল স্বাদ এখন আপনার ফ্রিজে! কালোজিরার সুগন্ধি খামির এবং ভেতরে মশলাদার আলু, চিনাবাদাম ও আদার পুর। হালকা গরম ডুবোতেলে ছেড়ে মৃদু আঁচে ৬-৮ মিনিট ভেজে নিলেই পেয়ে যাবেন সুপার খাস্তা ও মুচমুচে গরম সিঙ্গারা।",
+      "shortDescription": "কালোজিরা দেওয়া খাস্তা সিঙ্গারা — খাঁটি আলু, বাদাম ও গরম মসলার পুর দিয়ে তৈরি।",
+      "organicCertified": true,
+      "isCombo": false,
+      "comboProductIds": null,
+      "savingsPercentage": null,
+      "badge": null,
+      "featured": true,
       "weightInGrams": 450,
       "deliveryDiscountMinQty": 3,
       "deliveryDiscountAmount": "30",
@@ -251,25 +252,7 @@
           "minQty": 6
         }
       ],
-      "images": [
-        "/uploads/upload-1787287646578-7y92p_1000019649.jpg"
-      ],
-      "description": "ছোটবেলার পাড়ার মোড়ের দোকানের খাস্তা সিঙ্গারার আসল স্বাদ এখন আপনার ফ্রিজে! কালোজিরার সুগন্ধি খামির এবং ভেতরে মশলাদার আলু, চিনাবাদাম ও আদার পুর। হালকা গরম ডুবোতেলে ছেড়ে মৃদু আঁচে ৬-৮ মিনিট ভেজে নিলেই পেয়ে যাবেন সুপার খাস্তা ও মুচমুচে গরম সিঙ্গারা।",
-      "shortDescription": "কালোজিরা দেওয়া খাস্তা সিঙ্গারা — খাঁটি আলু, বাদাম ও গরম মসলার পুর দিয়ে তৈরি।",
-      "organicCertified": true,
-      "isCombo": false,
-      "comboProductIds": null,
-      "savingsPercentage": null,
-      "badge": null,
-      "featured": true,
-      "isActive": true,
-      "sourceOrigin": null,
-      "harvestDate": null,
-      "batchNumber": null,
-      "purityCertificateUrl": null,
-      "labTestReportSummary": null,
       "createdAt": "2026-09-17T16:13:03.621Z",
-      "updatedAt": "2026-09-17T16:13:03.621Z",
       "category": {
         "id": 60004,
         "name": "সিঙ্গারা ও সমুচা",
@@ -288,6 +271,17 @@
       "stockQuantity": 40,
       "unitQuantity": "10",
       "unit": "piece",
+      "images": [
+        "/uploads/upload-1787287687330-fwbvn_1000019648.jpg"
+      ],
+      "description": "প্রিমিয়াম ব্রেডক্রাম্ব ও তাজা ডিমের প্রলেপে মোড়ানো চিকেন ভেজিটেবল স্প্রিং রোল। ফ্রিজ থেকে বের করে মাঝারি আঁচে গরম তেলে ৫-৬ মিনিট হালকা উল্টেপাল্টে সোনালী করে ভেজে নিন। বাইরে ক্রাঞ্চি ব্রেডক্রাম্ব এবং ভেতরে সুস্বাদু চিকেন পুরের অসাধারণ স্বাদ বড়-ছোট সবার মুখে জল এনে দেবে।",
+      "shortDescription": "গোল্ডেন ব্রেডক্রাম্ব কোটেড মুচমুচে চিকেন রোল। ডুবোতেলে গোল্ডেন ব্রাউন করে ভাজলেই সেরা নাস্তা।",
+      "organicCertified": true,
+      "isCombo": false,
+      "comboProductIds": null,
+      "savingsPercentage": null,
+      "badge": null,
+      "featured": true,
       "weightInGrams": 500,
       "deliveryDiscountMinQty": 2,
       "deliveryDiscountAmount": "30",
@@ -302,25 +296,7 @@
           "minQty": 4
         }
       ],
-      "images": [
-        "/uploads/upload-1787287687330-fwbvn_1000019648.jpg"
-      ],
-      "description": "প্রিমিয়াম ব্রেডক্রাম্ব ও তাজা ডিমের প্রলেপে মোড়ানো চিকেন ভেজিটেবল স্প্রিং রোল। ফ্রিজ থেকে বের করে মাঝারি আঁচে গরম তেলে ৫-৬ মিনিট হালকা উল্টেপাল্টে সোনালী করে ভেজে নিন। বাইরে ক্রাঞ্চি ব্রেডক্রাম্ব এবং ভেতরে সুস্বাদু চিকেন পুরের অসাধারণ স্বাদ বড়-ছোট সবার মুখে জল এনে দেবে।",
-      "shortDescription": "গোল্ডেন ব্রেডক্রাম্ব কোটেড মুচমুচে চিকেন রোল। ডুবোতেলে গোল্ডেন ব্রাউন করে ভাজলেই সেরা নাস্তা।",
-      "organicCertified": true,
-      "isCombo": false,
-      "comboProductIds": null,
-      "savingsPercentage": null,
-      "badge": null,
-      "featured": true,
-      "isActive": true,
-      "sourceOrigin": null,
-      "harvestDate": null,
-      "batchNumber": null,
-      "purityCertificateUrl": null,
-      "labTestReportSummary": null,
       "createdAt": "2026-09-17T16:13:02.892Z",
-      "updatedAt": "2026-09-17T16:13:02.892Z",
       "category": {
         "id": 60003,
         "name": "ফ্রোজেন রোল ও কাটলেট",
@@ -339,6 +315,17 @@
       "stockQuantity": 35,
       "unitQuantity": "12",
       "unit": "piece",
+      "images": [
+        "/uploads/upload-1787287578589-3cv3w_1000019650.jpg"
+      ],
+      "description": "দেশি মুরগির কিমা, তাজা পেঁয়াজপাতা, ধনেপাতা, আদা-রসুন ও সিক্রেট হোমমেড মসলার পুরে ঠাসা অনন্য পাতা শেইপের ফ্রোজেন চিকেন মোমো। কোনো কৃত্রিম টেস্টিং সল্ট ছাড়া শতভাগ নিরাপদ ও স্বাস্থ্যকর। রাইস কুকার, স্ট্রিমার বা ফুটন্ত পানির ওপর ৮-১০ মিনিট স্টিম করলেই ভেতরে জুসি ও বাইরে সিল্কি মোমো তৈরি। চাইলে ডুবোতেলে ভেজে ক্রিস্পি ফ্রাইড মোমোও বানাতে পারেন!",
+      "shortDescription": "সুন্দর পাতার ডিজাইনে হাতে মোড়ানো সুস্বাদু জুসি চিকেন মোমো। সাথে থাকে স্পেশাল চাটনি/সস তৈরির গাইড।",
+      "organicCertified": true,
+      "isCombo": false,
+      "comboProductIds": null,
+      "savingsPercentage": null,
+      "badge": null,
+      "featured": true,
       "weightInGrams": 400,
       "deliveryDiscountMinQty": 2,
       "deliveryDiscountAmount": "40",
@@ -353,25 +340,7 @@
           "minQty": 4
         }
       ],
-      "images": [
-        "/uploads/upload-1787287578589-3cv3w_1000019650.jpg"
-      ],
-      "description": "দেশি মুরগির কিমা, তাজা পেঁয়াজপাতা, ধনেপাতা, আদা-রসুন ও সিক্রেট হোমমেড মসলার পুরে ঠাসা অনন্য পাতা শেইপের ফ্রোজেন চিকেন মোমো। কোনো কৃত্রিম টেস্টিং সল্ট ছাড়া শতভাগ নিরাপদ ও স্বাস্থ্যকর। রাইস কুকার, স্ট্রিমার বা ফুটন্ত পানির ওপর ৮-১০ মিনিট স্টিম করলেই ভেতরে জুসি ও বাইরে সিল্কি মোমো তৈরি। চাইলে ডুবোতেলে ভেজে ক্রিস্পি ফ্রাইড মোমোও বানাতে পারেন!",
-      "shortDescription": "সুন্দর পাতার ডিজাইনে হাতে মোড়ানো সুস্বাদু জুসি চিকেন মোমো। সাথে থাকে স্পেশাল চাটনি/সস তৈরির গাইড।",
-      "organicCertified": true,
-      "isCombo": false,
-      "comboProductIds": null,
-      "savingsPercentage": null,
-      "badge": null,
-      "featured": true,
-      "isActive": true,
-      "sourceOrigin": null,
-      "harvestDate": null,
-      "batchNumber": null,
-      "purityCertificateUrl": null,
-      "labTestReportSummary": null,
       "createdAt": "2026-09-17T16:13:02.165Z",
-      "updatedAt": "2026-09-17T16:13:02.165Z",
       "category": {
         "id": 60002,
         "name": "ফ্রোজেন মোমো ও ডাম্পলিং",
@@ -390,6 +359,18 @@
       "stockQuantity": 60,
       "unitQuantity": "20",
       "unit": "piece",
+      "images": [
+        "/uploads/upload-1787287799462-wp72o_1000019010.jpg",
+        "/uploads/upload-1787287421822-94qjf_1000019651.jpg"
+      ],
+      "description": "ঘরে তৈরি স্বাদের পাতলা ও নরম সাদা আটার ফ্রোজেন রুটি। আধুনিক ডিপ-ফ্রিজিং প্রযুক্তিতে প্রতিটি রুটি আলাদা ও সতেজ রাখা হয় যাতে একটির সাথে আরেকটি লেগে না যায়। সরাসরি তাওয়ায় সেকে নিয়ে চা, মাংসের ঝোল, ডিম বা ভাজির সাথে পরিবেশন করুন।",
+      "shortDescription": "পাতলা ও নরম তুলতুলে সাদা আটার ফ্রোজেন রুটি। সকালের নাস্তা বা রাতের ডিনারের জন্য ঝটপট প্রস্তুত।",
+      "organicCertified": true,
+      "isCombo": false,
+      "comboProductIds": null,
+      "savingsPercentage": null,
+      "badge": null,
+      "featured": true,
       "weightInGrams": 750,
       "deliveryDiscountMinQty": 3,
       "deliveryDiscountAmount": "30",
@@ -404,26 +385,7 @@
           "minQty": 5
         }
       ],
-      "images": [
-        "/uploads/upload-1787287799462-wp72o_1000019010.jpg",
-        "/uploads/upload-1787287421822-94qjf_1000019651.jpg"
-      ],
-      "description": "ঘরে তৈরি স্বাদের পাতলা ও নরম সাদা আটার ফ্রোজেন রুটি। আধুনিক ডিপ-ফ্রিজিং প্রযুক্তিতে প্রতিটি রুটি আলাদা ও সতেজ রাখা হয় যাতে একটির সাথে আরেকটি লেগে না যায়। সরাসরি তাওয়ায় সেকে নিয়ে চা, মাংসের ঝোল, ডিম বা ভাজির সাথে পরিবেশন করুন।",
-      "shortDescription": "পাতলা ও নরম তুলতুলে সাদা আটার ফ্রোজেন রুটি। সকালের নাস্তা বা রাতের ডিনারের জন্য ঝটপট প্রস্তুত।",
-      "organicCertified": true,
-      "isCombo": false,
-      "comboProductIds": null,
-      "savingsPercentage": null,
-      "badge": null,
-      "featured": true,
-      "isActive": true,
-      "sourceOrigin": null,
-      "harvestDate": null,
-      "batchNumber": null,
-      "purityCertificateUrl": null,
-      "labTestReportSummary": null,
       "createdAt": "2026-09-17T16:13:01.435Z",
-      "updatedAt": "2026-09-17T16:13:01.435Z",
       "category": {
         "id": 60001,
         "name": "ফ্রোজেন রুটি ও পরোটা",
@@ -442,6 +404,18 @@
       "stockQuantity": 41,
       "unitQuantity": "20",
       "unit": "piece",
+      "images": [
+        "/uploads/upload-1787287847493-t5opy_1000018931.jpg",
+        "/uploads/upload-1787287421822-94qjf_1000019651.jpg"
+      ],
+      "description": "আমাদের এই লাল আটার রুটি সম্পূর্ণ খাঁটি গম ভাঙা আটা দিয়ে তৈরি, যাতে ফাইবার ও পুষ্টিমান অটুট থাকে। কোনো ক্ষতিকর প্রিজারভেটিভ বা কেমিক্যাল ছাড়া হাইজিনিক উপায়ে বেলন-পিরিতে হাতে তৈরি। ফ্রিজ থেকে বের করে বরফ না গলিয়ে সরাসরি গরম তাওয়ায় ৩০-৪০ সেকেন্ড প্রতি পাশ সেকে নিলেই পাবেন একদম তুলতুলে নরম ও ফোলা রুটি। ডায়াবেটিস রোগী ও স্বাস্থ্যসচেতন পরিবারের জন্য শ্রেষ্ঠ পছন্দ।",
+      "shortDescription": "১০০% খাঁটি লাল গমের আটার নরম তুলতুলে ফ্রোজেন রুটি। তাওয়ায় ২ মিনিট সেকলেই গরম ফুলকো রুটি প্রস্তুত।",
+      "organicCertified": true,
+      "isCombo": false,
+      "comboProductIds": null,
+      "savingsPercentage": null,
+      "badge": null,
+      "featured": true,
       "weightInGrams": 800,
       "deliveryDiscountMinQty": 3,
       "deliveryDiscountAmount": "30",
@@ -456,31 +430,297 @@
           "minQty": 6
         }
       ],
-      "images": [
-        "/uploads/upload-1787287847493-t5opy_1000018931.jpg",
-        "/uploads/upload-1787287421822-94qjf_1000019651.jpg"
-      ],
-      "description": "আমাদের এই লাল আটার রুটি সম্পূর্ণ খাঁটি গম ভাঙা আটা দিয়ে তৈরি, যাতে ফাইবার ও পুষ্টিমান অটুট থাকে। কোনো ক্ষতিকর প্রিজারভেটিভ বা কেমিক্যাল ছাড়া হাইজিনিক উপায়ে বেলন-পিরিতে হাতে তৈরি। ফ্রিজ থেকে বের করে বরফ না গলিয়ে সরাসরি গরম তাওয়ায় ৩০-৪০ সেকেন্ড প্রতি পাশ সেকে নিলেই পাবেন একদম তুলতুলে নরম ও ফোলা রুটি। ডায়াবেটিস রোগী ও স্বাস্থ্যসচেতন পরিবারের জন্য শ্রেষ্ঠ পছন্দ।",
-      "shortDescription": "১০০% খাঁটি লাল গমের আটার নরম তুলতুলে ফ্রোজেন রুটি। তাওয়ায় ২ মিনিট সেকলেই গরম ফুলকো রুটি প্রস্তুত।",
-      "organicCertified": true,
-      "isCombo": false,
-      "comboProductIds": null,
-      "savingsPercentage": null,
-      "badge": null,
-      "featured": true,
-      "isActive": true,
-      "sourceOrigin": null,
-      "harvestDate": null,
-      "batchNumber": null,
-      "purityCertificateUrl": null,
-      "labTestReportSummary": null,
       "createdAt": "2026-09-17T16:13:00.235Z",
-      "updatedAt": "2026-09-17T18:33:46.664Z",
       "category": {
         "id": 60001,
         "name": "ফ্রোজেন রুটি ও পরোটা",
         "slug": "frozen-roti-paratha",
         "icon": "bread"
+      }
+    },
+    {
+      "id": 240001,
+      "name": "ফ্রোজেন স্কোয়ার পরোটা ",
+      "slug": "--2090",
+      "categoryId": 30001,
+      "subcategory": "হোমমেড",
+      "price": "180",
+      "discountPrice": null,
+      "stockQuantity": 44,
+      "unitQuantity": "10",
+      "unit": "piece",
+      "images": [
+        "/uploads/product_240001.jpg"
+      ],
+      "description": "",
+      "shortDescription": "",
+      "organicCertified": false,
+      "isCombo": false,
+      "comboProductIds": null,
+      "savingsPercentage": null,
+      "badge": "১০ পিস কম্বো ",
+      "featured": true,
+      "weightInGrams": 1000,
+      "deliveryDiscountMinQty": 5,
+      "deliveryDiscountAmount": "60",
+      "deliveryDiscountType": "FIXED",
+      "deliveryDiscountTiers": [
+        {
+          "discountAmount": "60",
+          "minQty": 5
+        }
+      ],
+      "createdAt": "2026-09-02T09:01:02.117Z",
+      "category": {
+        "id": 30001,
+        "name": "ফ্রোজেন আইটেমস",
+        "slug": "frozen",
+        "icon": "leaf"
+      }
+    },
+    {
+      "id": 120001,
+      "name": "চিকেন রোল",
+      "slug": "--1189",
+      "categoryId": 30001,
+      "subcategory": "হোমমেড ",
+      "price": "400",
+      "discountPrice": null,
+      "stockQuantity": 45,
+      "unitQuantity": "10",
+      "unit": "piece",
+      "images": [
+        "/uploads/product_120001.jpg"
+      ],
+      "description": "",
+      "shortDescription": "",
+      "organicCertified": false,
+      "isCombo": false,
+      "comboProductIds": null,
+      "savingsPercentage": null,
+      "badge": "",
+      "featured": true,
+      "weightInGrams": 100,
+      "deliveryDiscountMinQty": 0,
+      "deliveryDiscountAmount": "0",
+      "deliveryDiscountType": "FIXED",
+      "deliveryDiscountTiers": [],
+      "createdAt": "2026-08-25T08:27:21.213Z",
+      "category": {
+        "id": 30001,
+        "name": "ফ্রোজেন আইটেমস",
+        "slug": "frozen",
+        "icon": "leaf"
+      }
+    },
+    {
+      "id": 90001,
+      "name": "ফ্রোজেন ব্রাউন রুটি ",
+      "slug": "-",
+      "categoryId": 30001,
+      "subcategory": "",
+      "price": "132",
+      "discountPrice": null,
+      "stockQuantity": 55,
+      "unitQuantity": "10",
+      "unit": "piece",
+      "images": [
+        "/uploads/product_90001.jpg"
+      ],
+      "description": "",
+      "shortDescription": "",
+      "organicCertified": false,
+      "isCombo": false,
+      "comboProductIds": null,
+      "savingsPercentage": null,
+      "badge": "",
+      "featured": true,
+      "weightInGrams": 100,
+      "deliveryDiscountMinQty": 0,
+      "deliveryDiscountAmount": "0",
+      "deliveryDiscountType": "FIXED",
+      "deliveryDiscountTiers": [],
+      "createdAt": "2026-08-25T08:22:09.467Z",
+      "category": {
+        "id": 30001,
+        "name": "ফ্রোজেন আইটেমস",
+        "slug": "frozen",
+        "icon": "leaf"
+      }
+    },
+    {
+      "id": 60001,
+      "name": "ফ্রোজেন রুটি",
+      "slug": "--9846",
+      "categoryId": 30001,
+      "subcategory": "Homemade",
+      "price": "110",
+      "discountPrice": null,
+      "stockQuantity": 53,
+      "unitQuantity": "10",
+      "unit": "piece",
+      "images": [
+        "/uploads/product_60001.jpg"
+      ],
+      "description": "",
+      "shortDescription": "",
+      "organicCertified": false,
+      "isCombo": false,
+      "comboProductIds": null,
+      "savingsPercentage": null,
+      "badge": "",
+      "featured": true,
+      "weightInGrams": 100,
+      "deliveryDiscountMinQty": 0,
+      "deliveryDiscountAmount": "0",
+      "deliveryDiscountType": "FIXED",
+      "deliveryDiscountTiers": null,
+      "createdAt": "2026-08-24T19:05:45.868Z",
+      "category": {
+        "id": 30001,
+        "name": "ফ্রোজেন আইটেমস",
+        "slug": "frozen",
+        "icon": "leaf"
+      }
+    },
+    {
+      "id": 30001,
+      "name": "মাংস পিঠা ",
+      "slug": "--9870",
+      "categoryId": 30001,
+      "subcategory": "",
+      "price": "882",
+      "discountPrice": null,
+      "stockQuantity": 55,
+      "unitQuantity": "1",
+      "unit": "kg",
+      "images": [
+        "/uploads/product_30001.jpg"
+      ],
+      "description": "",
+      "shortDescription": "",
+      "organicCertified": false,
+      "isCombo": false,
+      "comboProductIds": null,
+      "savingsPercentage": null,
+      "badge": "",
+      "featured": true,
+      "weightInGrams": 100,
+      "deliveryDiscountMinQty": 0,
+      "deliveryDiscountAmount": "0",
+      "deliveryDiscountType": "FIXED",
+      "deliveryDiscountTiers": [],
+      "createdAt": "2026-08-24T16:24:31.774Z",
+      "category": {
+        "id": 30001,
+        "name": "ফ্রোজেন আইটেমস",
+        "slug": "frozen",
+        "icon": "leaf"
+      }
+    },
+    {
+      "id": 210002,
+      "name": "ফ্রোজেন সিঙ্গারা ",
+      "slug": "--3071",
+      "categoryId": 30001,
+      "subcategory": null,
+      "price": "300",
+      "discountPrice": null,
+      "stockQuantity": 50,
+      "unitQuantity": null,
+      "unit": "piece",
+      "images": [
+        "/uploads/product_210002.jpg"
+      ],
+      "description": "",
+      "shortDescription": null,
+      "organicCertified": true,
+      "isCombo": false,
+      "comboProductIds": null,
+      "savingsPercentage": null,
+      "badge": null,
+      "featured": false,
+      "weightInGrams": 100,
+      "deliveryDiscountMinQty": 0,
+      "deliveryDiscountAmount": "0",
+      "deliveryDiscountType": "FIXED",
+      "deliveryDiscountTiers": null,
+      "createdAt": "2026-09-01T02:18:13.096Z",
+      "category": {
+        "id": 30001,
+        "name": "ফ্রোজেন আইটেমস",
+        "slug": "frozen",
+        "icon": "leaf"
+      }
+    },
+    {
+      "id": 210001,
+      "name": "ফ্রোজেন চালের রুটি",
+      "slug": "--7361",
+      "categoryId": 30001,
+      "subcategory": "",
+      "price": "140",
+      "discountPrice": null,
+      "stockQuantity": 47,
+      "unitQuantity": null,
+      "unit": "piece",
+      "images": [
+        "/uploads/product_210001.jpg"
+      ],
+      "description": "",
+      "shortDescription": "",
+      "organicCertified": false,
+      "isCombo": true,
+      "comboProductIds": null,
+      "savingsPercentage": null,
+      "badge": "১০ পিস কম্বো ",
+      "featured": false,
+      "weightInGrams": 100,
+      "deliveryDiscountMinQty": 0,
+      "deliveryDiscountAmount": "0",
+      "deliveryDiscountType": "FIXED",
+      "deliveryDiscountTiers": null,
+      "createdAt": "2026-09-01T02:16:37.368Z",
+      "category": {
+        "id": 30001,
+        "name": "ফ্রোজেন আইটেমস",
+        "slug": "frozen",
+        "icon": "leaf"
+      }
+    },
+    {
+      "id": 180002,
+      "name": "চিকেন মোমো",
+      "slug": "--5728",
+      "categoryId": 30001,
+      "subcategory": null,
+      "price": "600",
+      "discountPrice": null,
+      "stockQuantity": 50,
+      "unitQuantity": "1",
+      "unit": "kg",
+      "images": [
+        "/uploads/product_180002.jpg"
+      ],
+      "description": "",
+      "shortDescription": null,
+      "organicCertified": true,
+      "isCombo": false,
+      "comboProductIds": null,
+      "savingsPercentage": null,
+      "badge": null,
+      "featured": false,
+      "weightInGrams": 100,
+      "deliveryDiscountMinQty": 0,
+      "deliveryDiscountAmount": "0",
+      "deliveryDiscountType": "FIXED",
+      "deliveryDiscountTiers": null,
+      "createdAt": "2026-09-01T02:14:55.748Z",
+      "category": {
+        "id": 30001,
+        "name": "ফ্রোজেন আইটেমস",
+        "slug": "frozen",
+        "icon": "leaf"
       }
     }
   ],
@@ -496,20 +736,6 @@
       "stockQuantity": 23,
       "unitQuantity": "1",
       "unit": "bundle",
-      "weightInGrams": 2100,
-      "deliveryDiscountMinQty": 1,
-      "deliveryDiscountAmount": "60",
-      "deliveryDiscountType": "FIXED",
-      "deliveryDiscountTiers": [
-        {
-          "discountAmount": 60,
-          "minQty": 1
-        },
-        {
-          "discountAmount": 120,
-          "minQty": 2
-        }
-      ],
       "images": [
         "/uploads/upload-1787287799462-wp72o_1000019010.jpg",
         "/uploads/upload-1787287578589-3cv3w_1000019650.jpg",
@@ -524,19 +750,61 @@
       "savingsPercentage": "19",
       "badge": null,
       "featured": true,
-      "isActive": true,
-      "sourceOrigin": null,
-      "harvestDate": null,
-      "batchNumber": null,
-      "purityCertificateUrl": null,
-      "labTestReportSummary": null,
+      "weightInGrams": 2100,
+      "deliveryDiscountMinQty": 1,
+      "deliveryDiscountAmount": "60",
+      "deliveryDiscountType": "FIXED",
+      "deliveryDiscountTiers": [
+        {
+          "discountAmount": 60,
+          "minQty": 1
+        },
+        {
+          "discountAmount": 120,
+          "minQty": 2
+        }
+      ],
       "createdAt": "2026-09-17T16:13:05.949Z",
-      "updatedAt": "2026-09-17T20:39:41.403Z",
       "category": {
         "id": 60006,
         "name": "ফ্যামিলি কম্বো ও পার্টি বক্স",
         "slug": "frozen-combo-packs",
         "icon": "bundle"
+      }
+    },
+    {
+      "id": 210001,
+      "name": "ফ্রোজেন চালের রুটি",
+      "slug": "--7361",
+      "categoryId": 30001,
+      "subcategory": "",
+      "price": "140",
+      "discountPrice": null,
+      "stockQuantity": 47,
+      "unitQuantity": null,
+      "unit": "piece",
+      "images": [
+        "/uploads/product_210001.jpg"
+      ],
+      "description": "",
+      "shortDescription": "",
+      "organicCertified": false,
+      "isCombo": true,
+      "comboProductIds": null,
+      "savingsPercentage": null,
+      "badge": "১০ পিস কম্বো ",
+      "featured": false,
+      "weightInGrams": 100,
+      "deliveryDiscountMinQty": 0,
+      "deliveryDiscountAmount": "0",
+      "deliveryDiscountType": "FIXED",
+      "deliveryDiscountTiers": null,
+      "createdAt": "2026-09-01T02:16:37.368Z",
+      "category": {
+        "id": 30001,
+        "name": "ফ্রোজেন আইটেমস",
+        "slug": "frozen",
+        "icon": "leaf"
       }
     }
   ],
@@ -975,57 +1243,5 @@
     "createdAt": "2026-08-24T14:18:22.498Z",
     "updatedAt": "2026-09-15T17:26:33.445Z"
   },
-  "banners": [
-    {
-      "id": 30001,
-      "title": "হাতে তৈরি ফ্রোজেন রুটি ও পরোটা",
-      "headline": "সকাল ও রাতের নাস্তায় ঝটপট সমাধান",
-      "subtitle": "তাওয়ায় দিলেই ফুলকো নরম তুলতুলে — ১০০% ঘরোয়া স্বাদ",
-      "imageUrl": "/uploads/upload-1787287799462-wp72o_1000019010.jpg",
-      "targetLink": "/products?category=frozen-roti-paratha",
-      "placement": "HERO_CAROUSEL",
-      "startDate": null,
-      "endDate": null,
-      "displayOrder": 1,
-      "isActive": true,
-      "bgColor": "#14421a",
-      "textColor": "#ffffff",
-      "createdAt": "2026-09-17T16:13:06.964Z",
-      "updatedAt": "2026-09-17T16:13:06.964Z"
-    },
-    {
-      "id": 30002,
-      "title": "পাতা শেইপ প্রিমিয়াম চিকেন মোমো",
-      "headline": "ভাপিয়ে নিন মাত্র ৮ মিনিটে",
-      "subtitle": "জুসি চিকেন ও স্পেশাল ঘরোয়া মসলার পুরে ঠাসা অনন্য মোমো",
-      "imageUrl": "/uploads/upload-1787287578589-3cv3w_1000019650.jpg",
-      "targetLink": "/products?category=frozen-momos-dumplings",
-      "placement": "HERO_CAROUSEL",
-      "startDate": null,
-      "endDate": null,
-      "displayOrder": 2,
-      "isActive": true,
-      "bgColor": "#14421a",
-      "textColor": "#ffffff",
-      "createdAt": "2026-09-17T16:13:07.840Z",
-      "updatedAt": "2026-09-17T16:13:07.840Z"
-    },
-    {
-      "id": 30003,
-      "title": "মুচমুচে ফ্রোজেন রোল ও খাস্তা সিঙ্গারা",
-      "headline": "বিকেলের নাস্তায় মুচমুচে ক্রাঞ্চ",
-      "subtitle": "ডুবোতেলে ভাজলেই রেডি ক্রিস্পি স্প্রিং রোল ও সুস্বাদু সিঙ্গারা",
-      "imageUrl": "/uploads/upload-1787287687330-fwbvn_1000019648.jpg",
-      "targetLink": "/products?category=frozen-rolls-snacks",
-      "placement": "HERO_CAROUSEL",
-      "startDate": null,
-      "endDate": null,
-      "displayOrder": 3,
-      "isActive": true,
-      "bgColor": "#14421a",
-      "textColor": "#ffffff",
-      "createdAt": "2026-09-17T16:13:08.421Z",
-      "updatedAt": "2026-09-17T16:13:08.421Z"
-    }
-  ]
+  "banners": []
 }

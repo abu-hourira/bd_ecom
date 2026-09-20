@@ -235,6 +235,20 @@ export default function StorefrontHeader() {
           ))}
 
           <Link
+            href="/subscription"
+            className="text-xs font-semibold text-stone-600 hover:text-forest transition-all py-1 cursor-pointer hover:-translate-y-0.5"
+          >
+            {locale === "bn" ? "সাবস্ক্রিপশন বক্স" : "Subscriptions"}
+          </Link>
+
+          <Link
+            href="/recipes"
+            className="text-xs font-semibold text-stone-600 hover:text-forest transition-all py-1 cursor-pointer hover:-translate-y-0.5"
+          >
+            {locale === "bn" ? "রেসিপি ও টিপস" : "Recipes"}
+          </Link>
+
+          <Link
             href="/track"
             className="text-xs font-semibold text-stone-600 hover:text-forest transition-all py-1 cursor-pointer flex items-center gap-1 hover:-translate-y-0.5"
           >
@@ -269,6 +283,22 @@ export default function StorefrontHeader() {
                 <span className="text-stone-400">›</span>
               </Link>
             ))}
+            <Link
+              href="/subscription"
+              onClick={() => setMobileMenuOpen(false)}
+              className="py-2 border-b border-stone-100 flex items-center justify-between"
+            >
+              <span>{locale === "bn" ? "সাবস্ক্রিপশন বক্স" : "Subscriptions"}</span>
+              <span className="text-stone-400">›</span>
+            </Link>
+            <Link
+              href="/recipes"
+              onClick={() => setMobileMenuOpen(false)}
+              className="py-2 border-b border-stone-100 flex items-center justify-between"
+            >
+              <span>{locale === "bn" ? "রেসিপি ও টিপস" : "Recipes"}</span>
+              <span className="text-stone-400">›</span>
+            </Link>
             <Link
               href="/track"
               onClick={() => setMobileMenuOpen(false)}
