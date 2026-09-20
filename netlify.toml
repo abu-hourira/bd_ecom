@@ -6,7 +6,7 @@
 
 [build.environment]
   NODE_VERSION = "20"
-  PRISMA_GENERATE_DATAPROXY = "false"
+  PRISMA_CLI_BINARY_TARGETS = "rhel-openssl-3.0.x"
 
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
+[functions]
+  included_files = ["node_modules/.prisma/**", "prisma/**", "data/**"]
