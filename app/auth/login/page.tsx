@@ -18,6 +18,7 @@ import StorefrontFooter from "@/components/storefront/Footer";
 import { useLanguage } from "@/context/LanguageContext";
 import { useFeatures } from "@/context/FeatureFlagContext";
 import { useAuth } from "@/context/AuthContext";
+import GoogleAuthButton from "@/components/auth/GoogleAuthButton";
 
 function LoginContent() {
   const router = useRouter();
@@ -162,6 +163,30 @@ function LoginContent() {
                 : t("auth.loginSubtitle")}
             </p>
           </div>
+
+          {/* Google Sign In */}
+          <div className="space-y-3">
+            <GoogleAuthButton
+              mode="login"
+              callbackUrl={callbackUrl || "/account/profile"}
+            />
+
+            <div className="relative flex items-center justify-center my-2">
+              <div className="border-t border-stone-200 w-full" />
+              <span className="bg-white px-3 text-xs text-stone-400 font-medium uppercase tracking-wider">
+                {locale === "bn" ? "অথবা" : "or"}
+              </span>
+              <div className="border-t border-stone-200 w-full" />
+            </div>
+          </div>
+
+          {searchParams.get("error") === "GoogleAuthNotConfigured" && (
+            <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-medium leading-relaxed">
+              {locale === "bn"
+                ? "গুগল লগইন চালু করতে Netlify Environment Variables-এ GOOGLE_CLIENT_ID ও GOOGLE_CLIENT_SECRET যোগ করুন।"
+                : "Google login is not yet configured. Please add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to environment variables."}
+            </div>
+          )}
 
           {/* Toggle Login Method (Only shown if phone_otp_login is enabled in Feature Toggles) */}
           {phoneOtpEnabled && (

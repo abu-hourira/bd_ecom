@@ -28,7 +28,8 @@ model User {
   name            String
   email           String    @unique
   phone           String?   @unique
-  passwordHash    String
+  googleId        String?   @unique
+  passwordHash    String?
   role            Role      @default(CUSTOMER)
   avatar          String?   @db.Text
   address         String?   @db.Text

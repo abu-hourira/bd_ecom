@@ -19,6 +19,7 @@ import StorefrontHeader from "@/components/storefront/Header";
 import StorefrontFooter from "@/components/storefront/Footer";
 import { useLanguage } from "@/context/LanguageContext";
 import { useAuth } from "@/context/AuthContext";
+import GoogleAuthButton from "@/components/auth/GoogleAuthButton";
 
 function RegisterContent() {
   const router = useRouter();
@@ -174,7 +175,24 @@ function RegisterContent() {
 
           {/* STEP 1: Registration Form */}
           {step === "form" && (
-            <form onSubmit={handleRegister} className="space-y-4">
+            <>
+              {/* Google 1-Click Sign Up */}
+              <div className="space-y-3">
+                <GoogleAuthButton
+                  mode="register"
+                  callbackUrl={callbackUrl || "/account/profile"}
+                />
+
+                <div className="relative flex items-center justify-center my-2">
+                  <div className="border-t border-stone-200 w-full" />
+                  <span className="bg-white px-3 text-xs text-stone-400 font-medium uppercase tracking-wider">
+                    {locale === "bn" ? "অথবা" : "or"}
+                  </span>
+                  <div className="border-t border-stone-200 w-full" />
+                </div>
+              </div>
+
+              <form onSubmit={handleRegister} className="space-y-4">
               <div className="space-y-1.5">
                 <label className="block text-xs font-semibold text-stone-700">
                   {t("auth.fullName")} <span className="text-rose-500">*</span>
@@ -257,7 +275,8 @@ function RegisterContent() {
                 )}
               </button>
             </form>
-          )}
+          </>
+        )}
 
           {/* STEP 2: Email Verification Code Form */}
           {step === "verify" && (
