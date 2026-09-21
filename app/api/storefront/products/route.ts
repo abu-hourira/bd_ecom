@@ -47,7 +47,14 @@ export async function GET(req: NextRequest) {
     // 1. High-Speed Snapshot Engine (0.1ms memory / 0.5ms disk)
     const allProducts = await getStorefrontSnapshot<any[]>("products");
     if (allProducts && Array.isArray(allProducts)) {
-      let filtered = [...allProducts];
+      // Deduplicate products strictly by id to guarantee zero duplicate JSON entries
+      const productMap = new Map();
+      allProducts.forEach((p) => {
+        if (p && p.id && !productMap.has(p.id)) {
+          productMap.set(p.id, p);
+        }
+      });
+      let filtered = Array.from(productMap.values());
 
       if (category && category !== "all") {
         const catLower = category.toLowerCase();

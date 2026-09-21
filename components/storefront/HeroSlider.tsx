@@ -11,11 +11,14 @@ import { useLanguage } from "@/context/LanguageContext";
 interface Banner {
   id: number;
   title: string;
+  headline?: string | null;
   subtitle?: string | null;
   imageUrl: string;
+  targetLink?: string | null;
   targetCategory?: string | null;
   badgeText?: string | null;
-  displayOrder: number;
+  displayOrder?: number;
+  isActive?: boolean;
 }
 
 interface HeroSliderProps {
@@ -29,9 +32,14 @@ export default function HeroSlider({ banners }: HeroSliderProps) {
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const activeBanners = (banners || []).sort(
-    (a, b) => a.displayOrder - b.displayOrder
-  );
+  const activeBanners = (banners || [])
+    .filter(
+      (b) =>
+        b &&
+        b.imageUrl &&
+        (b.isActive === undefined || b.isActive === true)
+    )
+    .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0));
 
   const resetTimer = () => {
     if (timerRef.current) clearInterval(timerRef.current);
@@ -95,9 +103,14 @@ export default function HeroSlider({ banners }: HeroSliderProps) {
       <div className="relative w-full aspect-[2.3/1] sm:aspect-[2.8/1] md:aspect-[3.2/1] max-h-[170px] sm:max-h-[240px] md:max-h-[300px]">
         {activeBanners.map((banner, index) => {
           const isActive = index === currentIndex;
-          const targetUrl = banner.targetCategory
-            ? `/products?category=${banner.targetCategory}`
-            : "/products";
+          const targetUrl =
+            banner.targetLink ||
+            (banner.targetCategory
+              ? `/products?category=${banner.targetCategory}`
+              : "/products");
+          const safeImageUrl = getSafeImageUrl(banner.imageUrl);
+          const isDataUrl = safeImageUrl.startsWith("data:") || safeImageUrl.startsWith("blob:");
+          const badge = banner.headline || banner.badgeText;
 
           return (
             <div
@@ -109,22 +122,23 @@ export default function HeroSlider({ banners }: HeroSliderProps) {
               <Link href={targetUrl} className="block relative w-full h-full">
                 {/* Banner Background Image */}
                 <Image
-                  src={getSafeImageUrl(banner.imageUrl)}
+                  src={safeImageUrl}
                   alt={banner.title || "Promotion Banner"}
                   fill
                   priority={index === 0}
+                  unoptimized={isDataUrl}
                   className="object-cover object-center transform transition-transform duration-7000 ease-out scale-100 group-hover:scale-103"
                   sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, 1200px"
                 />
 
                 {/* Elegant subtle gradient overlay only on bottom text area */}
-                {(banner.title || banner.subtitle || banner.badgeText) && (
+                {(banner.title || banner.subtitle || badge) && (
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-3 sm:p-6 md:p-8">
                     <div className="max-w-md sm:max-w-lg space-y-1 text-white">
-                      {banner.badgeText && (
+                      {badge && (
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-400 text-stone-950 font-extrabold text-[8px] sm:text-[10px] uppercase tracking-wider shadow-xs w-fit">
                           <Sparkles className="w-2.5 h-2.5 text-stone-950" />
-                          <span>{banner.badgeText}</span>
+                          <span>{badge}</span>
                         </span>
                       )}
 

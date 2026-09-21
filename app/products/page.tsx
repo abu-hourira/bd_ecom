@@ -107,7 +107,11 @@ function ProductsContent() {
       .then((res) => res.json())
       .then((data) => {
         if (data.products) {
-          setProducts(data.products);
+          const map = new Map();
+          data.products.forEach((p: any) => {
+            if (p && p.id && !map.has(p.id)) map.set(p.id, p);
+          });
+          setProducts(Array.from(map.values()));
           if (data.pagination) setPagination(data.pagination);
         }
       })
@@ -133,7 +137,16 @@ function ProductsContent() {
       .then((res) => res.json())
       .then((data) => {
         if (data.products) {
-          setProducts((prev) => [...prev, ...data.products]);
+          setProducts((prev) => {
+            const map = new Map();
+            prev.forEach((p: any) => {
+              if (p && p.id) map.set(p.id, p);
+            });
+            data.products.forEach((p: any) => {
+              if (p && p.id && !map.has(p.id)) map.set(p.id, p);
+            });
+            return Array.from(map.values());
+          });
           if (data.pagination) setPagination(data.pagination);
         }
       })

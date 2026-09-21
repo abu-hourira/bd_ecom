@@ -119,8 +119,21 @@ async function main() {
     };
   });
 
-  const featuredProducts = cleanProducts.slice(0, 36);
-  const comboDeals = cleanProducts.filter((p) => p.isCombo).slice(0, 8);
+  // Deduplicate products strictly by id to guarantee zero duplicate JSON entries
+  const productMap = new Map();
+  cleanProducts.forEach((p) => {
+    if (p && p.id && !productMap.has(p.id)) {
+      productMap.set(p.id, p);
+    }
+  });
+  const deduplicatedProducts = Array.from(productMap.values());
+
+  const featuredProducts = deduplicatedProducts.slice(0, 36);
+  const comboDeals = deduplicatedProducts.filter((p) => p.isCombo).slice(0, 8);
+
+  const isPromoBannerEnabled =
+    settingsMap["homepage_promo_banner_enabled"] !== "false" &&
+    featuresMap["homepage_promo_banners"] !== false;
 
   const homePayload = {
     categories,
@@ -128,7 +141,7 @@ async function main() {
     comboDeals,
     settings: settingsMap,
     theme,
-    banners,
+    banners: isPromoBannerEnabled ? banners : [],
   };
 
   fs.mkdirSync(SNAPSHOT_DIR, { recursive: true });
@@ -139,7 +152,7 @@ async function main() {
   );
   fs.writeFileSync(
     path.join(SNAPSHOT_DIR, "products.json"),
-    JSON.stringify(cleanProducts, null, 2)
+    JSON.stringify(deduplicatedProducts, null, 2)
   );
   fs.writeFileSync(
     path.join(SNAPSHOT_DIR, "categories.json"),

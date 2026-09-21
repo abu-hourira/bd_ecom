@@ -1,5 +1,6 @@
 // app/api/admin/banners/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
 import { triggerSnapshotRebuild } from "@/lib/snapshotEngine";
 
@@ -48,6 +49,10 @@ export async function POST(req: NextRequest) {
     });
 
     await triggerSnapshotRebuild().catch(() => {});
+    try {
+      revalidatePath("/", "layout");
+      revalidatePath("/products");
+    } catch (e) {}
 
     return NextResponse.json({ success: true, banner }, { status: 201 });
   } catch (error: any) {
@@ -86,6 +91,10 @@ export async function PUT(req: NextRequest) {
     ]);
 
     await triggerSnapshotRebuild().catch(() => {});
+    try {
+      revalidatePath("/", "layout");
+      revalidatePath("/products");
+    } catch (e) {}
 
     return NextResponse.json({
       success: true,

@@ -1,5 +1,6 @@
 // app/api/admin/banners/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
 import { triggerSnapshotRebuild } from "@/lib/snapshotEngine";
 
@@ -26,6 +27,10 @@ export async function PATCH(
     });
 
     await triggerSnapshotRebuild().catch(() => {});
+    try {
+      revalidatePath("/", "layout");
+      revalidatePath("/products");
+    } catch (e) {}
 
     return NextResponse.json({ success: true, banner: updated });
   } catch (error: any) {
@@ -43,6 +48,10 @@ export async function DELETE(
 
     await prisma.promotionBanner.delete({ where: { id: bannerId } });
     await triggerSnapshotRebuild().catch(() => {});
+    try {
+      revalidatePath("/", "layout");
+      revalidatePath("/products");
+    } catch (e) {}
 
     return NextResponse.json({ success: true, message: "Banner deleted successfully." });
   } catch (error: any) {

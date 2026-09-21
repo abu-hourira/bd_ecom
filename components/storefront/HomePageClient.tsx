@@ -134,13 +134,13 @@ export default function HomePageClient({ initialData }: { initialData: any }) {
   }, [isCatHovered, slideCatRight]);
 
   useEffect(() => {
+    // 1. If initialData is provided, display it immediately (0ms delay)
     if (initialData?.featuredProducts?.length) {
       setCachedHomeData(initialData);
       setLoading(false);
-      return;
     }
 
-    // Dynamic SWR fetch from live database API
+    // 2. Background SWR fetch from live database API so new banners, toggles, and updates reflect immediately
     fetch("/api/storefront/home")
       .then((res) => res.json())
       .then((json) => {
@@ -154,8 +154,19 @@ export default function HomePageClient({ initialData }: { initialData: any }) {
   }, [initialData]);
 
   const categories = data?.categories || [];
-  const products = data?.featuredProducts || [];
-  const comboDeals = data?.comboDeals || [];
+  const rawProducts = data?.featuredProducts || [];
+  const productMap = new Map();
+  rawProducts.forEach((p: any) => {
+    if (p && p.id && !productMap.has(p.id)) productMap.set(p.id, p);
+  });
+  const products = Array.from(productMap.values());
+
+  const rawCombos = data?.comboDeals || [];
+  const comboMap = new Map();
+  rawCombos.forEach((p: any) => {
+    if (p && p.id && !comboMap.has(p.id)) comboMap.set(p.id, p);
+  });
+  const comboDeals = Array.from(comboMap.values());
   const banners = data?.banners || [];
 
   const filteredProducts = products.filter((p: any) => {

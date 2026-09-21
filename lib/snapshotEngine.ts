@@ -2,6 +2,7 @@
 
 import { writeFile, readFile, mkdir } from "fs/promises";
 import path from "path";
+import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
 import { serverCache } from "@/lib/serverCache";
 import { getProductImages, getSafeImageUrl } from "@/lib/utils";
@@ -149,7 +150,16 @@ export async function generateStorefrontSnapshots(): Promise<StorefrontSnapshots
         featuresMap["homepage_promo_banners"] !== false;
 
       const serializedProducts = serializePrisma(allProducts);
-      const cardOptimizedProducts = sanitizeProductCards(serializedProducts);
+      const rawCardProducts = sanitizeProductCards(serializedProducts);
+
+      // Deduplicate products strictly by id to guarantee zero duplicate JSON entries
+      const productMap = new Map();
+      rawCardProducts.forEach((p) => {
+        if (p && p.id && !productMap.has(p.id)) {
+          productMap.set(p.id, p);
+        }
+      });
+      const cardOptimizedProducts = Array.from(productMap.values());
       const featuredProducts = cardOptimizedProducts.slice(0, 36);
       const comboDeals = cardOptimizedProducts.filter((p) => p.isCombo).slice(0, 8);
 
@@ -263,5 +273,15 @@ export async function triggerSnapshotRebuild(): Promise<StorefrontSnapshots | nu
   serverCache.invalidateTag("theme");
   serverCache.invalidateTag("banners");
   serverCache.invalidateTag("features");
-  return generateStorefrontSnapshots();
+
+  const snapshots = await generateStorefrontSnapshots();
+
+  try {
+    revalidatePath("/", "layout");
+    revalidatePath("/products");
+  } catch (e) {
+    // revalidatePath might not be called in CLI context
+  }
+
+  return snapshots;
 }
